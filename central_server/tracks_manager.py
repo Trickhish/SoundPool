@@ -1,11 +1,12 @@
 import os
 from configuration import load_config
 import deezer as dz
+import requests
 
 config=None
 
-config=load_config("/home/trickish/dzdl_config.ini")
-dz.init_deezer_session(config, config['proxy']['server'])
+config=load_config("cs_config.ini")
+dz.init_deezer_session(config)
 
 
 def search(q):
@@ -46,7 +47,7 @@ def download_song_and_get_absolute_filename(search_type, song, playlist_name=Non
         print("Skipping song '{}'. Already exists.".format(absolute_filename))
     else:
         print("Downloading '{}'".format(song_filename))
-        download_song(song, absolute_filename)
+        dz.download_song(song, absolute_filename)
     return absolute_filename
 
 
@@ -112,16 +113,53 @@ def download(id, type="track"):
     desc = f"Downloading {id}"
 
     song = dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, id)
+    print(song)
     fn = download_song_and_get_absolute_filename(dz.TYPE_TRACK, song)
     update_mpd_db(fn, False)
     return(make_song_paths_relative_to_mpd_root([fn]))
 
-print(config["deezer"]["cookie_arl"])
 
-r=search("le sanglier")
-print(r[0])
+
+def getDownloadData(song):
+    song_quality = 3 if song.get("FILESIZE_MP3_320") and song.get("FILESIZE_MP3_320") != '0' else \
+                   5 if song.get("FILESIZE_MP3_256") and song.get("FILESIZE_MP3_256") != '0' else \
+                   1
+
+    urlkey = dz.genurlkey(song["SNG_ID"], song["MD5_ORIGIN"], song["MEDIA_VERSION"], song_quality)
+    key = dz.calcbfkey(song["SNG_ID"])
+    try:
+        url = "https://e-cdns-proxy-%s.dzcdn.net/mobile/1/%s" % (song["MD5_ORIGIN"][0], urlkey.decode())
+
+        return(url, key)
+
+    except Exception as e:
+        raise
+
+
+def downloadSong(song, url, key):
+    fh = requests.get(url, stream=True)
+    output_file="out.mp3"
+
+    with open(output_file, "w+b") as fo:
+        dz.writeid3v2(fo, song)
+        dz.decryptfile(fh, key, fo)
+        dz.writeid3v1_1(fo, song)
+
+
+#print(config["deezer"]["cookie_arl"])
+
+#r=search("emmenez moi")
+#print(r[0])
 
 #print(config["mpd"]["music_dir_root"])
 
-rt=download(r[0]["id"])
-print(rt)
+#song = dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, r[0]["id"])
+
+#url,key = getDownloadData(song)
+
+#print(url, key)
+
+#downloadSong(song, url, key)
+
+#rt=download(r[0]["id"])
+#print(rt)

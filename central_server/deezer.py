@@ -24,7 +24,7 @@ TYPE_ALBUM_TRACK = "album_track" # used for listing songs of an album
 session = None
 
 
-def init_deezer_session(config, proxy_server):
+def init_deezer_session(config):
     global session
     header = {
         'Pragma': 'no-cache',
@@ -43,9 +43,9 @@ def init_deezer_session(config, proxy_server):
     session = requests.session()
     session.headers.update(header)
     session.cookies.update({'arl': config['deezer']['cookie_arl'], 'comeback': '1'})
-    if len(proxy_server.strip()) > 0:
-        print(f"Using proxy {proxy_server}")
-        session.proxies.update({"https": proxy_server})
+    #if len(proxy_server.strip()) > 0:
+    #    print(f"Using proxy {proxy_server}")
+    #    session.proxies.update({"https": proxy_server})
 
 
 class Deezer404Exception(Exception):
@@ -338,6 +338,7 @@ def download_song(song, output_file):
     key = calcbfkey(song["SNG_ID"])
     try:
         url = "https://e-cdns-proxy-%s.dzcdn.net/mobile/1/%s" % (song["MD5_ORIGIN"][0], urlkey.decode())
+
         fh = session.get(url)
         if fh.status_code != 200:
             # I don't why this happens. to reproduce:
