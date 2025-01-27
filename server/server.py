@@ -112,14 +112,16 @@ def download(id, type="track"):
     desc = f"Downloading {id}"
 
     song = dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, id)
-    absolute_filename = download_song_and_get_absolute_filename(dz.TYPE_TRACK, song)
-    update_mpd_db(absolute_filename, False)
-    return make_song_paths_relative_to_mpd_root([absolute_filename])
+    fn = download_song_and_get_absolute_filename(dz.TYPE_TRACK, song)
+    update_mpd_db(fn, False)
+    return(make_song_paths_relative_to_mpd_root([fn]))
 
-
+print(config["deezer"]["cookie_arl"])
 
 r=search("le sanglier")
 print(r[0])
+
+#print(config["mpd"]["music_dir_root"])
 
 rt=download(r[0]["id"])
 print(rt)
