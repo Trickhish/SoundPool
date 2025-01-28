@@ -6,17 +6,14 @@ import aiohttp
 import aiofiles
 import asyncio
 from binascii import a2b_hex, b2a_hex
+import os
 
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def downloadpicture(cvid, size=200):
-    url = f"https://e-cdns-images.dzcdn.net/images/cover/{cvid}/{size}x{size}.jpg"
-    return(requests.get(url, stream=True))
-
-async def Adownloadpicture(cvid, size=200):
+async def downloadpicture(cvid, size=200):
     url = f"https://e-cdns-images.dzcdn.net/images/cover/{cvid}/{size}x{size}.jpg"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
@@ -136,7 +133,7 @@ async def writeid3v2(fo, song, cover=True, cover_size=200):
 
     if cover:
         try:
-            id3.append(maketag("APIC", makepic(Adownloadpicture(song["ALB_PICTURE"], cover_size))))
+            id3.append(maketag("APIC", makepic(await downloadpicture(song["ALB_PICTURE"], cover_size))))
         except Exception as e:
             print("ERROR: no album cover?", e)
 
@@ -154,10 +151,10 @@ async def writeid3v2(fo, song, cover=True, cover_size=200):
                       0x00,    # flags
                       make28bit(len(id3data)))
 
-    await asyncio.to_thread(fo.write, hdr)
-    await asyncio.to_thread(fo.write, id3data)
-    #fo.write(hdr)
-    #fo.write(id3data)
+    #await asyncio.to_thread(fo.write, hdr)
+    #await asyncio.to_thread(fo.write, id3data)
+    await fo.write(hdr)
+    await fo.write(id3data)
 
 async def blowfishDecrypt(data, key):
     iv = a2b_hex("0001020304050607")
@@ -173,21 +170,35 @@ async def decryptfile(fh, key, fo):
     blockSize = 2048
     i = 0
 
-    async for data in fh.iter_content(blockSize):
-        if not data:
+
+
+    async for data in fh.iter_any(): # fh.iter_content(blockSize)
+        if data is None or len(data) == 0:
             break
 
-        isEncrypted = ((i % 3) == 0)
-        isWholeBlock = len(data) == blockSize
+        #isEncrypted = ((i % 3) == 0)
+        #isWholeBlock = len(data) == blockSize
 
-        if isEncrypted and isWholeBlock:
-            #data = blowfishDecrypt(data, key)
-            data = await asyncio.to_thread(blowfishDecrypt, data, key)
+        #if isEncrypted and isWholeBlock:
+        #    data = await asyncio.to_thread(blowfishDecrypt, data, key)
+        #    #data = await blowfishDecrypt(data, key)
 
-        #fo.write(data)
-        await asyncio.to_thread(fo.write, data)
+        #await fo.write(data)
+        #await asyncio.to_thread(fo.write, data)
         i += 1
 
+async def decryptfile2(fh, key, fo):
+
+    blockSize = 2048
+    i = 0
+
+    print(fh)
+
+    for data in fh.iter_content(blockSize):
+        if data is None or len(data) == 0:
+            break
+
+        i+=1
 
 
 async def writeid3v1_1(fo, song):
@@ -220,29 +231,27 @@ async def writeid3v1_1(fo, song):
                        255                                                # genre
                        )
 
-    #fo.write(data)
-    await asyncio.to_thread(fo.write, data)
+    await fo.write(data)
+    #await asyncio.to_thread(fo.write, data)
 
 
-
-
-def downloadSong(song, url, key, output_file="out.mp3", cover=True, cover_size=200):
-    fh = requests.get(url, stream=True)
-
-    print(output_file)
-
-    with open(output_file, "w+b") as fo:
-        writeid3v2(fo, song, cover, cover_size)
-        decryptfile(fh, key, fo)
-        writeid3v1_1(fo, song)
-
-
-async def AdownloadSong(song, url, key, output_file="out.mp3", cover=True, cover_size=200):
+async def downloadSong(song, url, key, output_file="out.mp3", cover=True, cover_size=200):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as fh:
             print(output_file)
 
+            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
             async with aiofiles.open(output_file, "w+b") as fo:
-                await asyncio.to_thread(writeid3v2, fo, song, cover, cover_size)
-                await asyncio.to_thread(decryptfile, fh, key, fo)
-                await asyncio.to_thread(writeid3v1_1, fo, song)
+               ##await writeid3v2(fo, song, cover, cover_size)
+
+               #await decryptfile(fh, key, fo)
+
+               #await asyncio.to_thread(decryptfile2, fh, key, fo)
+               await decryptfile2(fh, key, fo)
+
+               ##await writeid3v1_1(fo, song)
+
+               #await asyncio.to_thread(writeid3v2, fo, song, cover, cover_size)
+               #await asyncio.to_thread(decryptfile, fh, key, fo)
+               #await asyncio.to_thread(writeid3v1_1, fo, song)

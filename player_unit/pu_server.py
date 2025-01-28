@@ -64,7 +64,7 @@ async def runSocket():
 
                             print(f"💿 Donwloading {song_name} ...")
 
-                            await dz.AdownloadSong(song,url,key,
+                            await dz.downloadSong(song,url,key,
                                         song_path,
                                         config["player_unit"]["download_covers"].lower()=="true",
                                         config["player_unit"]["cover_size"]

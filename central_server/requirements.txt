@@ -3,3 +3,5 @@ pycryptodome==3.21.0
 pydantic==2.10.6
 Requests==2.32.3
 SQLAlchemy==2.0.37
+uvicorn
+websockets

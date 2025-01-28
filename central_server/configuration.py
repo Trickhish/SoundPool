@@ -2,8 +2,11 @@ import sys
 import os
 from pathlib import Path
 from configparser import ConfigParser
+from dotenv import load_dotenv
 
 config = None
+
+load_dotenv()
 
 
 def load_config(config_abs):
@@ -23,6 +26,6 @@ def load_config(config_abs):
 
     if len(config["deezer"]["cookie_arl"].strip()) == 0:
         print("ERROR: cookie_arl must not be empty")
-        sys.exit(1)
+        raise Exception("DEEZER_COOKIE_ARL environment variable not set.")
     
     return(config)

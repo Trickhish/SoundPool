@@ -22,17 +22,16 @@ config = load_config("cs_config.ini")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global arl
-    print("Initializing the application...")
+    global config
 
-    if "DEEZER_COOKIE_ARL" in os.environ.keys():
-        arl = os.environ["DEEZER_COOKIE_ARL"]
-    else:
-        raise HTTPException(status_code=500, detail="DEEZER_COOKIE_ARL environment variable not set.")
+    if not config["deezer"]["cookie_arl"]:
+        raise Exception("cookie_arl must be defined either in the config file or via the DEEZER_COOKIE_ARL variable (.env files will be loaded)")
+
+    print("🟢 CentralServer is up and ready")
 
     yield
 
-    print("Shutting down the application...")
+    print("⛔ Shutting down the CentralServer...")
 
 # FastAPI initialization
 app = FastAPI(lifespan=lifespan)
@@ -42,7 +41,6 @@ DATABASE_URL = "sqlite:///./music_rooms.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-arl=""
 
 
 
@@ -261,10 +259,3 @@ def vote_to_skip(room_id: int, username: str, is_admin: bool = False, db: Sessio
     
     return {"message": f"Vote to skip recorded. Current votes: {current_track.votes_to_skip}"}
 
-
-
-
-
-
-#Init
-   
