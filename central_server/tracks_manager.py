@@ -2,6 +2,7 @@ import os
 from configuration import load_config
 import deezer as dz
 import requests
+from io import BytesIO
 
 config=None
 
@@ -136,15 +137,26 @@ def getDownloadData(song):
         raise
 
 
-def downloadSong(song, url, key):
+def downloadSong(song, url, key, output_file="out.mp3"):
     fh = requests.get(url, stream=True)
-    output_file="out.mp3"
 
     with open(output_file, "w+b") as fo:
         dz.writeid3v2(fo, song)
         dz.decryptfile(fh, key, fo)
         dz.writeid3v1_1(fo, song)
 
+def getSong(song, url, key):
+    fh = requests.get(url, stream=True)
+
+    out = BytesIO()
+
+    dz.writeid3v2(out, song)
+    dz.decryptfile(fh, key, out)
+    dz.writeid3v1_1(out, song)
+
+    out.seek(0)
+
+    return out.getvalue()
 
 #print(config["deezer"]["cookie_arl"])
 

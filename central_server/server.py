@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from typing import List, Optional
@@ -167,6 +168,19 @@ async def send_command(command: str):
 @app.get("/")
 def none_handler():
     return("SoundPool API is running")
+
+@app.get("/song/{song_id}")
+def handle_getsong(song_id: int):
+    song = dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, song_id)
+    url,key = tm.getDownloadData(song)
+
+    print(url, key)
+
+    filename = str(song_id)+".mp3"
+
+    r=tm.downloadSong(song, url, key, filename)
+
+    return(FileResponse(path=filename, filename=filename, media_type='text/mp3'))
 
 
 @app.get("/rooms", response_model=List[str])
