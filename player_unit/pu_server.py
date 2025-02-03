@@ -63,6 +63,7 @@ async def runSocket():
                             song_path = os.path.join(config["download_dirs"]["songs"], artist_name+" - "+song_name+".mp3")
 
                             print(f"💿 Donwloading {song_name} ...")
+                            print(url)
 
                             await dz.downloadSong(song,url,key,
                                         song_path,
@@ -70,7 +71,7 @@ async def runSocket():
                                         config["player_unit"]["cover_size"]
                             )
 
-                            print(f"    ➤ Done")
+                            print(f"    ➤ Done - {song_path}")
                             
                     except KeyboardInterrupt:
                         quit()
