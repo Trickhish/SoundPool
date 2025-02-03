@@ -98,19 +98,24 @@ class AsyncPlayer:
 
 
 async def runPlayer(player):
-    player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\1.mp3")
-    player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\2.mp3")
-    player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\3.mp3")
+    print("🎵 Player ready to play")
+    #player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\1.mp3")
+    #player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\2.mp3")
+    #player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\3.mp3")
 
     await player.play()
 
     await asyncio.sleep(5)
+
+    print("PAUSING")
     player.pause()
+
     await asyncio.sleep(2)
+
+    print("NEXT")
     await player.next_song()
+
     await asyncio.sleep(3)
+
+    print("GOTO 10")
     player.go_to_timestamp(10)
-
-    player.add_to_playlist('song3.mp3')
-
-    await asyncio.sleep(3)

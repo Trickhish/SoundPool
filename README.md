@@ -7,4 +7,8 @@ An app that allows the creation of a music pool where people can add/vote for so
 
 ## Player Unit
 
-Requires the `libasound2-dev` package
+### Linux
+The `libasound2-dev` package is required
+
+### Windowsé
+[`ffmpeg`](https://ffmpeg.org/download.html#build-windows) is required as well as [`C++ Build Tools`](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
