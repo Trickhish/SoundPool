@@ -1,5 +1,7 @@
 import asyncio
-
+import os
+from pydub import AudioSegment
+import simpleaudio as sa
 
 class AsyncPlayer:
     def __init__(self):
