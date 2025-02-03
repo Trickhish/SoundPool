@@ -8,11 +8,11 @@ from enum import Enum
 
 import configuration as cfg
 import deezer2 as dz
+import music_player as mp
 
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class Status(Enum):
     STARTING = 1
@@ -86,7 +86,17 @@ async def runSocket():
             time.sleep(5)
         time.sleep(5)
 
-try:
-    asyncio.run(runSocket())
-except KeyboardInterrupt:
-    quit()
+async def main():
+    player = mp.AsyncPlayer()
+
+    task1 = asyncio.create_task(runSocket())
+    task2 = asyncio.create_task(mp.runPlayer(player))
+
+    await task1
+    await task2
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        quit()
