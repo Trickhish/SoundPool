@@ -239,6 +239,8 @@ async def downloadSong(song, url, key, output_file="out.mp3", cover=True, cover_
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as fh:
             print(output_file)
+            sc = fh.status
+            print(sc)
 
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
