@@ -98,9 +98,9 @@ class AsyncPlayer:
 
 
 async def runPlayer(player):
-    player.add_to_playlist('C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\1.mp3')
-    player.add_to_playlist('C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\2.mp3')
-    player.add_to_playlist('C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\3.mp3')
+    player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\1.mp3")
+    player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\2.mp3")
+    player.add_to_playlist(r"C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\3.mp3")
 
     await player.play()
 
