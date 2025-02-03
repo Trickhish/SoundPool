@@ -46,10 +46,9 @@ async def runSocket():
 
                 while True:
                     try:
-                        r = await ws.recv()
-                        print(f"Received command: {r}")
+                        ro = await ws.recv()
 
-                        r = json.loads(r)
+                        r = json.loads(ro)
 
                         if r[0]=="play":
                             print("Playing the music.")
@@ -63,7 +62,6 @@ async def runSocket():
                             song_path = os.path.join(config["download_dirs"]["songs"], artist_name+" - "+song_name+".mp3")
 
                             print(f"💿 Donwloading {song_name} ...")
-                            print(url)
 
                             await dz.downloadSong(song,url,key,
                                         song_path,
@@ -72,6 +70,8 @@ async def runSocket():
                             )
 
                             print(f"    ➤ Done - {song_path}")
+                        else:
+                            print(f"Received command: {ro}")
                             
                     except KeyboardInterrupt:
                         quit()

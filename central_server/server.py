@@ -16,7 +16,7 @@ import tracks_manager as tm
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 config = load_config("cs_config.ini")
@@ -111,6 +111,26 @@ class PlayerUnit():
         self.ws=ws
         self.id = str(uuid4())
         self.name = None
+    
+    def sendTest(self):
+        rr=tm.search("emmenez moi")
+        print(rr[0])
+
+        #song = await asyncio.to_thread(dz.get_song_infos_from_deezer_website, dz.TYPE_TRACK, rr[0]["id"])
+        song = dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, rr[0]["id"])
+
+        #song, url, extension, key = await asyncio.to_thread(tm.getDownloadData, song)
+        song, url, extension, key = tm.getDownloadData(song)
+
+        asyncio.run(self.ws.send_text(json.dumps([
+            "download", song, url, key
+        ])))
+
+        #await websocket.send_text(json.dumps([
+        #    "download", song, url, key
+        #]))
+
+        print(f"{song['SNG_TITLE']} download data sent")
 
 units: List[PlayerUnit] = []
 
@@ -131,20 +151,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 thisPlayerUnit.name = pun
                 print(f"📯🚀 Identified PU_{thisPlayerUnit.id[:4]} as {pun}")
 
-                rr=tm.search("emmenez moi")
-                print(rr[0])
-
-                #song = await dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, rr[0]["id"])
-                song = await asyncio.to_thread(dz.get_song_infos_from_deezer_website, dz.TYPE_TRACK, rr[0]["id"])
-
-                #url,key = tm.getDownloadData(song)
-                song, url, extension, key = await asyncio.to_thread(tm.getDownloadData, song)
-
-                await websocket.send_text(json.dumps([
-                    "download", song, url, key
-                ]))
-
-                print(f"{song['SNG_TITLE']} download data sent")
+                await asyncio.to_thread(thisPlayerUnit.sendTest)
 
             #await websocket.send_text(f"Command received: {data}")
     except WebSocketDisconnect:
