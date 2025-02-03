@@ -27,5 +27,6 @@ def load_config(config_abs):
     if len(config["deezer"]["cookie_arl"].strip()) == 0:
         print("ERROR: cookie_arl must not be empty")
         raise Exception("DEEZER_COOKIE_ARL environment variable not set.")
+    print(f"ARL: {config['deezer']['cookie_arl']}")
     
     return(config)

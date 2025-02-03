@@ -9,6 +9,30 @@ config=None
 config=load_config("cs_config.ini")
 dz.init_deezer_session(config)
 
+dzhds={}
+
+def setDzHds(config):
+    global dzhds
+
+    cookies = {'arl': config['deezer']['cookie_arl'], 'comeback': '1'}
+
+    dzhds = {
+        'Pragma': 'no-cache',
+        'Origin': 'https://www.deezer.com',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': '*/*',
+        'Cache-Control': 'no-cache',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Connection': 'keep-alive',
+        'Referer': 'https://www.deezer.com/login',
+        'DNT': '1',
+        "Cookie": ("; ".join(f"{key}={value}" for key, value in cookies.items()))
+    }
+
+
 
 def search(q):
     r = dz.deezer_search(q, "track")
@@ -138,7 +162,17 @@ def getDownloadData(song):
 
 
 def downloadSong(song, url, key, output_file="out.mp3"):
-    fh = requests.get(url, stream=True)
+    global config
+    global dzhds
+    setDzHds(config)
+
+    fh = requests.get(url, stream=True, headers=dzhds)
+
+    sc = fh.status_code
+    if (sc >= 300):
+        print(fh.headers)
+        print(fh.text)
+        raise Exception(f"Failed to download song ({sc})")
 
     with open(output_file, "w+b") as fo:
         dz.writeid3v2(fo, song)
