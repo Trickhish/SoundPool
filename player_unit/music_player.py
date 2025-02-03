@@ -18,10 +18,13 @@ class AsyncPlayer:
             return
 
         # Load the current track
-        current_file = self.playlist[self.current_index]
-        print(f"Playing {current_file}...")
-        audio = AudioSegment.from_mp3(current_file)
-        self.current_audio = audio
+        try:
+            current_file = self.playlist[self.current_index]
+            print(f"Playing {current_file}...")
+            audio = AudioSegment.from_mp3(current_file)
+            self.current_audio = audio
+        except Exception as e:
+            print(f"Failed to play: {e}")
 
         # Play the audio asynchronously
         self.playing = True
@@ -95,9 +98,9 @@ class AsyncPlayer:
 
 
 async def runPlayer(player):
-    player.add_to_playlist('songs/1.mp3')
-    player.add_to_playlist('songs/2.mp3')
-    player.add_to_playlist('songs/3.mp3')
+    player.add_to_playlist('C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\1.mp3')
+    player.add_to_playlist('C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\2.mp3')
+    player.add_to_playlist('C:\Users\charl\Desktop\projects\soundpool\player_unit\songs\3.mp3')
 
     await player.play()
 
