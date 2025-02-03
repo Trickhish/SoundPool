@@ -138,7 +138,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 song = await asyncio.to_thread(dz.get_song_infos_from_deezer_website, dz.TYPE_TRACK, rr[0]["id"])
 
                 #url,key = tm.getDownloadData(song)
-                url,key = await asyncio.to_thread(tm.getDownloadData, song)
+                song, url, extension, key = await asyncio.to_thread(tm.getDownloadData, song)
 
                 await websocket.send_text(json.dumps([
                     "download", song, url, key

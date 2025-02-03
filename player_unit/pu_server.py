@@ -7,11 +7,11 @@ import os
 from enum import Enum
 
 import configuration as cfg
-import deezer as dz
+import deezer2 as dz
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class Status(Enum):

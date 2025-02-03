@@ -149,35 +149,32 @@ def getDownloadData(song):
     song_quality = 3 if song.get("FILESIZE_MP3_320") and song.get("FILESIZE_MP3_320") != '0' else \
                    5 if song.get("FILESIZE_MP3_256") and song.get("FILESIZE_MP3_256") != '0' else \
                    1
+    
+    song, url, extension = dz.get_song_url(song, song_quality)
+    if (not "mp3" in extension):
+        raise Exception(f"Extension isn't mp3 but {extension}")
 
-    urlkey = dz.genurlkey(song["SNG_ID"], song["MD5_ORIGIN"], song["MEDIA_VERSION"], song_quality)
     key = dz.calcbfkey(song["SNG_ID"])
-    try:
-        url = "https://e-cdns-proxy-%s.dzcdn.net/mobile/1/%s" % (song["MD5_ORIGIN"][0], urlkey.decode())
 
-        return(url, key)
+    return(song, url, extension, key)
 
-    except Exception as e:
-        raise
 
 
 def downloadSong(song, url, key, output_file="out.mp3"):
-    global config
-    global dzhds
-    setDzHds(config)
+    try:
+        with requests.get(url, stream=True) as response:
+            response.raise_for_status()
+            with open(output_file, "w+b") as fo:
+                dz.writeid3v2(fo, song)
+                dz.decryptfile(response, key, fo)
+                dz.writeid3v1_1(fo, song)
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Download failed: {e}")
+    else:
+        print("Dowload finished: {}".format(output_file))
 
-    fh = requests.get(url, stream=True, headers=dzhds)
 
-    sc = fh.status_code
-    if (sc >= 300):
-        print(fh.headers)
-        print(fh.text)
-        raise Exception(f"Failed to download song ({sc})")
 
-    with open(output_file, "w+b") as fo:
-        dz.writeid3v2(fo, song)
-        dz.decryptfile(fh, key, fo)
-        dz.writeid3v1_1(fo, song)
 
 def getSong(song, url, key):
     fh = requests.get(url, stream=True)
@@ -191,21 +188,3 @@ def getSong(song, url, key):
     out.seek(0)
 
     return out.getvalue()
-
-#print(config["deezer"]["cookie_arl"])
-
-#r=search("emmenez moi")
-#print(r[0])
-
-#print(config["mpd"]["music_dir_root"])
-
-#song = dz.get_song_infos_from_deezer_website(dz.TYPE_TRACK, r[0]["id"])
-
-#url,key = getDownloadData(song)
-
-#print(url, key)
-
-#downloadSong(song, url, key)
-
-#rt=download(r[0]["id"])
-#print(rt)
