@@ -61,7 +61,7 @@
 }
 
 #logo {
-    height: 9em;
+    height: 7em;
 }
 
 #valbt {
@@ -72,6 +72,11 @@
 
 .content {
     font-size: 5vh;
+}
+
+#bottom_msg {
+    margin:0;
+    margin-top:5px;
 }
 
 @media screen and (max-aspect-ratio: 1/1) {

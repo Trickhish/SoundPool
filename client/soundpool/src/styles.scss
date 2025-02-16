@@ -1,3 +1,17 @@
+@font-face {
+    font-family: quicksand;
+    src: url('/fonts/quicksand.ttf');
+}
+
+@font-face {
+    font-family: nunito;
+    src: url('/fonts/nunito.ttf');
+}
+
+* {
+    font-family: nunito;
+}
+
 :root {
     --main-color: #c2377e; /* #345c8b */
 
@@ -59,6 +73,10 @@ button {
     cursor: pointer;
     background-color: var(--main-color);
     backface-visibility: hidden;
+}
+
+a {
+    color: var(--main-color);
 }
 
 @media only screen and (max-width: 850px) {
