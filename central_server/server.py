@@ -71,12 +71,13 @@ class Room(Base):
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, nullable=False)
+    username = Column(String, nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+    email = Column(String, unique=True, nullable=True)
 
 # Relationships
-Room.tracks = relationship("Track", back_populates="room")
-Track.room = relationship("Room", back_populates="tracks")
+#Room.tracks = relationship("Track", back_populates="room")
+#Track.room = relationship("Room", back_populates="tracks")
 
 
 
@@ -131,6 +132,9 @@ class PlayerUnit():
         #]))
 
         print(f"{song['SNG_TITLE']} download data sent")
+    
+    def play(self):
+        return
 
 units: List[PlayerUnit] = []
 

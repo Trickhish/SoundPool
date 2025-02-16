@@ -1,8 +1,67 @@
+:root {
+    --main-color: #c2377e; /* #345c8b */
+
+    --bg-color: #12121e;
+
+    --bg-gradient: linear-gradient(15deg, #c02b6a 0%, #447dd8 50%, #060b1c 100%) center;;
+    /* linear-gradient(15deg, #1dc9a3 0%, #1d516e 50%, #06071c 100%) center; */
+
+    --lg-bg: linear-gradient(15deg, #1dc9a3 0%, #1d516e 50%, #06071c 100%) center;
+    --font-color: white;
+    --client-hover-filter: brightness(1.15);
+    --sw-on-bg: var(--main-color);
+    --sw-off-bg: #373e4b;
+    --sw-color: white;
+    --card-bg: #1e1e2c;
+    --sidebar-bg: #1d1d29;
+    --sidebt-color: #c2c3cc;
+    --inp-bg: #21242a;
+    --inp-hover-bg: #22262c;
+    --inp-focus-bg: #25282e;
+    --inp-focus-bd: #595959;
+    --inp-bd: #404040;
+    --ctn-shadow: 0 2px 3px 1px #070b20;
+    --ctn-bg: #16171b;
+    --ctn-bd: #213752;
+    --btm-color: #213752;
+    --icon-bg: #415e81;
+    --left-btns-color: #687e99;
+    --subctn-color: #151a23;
+}
+
 body {
     margin:0;
     padding:0;
 }
 
+input {
+    background-color: var(--inp-bg);
+    border: solid 1px var(--inp-bd);
+    border-radius: 8px;
+    padding: 9px 7px;
+    font-size: 1em;
+    color: var(--font-color);
+    display: block;
+    margin: 7px auto;
+    transition: all .2s ease-in-out;
+    max-width: calc(100% - 14px);
+}
+
+button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 9px;
+    font-size: 1em;
+    color: black;
+    display: block;
+    margin: 7px auto;
+    transition: all .2s ease-in-out;
+    cursor: pointer;
+    background-color: var(--main-color);
+    backface-visibility: hidden;
+}
+
 @media only screen and (max-width: 850px) {
     
 }
+

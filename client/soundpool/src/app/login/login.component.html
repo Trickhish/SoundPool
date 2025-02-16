@@ -1,0 +1,17 @@
+<div id="main">
+    <div id="login_ctn">
+        <img id="logo" src="/soundpool.png" />
+
+        <p id="err"></p>
+
+        <form id="login_form" method="POST">
+            <input onkeydown="resetErr();" onchange="resetErr();" type="text" id="user" autocomplete="username" name="username" placeholder="Nom d'utilisateur" required />
+            <div id="pass_ctn">
+                <input onkeydown="resetErr();" onchange="resetErr();" type="password" id="pass" name="password" autocomplete="current-password" placeholder="Mot de passe" required />
+                <fa-icon id='pass_eye' onclick="showPass();" [icon]="['far', 'eye']"></fa-icon>
+            </div>
+
+            <button type="submit" id="valbt">Continuer</button>
+        </form>
+    </div>
+</div>
