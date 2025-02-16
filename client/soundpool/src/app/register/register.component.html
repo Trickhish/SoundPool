@@ -1,0 +1,18 @@
+<div id="main">
+    <div id="login_ctn">
+        <img id="logo" src="/soundpool.png" />
+
+        <p id="err"></p>
+
+        <form (submit)="login()" id="login_form" method="POST">
+            <input [(ngModel)]="username" (keydown)="resetErr()" (change)="resetErr()" type="text" id="user" autocomplete="username" name="username" [placeholder]="'username' | translate" required />
+            <div id="pass_ctn">
+                <input [(ngModel)]="password" (keydown)="resetErr()" (change)="resetErr()" [type]="this.passwordVisible ? 'text' : 'password'" id="pass" name="password" autocomplete="current-password" [placeholder]="'password' | translate" required />
+                <fa-icon id='pass_eye' (click)="showPass();" [icon]="this.passwordVisible ? ['far', 'eye-slash']: ['far', 'eye']"></fa-icon>
+            </div>
+
+            <button type="submit" id="valbt">{{'continue' | translate}}</button>
+        </form>
+        <p id="bottom_msg">{{'already_account_msg' | translate}} <a href="/login">{{'here' | translate}}</a></p>
+    </div>
+</div>
