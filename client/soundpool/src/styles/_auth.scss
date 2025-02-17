@@ -1,0 +1,105 @@
+.main {
+    background-size: 100% 100% !important;
+    background: var(--bg-gradient);
+    height: 100dvh;
+
+    margin:0;
+    padding:0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+    color: white;
+    text-align: center;
+}
+
+.auth_ctn {
+    background-color: var(--ctn-bg);
+    box-shadow: var(--ctn-shadow);
+    /*height: 50%;
+    width: 50%;*/
+    border-radius: 1.5em;
+    text-align: center;
+    max-width: 670px;
+
+    height: max-content;
+    min-width: 40%;
+    width: max-content;
+    padding: 1.5em 0;
+
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+
+
+    .pass {
+        width: calc(100% - 4em);
+        padding-right: 2em;
+    }
+    .auth_form {
+        width: max-content;
+        margin: 0 auto;
+        height: max-content;
+    }
+    .pass_eye {
+        position: absolute;
+        color: var(--main-color);
+        right: -13px;
+        font-size: 1em;
+        top: calc(50%);
+        translate: -100% -50%;
+        cursor: pointer;
+        padding: 11px 5px;
+    }
+    
+    .pass_ctn {
+        position: relative;
+    }
+
+    .logo {
+        height: 7em;
+    }
+
+    .valbt {
+        width: 100%;
+        transition: all .2s ease-in-out;
+        margin-top: 1em;
+    }
+
+    .bottom_msg {
+        margin:0;
+        margin-top:5px;
+    }
+    
+} 
+
+.content {
+    font-size: 5vh;
+}
+
+
+@media only screen and (max-width: 800px) {
+    .auth_ctn {
+        width: 60%;
+        padding: 1.5em 0;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .auth_ctn {
+        width: 90%;
+        padding: 1.5em 0;
+    }
+}
+
+@media only screen and (max-width: 350px) {
+    .auth_ctn {
+        width: 95%;
+        padding: 1.5em 0;
+    }
+}

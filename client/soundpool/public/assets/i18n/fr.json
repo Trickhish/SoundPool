@@ -3,6 +3,11 @@
     "already_account_msg": "Déjà un compte ? Connectez-vous ",
     "here": "ici",
     "username": "Nom d'utilisateur",
+    "email_address": "Adresse email",
     "password": "Mot de passe",
-    "continue": "Continuer"
+    "continue": "Continuer",
+    "empty_field_msg": "Tous les champs doivent être rempli.",
+    "empty_field_title": "Champ vide",
+    "used_email_msg": "Cette adresse email est déjà enregistrée.",
+    "used_email_title": "Addresse indisponible"
 }

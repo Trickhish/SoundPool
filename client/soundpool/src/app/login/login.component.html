@@ -1,18 +1,18 @@
-<div id="main">
-    <div id="login_ctn">
-        <img id="logo" src="/soundpool.png" />
+<div class="main">
+    <div class="auth_ctn">
+        <img class="logo" src="/soundpool.png" />
 
-        <p id="err"></p>
+        <p class="err"></p>
 
-        <form (submit)="login()" id="login_form" method="POST">
-            <input [(ngModel)]="username" (keydown)="resetErr()" (change)="resetErr()" type="text" id="user" autocomplete="username" name="username" [placeholder]="'username' | translate" required />
-            <div id="pass_ctn">
-                <input [(ngModel)]="password" (keydown)="resetErr()" (change)="resetErr()" [type]="this.passwordVisible ? 'text' : 'password'" id="pass" name="password" autocomplete="current-password" [placeholder]="'password' | translate" required />
-                <fa-icon id='pass_eye' (click)="showPass();" [icon]="this.passwordVisible ? ['far', 'eye-slash']: ['far', 'eye']"></fa-icon>
+        <form (submit)="login()" class="auth_form" method="POST">
+            <input [(ngModel)]="email" (keydown)="resetErr()" (change)="resetErr()" type="email" class="user" autocomplete="email" name="mail" [placeholder]="'email_address' | translate" required />
+            <div class="pass_ctn">
+                <input [(ngModel)]="password" (keydown)="resetErr()" (change)="resetErr()" [type]="this.passwordVisible ? 'text' : 'password'" class="pass" name="password" autocomplete="current-password" [placeholder]="'password' | translate" required />
+                <fa-icon class='pass_eye' (click)="showPass();" [icon]="this.passwordVisible ? ['far', 'eye-slash']: ['far', 'eye']"></fa-icon>
             </div>
 
-            <button type="submit" id="valbt">{{'continue' | translate}}</button>
+            <button type="submit" class="valbt">{{'continue' | translate}}</button>
         </form>
-        <p id="bottom_msg">{{'no_account_msg' | translate}} <a href="/register">{{'here' | translate}}</a></p>
+        <p class="bottom_msg">{{'no_account_msg' | translate}} <a href="/register">{{'here' | translate}}</a></p>
     </div>
 </div>

@@ -3,6 +3,11 @@
     "already_account_msg": "Already registered ? Login ",
     "here": "here",
     "username": "Username",
+    "email_address": "Email address",
     "password": "Password",
-    "continue": "Continue"
+    "continue": "Continue",
+    "empty_field_msg": "All fields must be filled.",
+    "empty_field_title": "Empty field",
+    "used_email_msg": "This email address is already registered.",
+    "used_email_title": "Email unavailable"
 }
