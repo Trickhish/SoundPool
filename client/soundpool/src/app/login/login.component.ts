@@ -43,6 +43,10 @@ export class LoginComponent {
     this.passwordVisible=!this.passwordVisible;
   }
 
+  test() {
+    this.disp.toast("Here is the body of the toast message.", "Toast Title", "success", 100000);
+  }
+
   login() {
     console.log(this.email, this.password);
 

@@ -45,8 +45,7 @@ export class RegisterComponent {
     console.log(this.username, this.password);
 
     if (this.username.trim()=="" || this.mail.trim()=="" || this.password.trim()=="") {
-      //this.disp.toast(this.translate.instant("empty_field_msg"), this.translate.instant("empty_field_title"), "error");
-      this.disp.trtoast("empty_field", "info");
+      this.disp.trtoast("empty_field", "error");
       return;
     }
 

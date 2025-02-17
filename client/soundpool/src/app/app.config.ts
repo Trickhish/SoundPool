@@ -31,6 +31,7 @@ export const appConfig: ApplicationConfig = {
       ToastrModule.forRoot({ // Global Toastr Config
         timeOut: 3000,
         positionClass: 'toast-bottom-right',
+        //toastClass: 'toast-container',
         preventDuplicates: true,
       }),
       BrowserAnimationsModule
