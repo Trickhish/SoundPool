@@ -9,5 +9,8 @@
     "empty_field_msg": "All fields must be filled.",
     "empty_field_title": "Empty field",
     "used_email_msg": "This email address is already registered.",
-    "used_email_title": "Email unavailable"
+    "used_email_title": "Email unavailable",
+    "email_not_confirmed": "Your email address must be verified before you can sign in",
+    "bad_credentials": "Invalid credentials",
+    "email_format": "You didn't enter a valid email address"
 }

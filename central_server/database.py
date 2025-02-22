@@ -2,6 +2,7 @@ from sqlalchemy import DateTime, create_engine, Column, Integer, String, Boolean
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+from configuration import config
 from db_models import *
 
 

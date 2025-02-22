@@ -4,9 +4,11 @@ import deezer as dz
 import requests
 from io import BytesIO
 
-config=None
+from configuration import config
 
-config=load_config("cs_config.ini")
+#config=None
+
+#config=load_config("cs_config.ini")
 dz.init_deezer_session(config)
 
 dzhds={}

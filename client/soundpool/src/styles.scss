@@ -38,6 +38,9 @@ input:focus {
     border: solid 1px var(--inp-focus-bd);
     background-color: var(--inp-focus-bg);
 }
+input.err {
+    border: solid 1px var(--err-color);
+}
 
 button {
     border: none;

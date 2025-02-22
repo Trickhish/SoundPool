@@ -9,6 +9,8 @@ import { catchError, map, Observable, throwError } from 'rxjs';
 export class ApiService {
   public static apiUrl = 'http://localhost:8080';
   public userPP:string = "/assets/user.png";
+  mailExpf: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+  mailExp: RegExp = /^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;
 
   constructor(
     private http: HttpClient,
@@ -17,5 +19,7 @@ export class ApiService {
     
   }
 
-  
+  checkMail(email: string) {
+    return(this.mailExp.test(email));
+  }
 }
