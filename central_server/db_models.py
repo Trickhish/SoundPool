@@ -19,8 +19,8 @@ from database import Base
 class Track(Base):
     __tablename__ = "tracks"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    artist = Column(String, nullable=False)
+    name = Column(String(255), nullable=False)
+    artist = Column(String(255), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
 
     room = relationship("Room", back_populates="tracks", foreign_keys=[room_id])
@@ -28,10 +28,10 @@ class Track(Base):
 class Room(Base):
     __tablename__ = "rooms"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=True)
+    name = Column(String(255), unique=True, nullable=False)
+    password = Column(String(255), nullable=True)
     admin_id = Column(Integer, nullable=False)
-    current_track_id = Column(Integer, ForeignKey("tracks.id"), nullable=True)
+    current_track_id = Column(Integer, ForeignKey("tracks.id", use_alter=True, name="fk_rooms_current_track"), nullable=True)
     votes_to_skip = Column(Integer, default=0)
     is_playing = Column(Boolean, default=False)
     
@@ -41,15 +41,15 @@ class Room(Base):
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, nullable=False)
-    password = Column(String, nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
-    email = Column(String, unique=True, nullable=True)
+    username = Column(String(255), nullable=False)
+    password = Column(String(255), nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id", name="fk_tracks_room"), nullable=True)
+    email = Column(String(255), unique=True, nullable=True)
     creation_date = Column(DateTime, default=datetime.utcnow)
 
 class Token(Base):
     __tablename__ = "tokens"
     id = Column(Integer, primary_key=True, index=True)
-    value = Column(String, unique=True, nullable=False)
+    value = Column(String(255), unique=True, nullable=False)
     creation_date = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))

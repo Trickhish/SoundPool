@@ -35,7 +35,8 @@ def setup_database():
     db_engines = {
         "1": "sqlite",
         "2": "mysql",
-        "3": "postgresql"
+        "3": "postgresql",
+        "4": "mariadb"
     }
     
     print("\nSelect a database engine:")
@@ -151,9 +152,9 @@ def main():
             "host": dbhost,
             "port": dbport,
             "user": dbusr,
-            "password": dbpass,
             "name": dbn
         }
+        write_env("SP_DB_PASSWORD", dbpass)
     
     host, port, debug = setup_server()
     jwt_secret, jwt_algorithm, token_expiry = setup_security()

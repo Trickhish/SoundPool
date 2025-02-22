@@ -7,6 +7,7 @@ import { FormsModule,FormControl } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { DisplayService } from '../display.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-register',
@@ -20,7 +21,8 @@ export class RegisterComponent {
     private authService: AuthService,
     private translate: TranslateService,
     private auth: AuthService,
-    private disp: DisplayService
+    private disp: DisplayService,
+    private router: Router
   ) {
     library.addIcons(faEye, fasEye, faEyeSlash);
 
@@ -45,8 +47,6 @@ export class RegisterComponent {
   }
 
   register() {
-    console.log(this.username, this.password);
-
     if (this.username.trim()=="" || this.mail.trim()=="" || this.password.trim()=="") {
       //this.disp.trtoast("empty_field", "error");
       this.errmsg = this.translate.instant("empty_field_msg");
@@ -66,12 +66,14 @@ export class RegisterComponent {
       next: (r)=> {
         console.log("successfully registered: ",r);
         localStorage.setItem("token", r["token"]);
+
+        this.router.navigate(['/']);
       },
       error: (err)=> {
         if (err.status==401) { // wrong credentials
           //this.disp.notif("Adresse email ou mot de passe invalide", 1000, "warning");
           console.log("Email already used");
-          this.errmsg = this.translate.instant("used_email");
+          this.errmsg = this.translate.instant("used_email_msg");
           //this.disp.trtoast("used_email", "error");
           return;
         } else if (err.status==409) { // not confirmed

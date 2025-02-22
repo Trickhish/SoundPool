@@ -4,6 +4,7 @@ from enum import Enum
 import io
 from math import floor
 import sys
+from h11 import Response
 import requests
 
 import uvicorn
@@ -70,8 +71,12 @@ async def lifespan(app: FastAPI):
             print(pref)
         print(f"{Colors.BLUE}╚{'═'*pll}{Colors.NONE}")
 
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    #meta = Base.metadata
+    #Base.metadata.drop_all(engine)
+    #Base.metadata.create_all(engine)
+
+    Base.metadata.reflect(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
     print("🟢 CentralServer is up and ready\n")
 
@@ -95,11 +100,9 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
         host=host.split(":")[0]
 
         print(f" {host} : {endpoint} ->", end='')
-
-        #print(f"Request: {request.method} {request.url}")
-        #print(f"Headers: {request.headers}")
         
         response = await call_next(request)
+        body = b"".join([chunk async for chunk in response.body_iterator])
 
         rpc=Colors.NONE
         if response.status_code<300: # GOOD
@@ -113,26 +116,18 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
         print(f" {rpc}{response.status_code}{Colors.NONE}")
 
         try:
-            if isinstance(response, StreamingResponse):
-                buffer = io.BytesIO()
-                async for chunk in response.body_iterator:
-                    buffer.write(chunk)
-                body = buffer.getvalue()
-
-                print(f" Stream: {body}")
-            else:
-                body = await response.body()
-                try:
-                    response_json = json.loads(body.decode())
-                    print(f" Response body: {json.dumps(response_json, indent=2)}")
-                except json.JSONDecodeError:
-                    print(f" Response body (non-JSON): {body.decode()}")
+            print(f"   -> {body.decode(errors="replace")}\n")
         except Exception as e:
-            print(f" Error when trying to get response body: {str(e)}")
+            pass
         
-        #print(f"Response status: {response.status_code}")
-        
-        return response
+        async def response_stream():
+            yield body
+
+        return StreamingResponse(response_stream(), 
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.media_type
+        )
 
 
 # FastAPI initialization

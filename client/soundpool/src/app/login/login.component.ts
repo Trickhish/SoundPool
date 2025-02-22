@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
 import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
 import { faStar as farStar, faEye, faEyeSlash } from '@fortawesome/free-regular-svg-icons';
 import { faStar as fasStar, faEye as fasEye } from '@fortawesome/free-solid-svg-icons';
@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../api.service';
 import { DisplayService } from '../display.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -24,6 +25,7 @@ export class LoginComponent {
     private api: ApiService,
     private auth: AuthService,
     private disp: DisplayService,
+    private router: Router
   ) {
     library.addIcons(faEye, fasEye, faEyeSlash);
 
@@ -35,6 +37,10 @@ export class LoginComponent {
   errorMessage: string = '';
   passwordVisible: boolean = false;
   errmsg: string = "";
+
+  ngOnInit() {
+
+  }
 
   showPass() {
     this.passwordVisible=!this.passwordVisible;
@@ -73,8 +79,9 @@ export class LoginComponent {
     this.auth.login(this.email, this.password).subscribe({
       next: (r: any)=> {
         //this.disp.notif("Connexion réussie", 500, "success");
-
         console.log(r);
+        localStorage.setItem("token", r["token"]);
+        this.router.navigate(['/']);
       },
       error: (err)=> {
         if (err.status==401) { // wrong credentials

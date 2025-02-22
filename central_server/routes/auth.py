@@ -3,6 +3,8 @@ from fastapi import APIRouter, HTTPException, Depends
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi.responses import JSONResponse
+
 from db_models import *
 from req_models import *
 from database import *
@@ -81,7 +83,7 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, config["server"]["jwt_secret_key"], algorithm=config["server"]["jwt_algorithm"])
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login")
 async def login_handler(request: LoginRequest, 
     db: SessionLocal = Depends(get_db),
     ):
@@ -98,7 +100,7 @@ async def login_handler(request: LoginRequest,
     db.commit()
     db.refresh(new_token)
 
-    return {"token": token_value}
+    return JSONResponse(content={"token": token_value})
 
 
 @router.post("/register")
@@ -125,7 +127,7 @@ async def register_handler(req: RegisterRequest,
         db.commit()
         db.refresh(new_token)
 
-        return {"message": "User registered successfully", "token": token}
+        return JSONResponse(content={"message": "User registered successfully", "token": token})
 
     except Exception as e:
         db.rollback()

@@ -46,10 +46,14 @@ def load_config(config_abs):
 
     
     if not "SP_JWT_SECRET_KEY" in os.environ.keys():
-        raise Exception("SP_JWT_SECRET_KEY environment variable is required.")
+        raise ConfigError("SP_JWT_SECRET_KEY environment variable is required.")
     config["server"]["jwt_secret_key"] = os.environ["SP_JWT_SECRET_KEY"]
 
+    if config["database"]["engine"]!="sqlite" and ("SP_DB_PASSWORD" not in os.environ.keys()):
+        raise ConfigError("SP_DB_PASSWORD is required for engines other than sqlite.")
         
+    config["database"]["password"] = os.environ["SP_DB_PASSWORD"]
+
     return(config)
 
 if config==None:
