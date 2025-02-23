@@ -1,1 +1,19 @@
-<p>home works!</p>
+<div class="main">
+    <div class="navbar">
+        <img class="logo" src="/soundpool.png" />
+
+        <button (click)="goto('home')" >{{'home' | translate}}</button>
+        <button (click)="goto('home')" >{{'rooms' | translate}}</button>
+        <button (click)="goto('home')" >{{'playlists' | translate}}</button>
+        <button (click)="goto('home')" >{{'profile' | translate}}</button>
+
+        <!--<fa-icon id="langbtn" [icon]="['fas', 'globe']"></fa-icon>-->
+        <img id="langbtn" class="lang donotdismiss active" (click)="selectLang()" [src]="this.langImg()" />
+        <div class="lang_ctn dismissible">
+            <img *ngFor="let lg of langs()" (click)="setLang(lg)" class="lang" [src]="this.langImg(lg)" />
+        </div>
+    </div>
+    <div class="burger_ctn" (click)="burger($event)">
+        <p class="burger_lines"></p>
+    </div>
+</div>

@@ -12,5 +12,10 @@
     "used_email_title": "Addresse indisponible",
     "email_not_confirmed": "Vous devez confirmer votre adresse email pour pouvoir vous connecter",
     "bad_credentials": "Identifiants invalides",
-    "email_format": "L'adresse email entrée est invalide"
+    "email_format": "L'adresse email entrée est invalide",
+
+    "home": "Accueil",
+    "rooms": "Salons",
+    "playlists": "Listes de lecture",
+    "profile": "Profil"
 }

@@ -7,7 +7,7 @@ import { catchError, map, Observable, throwError } from 'rxjs';
   providedIn: 'root'
 })
 export class ApiService {
-  public static apiUrl = 'http://localhost:8080';
+  public static apiUrl = 'http://192.168.1.95:8080';
   public userPP:string = "/assets/user.png";
   mailExpf: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   mailExp: RegExp = /^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;

@@ -42,15 +42,20 @@ async def fverify_token(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
 
+def delete_expired_tokens(session = Depends(get_db)):
+    expiry_time = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
+    session.query(Token).filter(Token.creation_date < expiry_time).delete()
+    session.commit()
+
 def verify_token(
     x_token: str = Header(...),
     session = Depends(get_db)
 ):
     try:
-        # Retrieve the token expiry time from config
+        delete_expired_tokens()
+
         expiry_time = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
 
-        # Query the Token table synchronously
         token = session.query(Token).filter(
             Token.value == x_token,
             Token.creation_date > expiry_time
@@ -59,7 +64,6 @@ def verify_token(
         if not token:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # Query the User table synchronously using the user_id from the token
         user = session.query(User).filter(User.id == token.user_id).first()
 
         if not user:

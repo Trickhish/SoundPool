@@ -12,5 +12,10 @@
     "used_email_title": "Email unavailable",
     "email_not_confirmed": "Your email address must be verified before you can sign in",
     "bad_credentials": "Invalid credentials",
-    "email_format": "You didn't enter a valid email address"
+    "email_format": "You didn't enter a valid email address",
+
+    "home": "Home",
+    "rooms": "Rooms",
+    "playlists": "Playlists",
+    "profile": "Profile"
 }
