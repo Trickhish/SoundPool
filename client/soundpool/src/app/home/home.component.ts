@@ -4,15 +4,17 @@ import { ApiService } from '../api.service';
 import { AuthService } from '../auth.service';
 import { Router, RouterLink } from '@angular/router';
 import { DisplayService } from '../display.service';
+import { FormsModule,FormControl } from '@angular/forms';
 
 import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
 import {  } from '@fortawesome/free-regular-svg-icons';
 import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { CommonModule } from '@angular/common';
+import { Song } from '../song';
 
 @Component({
   selector: 'app-home',
-  imports: [TranslateModule, FontAwesomeModule, CommonModule, RouterLink],
+  imports: [TranslateModule, FontAwesomeModule, CommonModule, RouterLink, FormsModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
@@ -27,6 +29,8 @@ export class HomeComponent {
   ) {
     library.addIcons(faGlobe);
   }
+
+  squery: string = '';
   
   langImg(lg=this.translate.currentLang) {
     if (['us','en','uk','eng'].includes(lg)) {
@@ -69,6 +73,21 @@ export class HomeComponent {
       document.querySelector(".navbar")?.classList.add('active');
     }
     
+  }
+
+  async search() {
+    console.log(this.squery);
+
+    this.api.search(this.squery).subscribe({
+      next: (r: Song[])=> {
+        for (var s of r) {
+          console.log(s.title, s.artist);
+        }
+      },
+      error: (err)=> {
+        console.log(err);
+      }
+    });
   }
 
   ngOnInit() {

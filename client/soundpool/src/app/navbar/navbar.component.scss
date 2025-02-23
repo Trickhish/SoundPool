@@ -1,3 +1,9 @@
+.main {
+    padding-top: 4em;
+    justify-content: flex-start;
+    height: calc(100dvh - 4em);
+}
+
 .navbar {
     width: 70%;
     height: 3.2em;
@@ -13,6 +19,33 @@
     align-content: center;
     justify-content: center;
     align-items: center;
+
+    .user_ctn {
+        position: absolute;
+        left: 3.6em;
+
+        h2 {
+            display: inline-block;
+            font-weight:normal;
+            margin:0;
+            padding:0;
+            font-size: 1.5em;
+        }
+
+        #logout_btn {
+            vertical-align: top;
+            font-size: 1.6em;
+            cursor: pointer;
+            margin-left:10px;
+            transition: all .2s ease-in-out;
+    
+            &:hover {
+                scale:1.05;
+            }
+        }
+    }
+
+    
 
     button {
         margin:0 10px;
@@ -30,11 +63,17 @@
             bottom: 2px;
             transition: all .2s ease-in-out;
         }
-    }
-    button:hover {
-        &:after {
-            left:0;
-            width:100%;
+        &.active {
+            &:after {
+                left:0;
+                width:100%;
+            }
+        }
+        &:hover {
+            &:after {
+                left:0;
+                width:100%;
+            }
         }
     }
 
@@ -186,6 +225,11 @@
 }
 
 @media only screen and (max-width: 800px) {
+    .main {
+        padding-top: 1em;
+        height: calc(100dvh - 1em);
+    }
+
     .burger_ctn {
         opacity: 1;
         pointer-events: all;
@@ -208,6 +252,7 @@
         justify-content: center;
         align-content: center;
         align-items: center;
+        pointer-events: none;
 
         button {
             background-color: transparent;
@@ -217,6 +262,7 @@
 
         &.active {
             opacity: 1;
+            pointer-events: all;
         }
 
         img {
@@ -244,6 +290,31 @@
                 position: relative;
                 right:0;
                 top:0;
+            }
+        }
+
+        .user_ctn {
+            position: absolute;
+            left:auto;
+            top:5em;
+            margin-bottom:1em;
+    
+            h2 {
+                display: block;
+                font-weight:normal;
+                margin:0;
+                padding:0;
+                font-size: 2em;
+            }
+    
+            #logout_btn {
+                padding: .5em 1em;
+                font-size: 2em;
+                margin-left:0;
+        
+                &:hover {
+                    scale:1.05;
+                }
             }
         }
     }

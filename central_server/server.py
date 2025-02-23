@@ -38,6 +38,8 @@ from routes.auth import *
 
 from routes.auth import router as auth_router
 from routes.room import router as room_router
+from routes.user import router as user_router
+from routes.song import router as song_router
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -116,7 +118,8 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
         print(f" {rpc}{response.status_code}{Colors.NONE}")
 
         try:
-            print(f"   -> {body.decode(errors="replace")}\n")
+            bdd = body.decode(errors="replace")
+            print(f"   -> {bdd[:100]}{"..." if len(bdd)>100 else ""}\n")
         except Exception as e:
             pass
         
@@ -135,6 +138,8 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(room_router, prefix="/room", tags=["Rooms"])
+app.include_router(user_router, prefix="/user", tags=["User"])
+app.include_router(song_router, prefix="/song", tags=["Song"])
 
 if (config and config["server"]["debug"]=="true"):
     app.add_middleware(

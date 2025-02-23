@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpResponse, HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, map, Observable, throwError } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, of, throwError } from 'rxjs';
+import { User } from './user';
+import { Song } from './song';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +13,7 @@ export class ApiService {
   public userPP:string = "/assets/user.png";
   mailExpf: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   mailExp: RegExp = /^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;
+  public user: User = {};
 
   constructor(
     private http: HttpClient,
@@ -19,7 +22,22 @@ export class ApiService {
     
   }
 
-  checkMail(email: string) {
+  public checkMail(email: string) {
     return(this.mailExp.test(email));
+  }
+
+  public fetchUser() {
+    this.http.get(`${ApiService.apiUrl}/user`)
+  }
+
+  public async vtk() {
+    return this.http.get(`${ApiService.apiUrl}/auth/vtk`).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
+  }
+
+  public search(q: string) {
+    return(this.http.get<Song[]>(`${ApiService.apiUrl}/song/search?q=`+encodeURIComponent(q)));
   }
 }

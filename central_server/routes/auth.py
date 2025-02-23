@@ -2,8 +2,8 @@ import bcrypt
 from fastapi import APIRouter, HTTPException, Depends
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from fastapi.responses import JSONResponse
+import traceback
 
 from db_models import *
 from req_models import *
@@ -42,16 +42,20 @@ async def fverify_token(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
 
-def delete_expired_tokens(session = Depends(get_db)):
+def delete_expired_tokens():
+    session = SessionLocal()
+
     expiry_time = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
     session.query(Token).filter(Token.creation_date < expiry_time).delete()
     session.commit()
 
 def verify_token(
     x_token: str = Header(...),
-    session = Depends(get_db)
+    #session = Depends(get_db)
 ):
     try:
+        session = SessionLocal()
+
         delete_expired_tokens()
 
         expiry_time = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
@@ -72,6 +76,8 @@ def verify_token(
         return user
 
     except Exception as e:
+        tb_str = traceback.format_exc()
+        print(tb_str)
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
 
 
@@ -86,13 +92,16 @@ def create_access_token(user_id: int) -> str:
     payload = {"sub": str(user_id), "exp": expire}
     return jwt.encode(payload, config["server"]["jwt_secret_key"], algorithm=config["server"]["jwt_algorithm"])
 
+@router.get("/vtk")
+async def vtk_handler(user: User = Depends(verify_token)):
+    return(JSONResponse(content="Token is valid"))
 
 @router.post("/login")
 async def login_handler(request: LoginRequest, 
     db: SessionLocal = Depends(get_db),
     ):
 
-    user = db.query(User).filter(User.email == request.email).first()
+    user:User = db.query(User).filter(User.email == request.email).first()
     if not user or not verify_password(request.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
@@ -104,7 +113,7 @@ async def login_handler(request: LoginRequest,
     db.commit()
     db.refresh(new_token)
 
-    return JSONResponse(content={"token": token_value})
+    return JSONResponse(content={"token": token_value, "username": user.username})
 
 
 @router.post("/register")

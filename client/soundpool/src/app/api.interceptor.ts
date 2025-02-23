@@ -5,10 +5,10 @@ import { Router } from '@angular/router';
 
 export const apiInterceptor:HttpInterceptorFn = (req:HttpRequest<any>, next:HttpHandlerFn):Observable<HttpEvent<any>> => {
   const router = inject(Router);
-  
+
   const clonedRequest = req.clone({
     setHeaders: {
-      'X-Token': ""
+      'X-Token': localStorage.getItem('token')??""
     }
   });
 

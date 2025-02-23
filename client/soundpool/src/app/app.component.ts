@@ -28,6 +28,13 @@ export class AppComponent {
     for (var e of document.querySelectorAll(".dismissible")) {
       if (!tg.classList.contains('donotdismiss') && !e.contains(tg)) {
         e.classList.remove('active');
+
+        var al = e.getAttribute("data-activateonhide");
+        if (al!=null) {
+          for (var tae of JSON.parse(al)) {
+            document.querySelector(tae).classList.add("active");
+          }
+        }
       }
     }
   }

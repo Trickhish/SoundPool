@@ -6,6 +6,7 @@ import { RegisterComponent } from './register/register.component';
 import { NavbarComponent } from './navbar/navbar.component';
 import { ProfileComponent } from './profile/profile.component';
 import { RoomsComponent } from './rooms/rooms.component';
+import { PlaylistsComponent } from './playlists/playlists.component';
 
 export const routes: Routes = [
     {
@@ -14,7 +15,8 @@ export const routes: Routes = [
         children: [
             {path:'home', component: HomeComponent, canActivate: [authGuard]},
             {path:'rooms', component: RoomsComponent, canActivate: [authGuard]},
-            {path:'profile', component: ProfileComponent, canActivate: [authGuard]}
+            {path:'profile', component: ProfileComponent, canActivate: [authGuard]},
+            {path:'playlists', component: PlaylistsComponent, canActivate: [authGuard]}
         ]
     },
     {path:'login', component:LoginComponent},

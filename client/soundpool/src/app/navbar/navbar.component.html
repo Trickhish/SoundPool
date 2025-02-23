@@ -1,15 +1,18 @@
 <div class="main">
     <div class="navbar">
         <img class="logo" src="/soundpool.png" />
+        <div class="user_ctn">
+            <h2>{{this.api.user.username??'Username'}}</h2>
+            <fa-icon (click)="logout()" id="logout_btn" [icon]="['fas', 'right-from-bracket']"></fa-icon>
+        </div>
 
-        <button [routerLink]="['/home']" >{{'home' | translate}}</button>
-        <button [routerLink]="['/rooms']" >{{'rooms' | translate}}</button>
-        <button [routerLink]="['/playlists']" >{{'playlists' | translate}}</button>
-        <button [routerLink]="['/profile']" >{{'profile' | translate}}</button>
+        <button (click)="closeBurger()" [class.active]="currentRoute==='/home'" [routerLink]="['/home']" >{{'home' | translate}}</button>
+        <button (click)="closeBurger()" [class.active]="currentRoute==='/rooms'" [routerLink]="['/rooms']" >{{'rooms' | translate}}</button>
+        <button (click)="closeBurger()" [class.active]="currentRoute==='/playlists'" [routerLink]="['/playlists']" >{{'playlists' | translate}}</button>
+        <button (click)="closeBurger()" [class.active]="currentRoute==='/profile'" [routerLink]="['/profile']" >{{'profile' | translate}}</button>
 
-        <!--<fa-icon id="langbtn" [icon]="['fas', 'globe']"></fa-icon>-->
         <img id="langbtn" class="lang donotdismiss active" (click)="selectLang()" [src]="this.langImg()" />
-        <div class="lang_ctn dismissible">
+        <div class="lang_ctn dismissible" data-activateonhide='[".navbar #langbtn"]'>
             <img *ngFor="let lg of langs()" (click)="setLang(lg)" class="lang" [src]="this.langImg(lg)" />
         </div>
     </div>

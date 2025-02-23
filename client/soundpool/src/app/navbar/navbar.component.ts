@@ -1,20 +1,36 @@
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { Router, RouterOutlet, RouterLink } from '@angular/router';
+import { Router, RouterOutlet, RouterLink, NavigationEnd } from '@angular/router';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
+
+import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
+import {  } from '@fortawesome/free-regular-svg-icons';
+import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { ApiService } from '../api.service';
 
 @Component({
   selector: 'app-navbar',
-  imports: [RouterOutlet, RouterLink, TranslateModule],
+  imports: [RouterOutlet, RouterLink, TranslateModule, CommonModule, FontAwesomeModule],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss'
 })
 export class NavbarComponent {
   constructor(
+    private library: FaIconLibrary,
     private router: Router,
-    private translate: TranslateService
-  ) {
+    private translate: TranslateService,
+    public api: ApiService
+  ) { 
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.currentRoute = event.urlAfterRedirects;
+      }
+    });
 
+    library.addIcons(faRightFromBracket);
   }
+
+  currentRoute: string = '';
 
   langImg(lg=this.translate.currentLang) {
     if (['us','en','uk','eng'].includes(lg)) {
@@ -41,9 +57,14 @@ export class NavbarComponent {
     this.translate.use(lg);
   }
 
-  goto(p: string) {
+  closeBurger() {
     document.querySelector(".burger_ctn")?.classList.remove('active');
     document.querySelector(".navbar")?.classList.remove('active');
+  }
+
+  logout() {
+    localStorage.setItem("token", "");
+    this.router.navigate(["/login"]);
   }
 
   burger(ev: Event) {

@@ -78,8 +78,7 @@ export class LoginComponent {
 
     this.auth.login(this.email, this.password).subscribe({
       next: (r: any)=> {
-        //this.disp.notif("Connexion réussie", 500, "success");
-        console.log(r);
+        this.api.user.username = r["username"];
         localStorage.setItem("token", r["token"]);
         this.router.navigate(['/']);
       },
