@@ -1,33 +1,21 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
+import { Router, RouterOutlet, RouterLink } from '@angular/router';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
-import { ApiService } from '../api.service';
-import { AuthService } from '../auth.service';
-import { Router, RouterLink } from '@angular/router';
-import { DisplayService } from '../display.service';
-
-import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
-import {  } from '@fortawesome/free-regular-svg-icons';
-import { faGlobe } from '@fortawesome/free-solid-svg-icons';
-import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-home',
-  imports: [TranslateModule, FontAwesomeModule, CommonModule, RouterLink],
-  templateUrl: './home.component.html',
-  styleUrl: './home.component.scss'
+  selector: 'app-navbar',
+  imports: [RouterOutlet, RouterLink, TranslateModule],
+  templateUrl: './navbar.component.html',
+  styleUrl: './navbar.component.scss'
 })
-export class HomeComponent {
+export class NavbarComponent {
   constructor(
-      private library: FaIconLibrary,
-      private translate: TranslateService,
-      private api: ApiService,
-      private auth: AuthService,
-      private disp: DisplayService,
-      private router: Router
+    private router: Router,
+    private translate: TranslateService
   ) {
-    library.addIcons(faGlobe);
+
   }
-  
+
   langImg(lg=this.translate.currentLang) {
     if (['us','en','uk','eng'].includes(lg)) {
       lg="us";
@@ -72,6 +60,8 @@ export class HomeComponent {
   }
 
   ngOnInit() {
-
+    if (this.router.url=='/') {
+      this.router.navigate(['/home']);
+    }
   }
 }
