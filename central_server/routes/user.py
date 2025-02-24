@@ -15,13 +15,15 @@ from routes.auth import verify_token
 router = APIRouter()
 
 @router.get("")
-async def test_handler(request: LoginRequest, 
+async def test_handler( 
         db: SessionLocal = Depends(get_db), 
         user: User = Depends(verify_token)
     ):
-    
 
-    return JSONResponse(content="Valid token")
+    return JSONResponse(content={
+        "username": user.username,
+        "email": user.email
+    })
 
 @router.get("/test")
 async def test_handler(request: LoginRequest, 

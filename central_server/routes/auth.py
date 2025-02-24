@@ -74,7 +74,9 @@ def verify_token(
             raise HTTPException(status_code=404, detail="User not found")
 
         return user
-
+    
+    except HTTPException as ex:
+        raise ex
     except Exception as e:
         tb_str = traceback.format_exc()
         print(tb_str)

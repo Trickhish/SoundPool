@@ -21,7 +21,8 @@ class Status(Enum):
     PLAYING = 4
     PAUSED = 5
 
-config = cfg.load_config("pu_config.ini")
+CONFIG_FILE = "pu_config.ini"
+config = cfg.load_config(CONFIG_FILE)
 STATUS = Status.STARTING
 
 def rndId(l=4):
@@ -36,13 +37,18 @@ def quit():
 async def runSocket():
     global STATUS
 
+    print(f"Trying to connect to {config['server']['host']}:{config['server']['port']}")
+
     uri = f"ws://{config['server']['host']}:{config['server']['port']}/unit"
     while True:
         try:
             async with websockets.connect(uri) as ws:
                 STATUS = Status.CONNECTED
                 print("🟢 Connected to CentralServer")
-                await ws.send(json.dumps(["id", config["player_unit"]["name"]]))
+                if (config["player_unit"]["uid"]):
+                    await ws.send(json.dumps(["id", config["player_unit"]["uid"], config["player_unit"]["name"]]))
+                else:
+                    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"]]))
 
                 while True:
                     try:
@@ -50,7 +56,14 @@ async def runSocket():
 
                         r = json.loads(ro)
 
-                        if r[0]=="play":
+                        if r[0]=="id_assign":
+                            mid = r[1]
+                            print(f"I've been assigned the id '{mid}'")
+                            
+                            config["player_unit"]["uid"] = mid
+                            cfg.write_config(config, CONFIG_FILE)
+                            
+                        elif r[0]=="play":
                             print("Playing the music.")
                         elif r[0]=="pause":
                             print("Pausing the music.")
@@ -90,10 +103,10 @@ async def main():
     player = mp.AsyncPlayer()
 
     task1 = asyncio.create_task(runSocket())
-    task2 = asyncio.create_task(mp.runPlayer(player))
+    #task2 = asyncio.create_task(mp.runPlayer(player))
 
     await task1
-    await task2
+    #await task2
 
 if __name__ == "__main__":
     try:

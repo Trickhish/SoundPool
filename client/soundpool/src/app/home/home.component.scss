@@ -1,3 +1,7 @@
+app-home {
+    width:100%;
+}
+
 .searchbar {
     background-color:#11203e8f; /* #14162b */
     font-size: 15px;
@@ -8,9 +12,16 @@
     height: 40px;
     padding-left: 30px;
     border-radius: 4px;
+    margin-top: 1em;
 
+    --lc_width: 25%;
     --lc_ph_color: var(--ph_color);
+    width: var(--lc_width);
 
+    &:focus {
+        width:calc(var(--lc_width) + 5%);
+        backdrop-filter: brightness(0.9);
+    }
     &::placeholder {
         color: var(--lc_ph_color);
         opacity: 1;
@@ -23,4 +34,41 @@
     background-repeat: no-repeat;
     background-position: 7px 50%;
     background-size: 14px;
+}
+
+@media only screen and (max-width: 1300px) {
+    .searchbar {
+        --lc_width: 30%;
+    }
+}
+
+@media only screen and (max-width: 1000px) {
+    .searchbar {
+        --lc_width: 40%;
+    }
+}
+
+@media only screen and (max-width: 800px) {
+    .searchbar {
+        font-size:1.4em;
+        height: calc(1.4em + 10px);
+        --lc_width: 50%;
+
+        padding: 0 20px 0 40px;
+        padding-left: 35px;
+        background-position: 7px 50%;
+        background-size: 16px;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .searchbar {
+        --lc_width: 60%;
+    }
+}
+
+@media only screen and (max-width: 500px) {
+    .searchbar {
+        --lc_width: 65%;
+    }
 }

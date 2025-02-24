@@ -2,10 +2,22 @@
     padding-top: 4em;
     justify-content: flex-start;
     height: calc(100dvh - 4em);
+    align-items: stretch;
+}
+
+#page_title {
+    display: none;
+    margin: 0;
+    padding: 0;
+    margin-top: .2em;
+    text-align: left;
+    padding-left: 1em;
 }
 
 .navbar {
     width: 70%;
+    left: 50%;
+    translate: -50%;
     height: 3.2em;
     background-color: var(--bg-color);
     border-radius: 15em;
@@ -224,7 +236,32 @@
     }
 }
 
+@media only screen and (max-width: 1000px) {
+    .navbar {
+        button {
+            margin: 0 5px;
+        }
+    }
+}
+
+@media only screen and (max-width: 900px) {
+    .user_ctn {
+        h2 {
+            font-size: 1.3em !important;
+        }
+
+        #logout_btn {
+            position: fixed;
+            right: 2.5em;
+        }
+    }
+}
+
 @media only screen and (max-width: 800px) {
+    router-outlet {
+        margin-top:1em;
+    }
+    
     .main {
         padding-top: 1em;
         height: calc(100dvh - 1em);
@@ -235,7 +272,13 @@
         pointer-events: all;
     }
 
+    #page_title {
+        display: block;
+    }
+
     .navbar {
+        left: 0;
+        translate: 0;
         opacity: 0;
         height: 100dvh;
         width: 100%;
@@ -308,6 +351,8 @@
             }
     
             #logout_btn {
+                position: relative;
+                right: auto;
                 padding: .5em 1em;
                 font-size: 2em;
                 margin-left:0;

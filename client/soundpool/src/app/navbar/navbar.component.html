@@ -2,13 +2,14 @@
     <div class="navbar">
         <img class="logo" src="/soundpool.png" />
         <div class="user_ctn">
-            <h2>{{this.api.user.username??'Username'}}</h2>
+            <h2>{{this.api.user.username??''}}</h2>
             <fa-icon (click)="logout()" id="logout_btn" [icon]="['fas', 'right-from-bracket']"></fa-icon>
         </div>
 
         <button (click)="closeBurger()" [class.active]="currentRoute==='/home'" [routerLink]="['/home']" >{{'home' | translate}}</button>
         <button (click)="closeBurger()" [class.active]="currentRoute==='/rooms'" [routerLink]="['/rooms']" >{{'rooms' | translate}}</button>
         <button (click)="closeBurger()" [class.active]="currentRoute==='/playlists'" [routerLink]="['/playlists']" >{{'playlists' | translate}}</button>
+        <button (click)="closeBurger()" [class.active]="currentRoute==='/units'" [routerLink]="['/units']" >{{'units' | translate}}</button>
         <button (click)="closeBurger()" [class.active]="currentRoute==='/profile'" [routerLink]="['/profile']" >{{'profile' | translate}}</button>
 
         <img id="langbtn" class="lang donotdismiss active" (click)="selectLang()" [src]="this.langImg()" />
@@ -16,6 +17,9 @@
             <img *ngFor="let lg of langs()" (click)="setLang(lg)" class="lang" [src]="this.langImg(lg)" />
         </div>
     </div>
+
+    <h2 id="page_title">{{page_title | translate}}</h2>
+
     <div class="burger_ctn" (click)="burger($event)">
         <p class="burger_lines"></p>
     </div>

@@ -1,0 +1,33 @@
+.ctn {
+    background-color: var(--ctn-bg);
+    min-height:50px;
+    border-radius: .3em;
+    border: solid 1px var(--ctn-bd);
+    box-shadow: 0px 1px 2px 0px #263e4d;
+
+    width:45%;
+}
+
+@media only screen and (max-width: 1300px) {
+    .ctn {
+        width:50%;
+    }   
+}
+
+@media only screen and (max-width: 900px) {
+    .ctn {
+        width:60%;
+    }   
+}
+
+@media only screen and (max-width: 800px) {
+    .ctn {
+        width:70%;
+    }   
+}
+
+@media only screen and (max-width: 500px) {
+    .ctn {
+        width:85%;
+    }   
+}

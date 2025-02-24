@@ -24,6 +24,7 @@ export class NavbarComponent {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         this.currentRoute = event.urlAfterRedirects;
+        this.page_title = this.currentRoute.split("/")[1];
       }
     });
 
@@ -31,6 +32,7 @@ export class NavbarComponent {
   }
 
   currentRoute: string = '';
+  page_title: string = '';
 
   langImg(lg=this.translate.currentLang) {
     if (['us','en','uk','eng'].includes(lg)) {

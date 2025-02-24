@@ -99,6 +99,7 @@ class AsyncPlayer:
 
 async def runPlayer(player):
     print("🎵 Player ready to play")
+    return
     player.add_to_playlist(r"C:\Users\charl\Music\Doigby - GUERRIER (clip officiel).mp3")
 
     await player.play()

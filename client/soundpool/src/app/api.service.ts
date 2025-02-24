@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, firstValueFrom, map, Observable, of, throwError } from 'rxjs';
 import { User } from './user';
 import { Song } from './song';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +18,8 @@ export class ApiService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private auth: AuthService
   ) {
     
   }
@@ -27,7 +29,18 @@ export class ApiService {
   }
 
   public fetchUser() {
-    this.http.get(`${ApiService.apiUrl}/user`)
+    this.http.get(`${ApiService.apiUrl}/user`);
+  }
+
+  public updateUser() {
+    this.http.get<User>(`${ApiService.apiUrl}/user`).subscribe({
+      next: (r)=> {
+        this.user = r;
+      },
+      error: (err)=> {
+        console.log(err);
+      }
+    });
   }
 
   public async vtk() {

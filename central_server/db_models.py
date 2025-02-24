@@ -53,3 +53,16 @@ class Token(Base):
     value = Column(String(255), unique=True, nullable=False)
     creation_date = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
+
+class Unit(Base):
+    __tablename__ = "units"
+    id = Column(String(255), primary_key=True, index=True)
+    name = Column(String(255), nullable=True)
+    online = Column(Boolean, nullable=False, default=False)
+    status = Column(String(255), nullable=False, default="empty")
+    # Possible values:
+    # - "playing"     -> Actively playing media
+    # - "paused"      -> Media loaded but currently paused
+    # - "empty"       -> No media loaded
+    # - "passthrough" -> Relaying external audio (no playback control)
+    # - "idle"      -> Online but idle (not playing or paused)

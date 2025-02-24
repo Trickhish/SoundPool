@@ -2,7 +2,7 @@ import sys
 import os
 from pathlib import Path
 from configparser import ConfigParser
-
+import socket
 config = None
 
 
@@ -18,11 +18,11 @@ def load_config(config_abs):
 
     assert list(config.keys()) == ['DEFAULT', 'player_unit', 'server', 'download_dirs'], f"Validating config file failed. Check {config_abs}"
 
-    #if "DEEZER_COOKIE_ARL" in os.environ.keys() and len(os.environ["DEEZER_COOKIE_ARL"].strip())>0:
-    #    config["deezer"]["cookie_arl"] = os.environ["DEEZER_COOKIE_ARL"]
+    if not config["player_unit"]["name"]:
+        config["player_unit"]["name"] = f"soundpool.unit.{socket.gethostname()}"
 
-    #if len(config["deezer"]["cookie_arl"].strip()) == 0:
-    #    print("ERROR: cookie_arl must not be empty")
-    #    sys.exit(1)
-    
     return(config)
+
+def write_config(cfg, config_path):
+    with open(config_path, "w") as f:
+        config.write(f)
