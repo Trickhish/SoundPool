@@ -5,6 +5,7 @@ import { catchError, firstValueFrom, map, Observable, of, throwError } from 'rxj
 import { User } from './user';
 import { Song } from './song';
 import { AuthService } from './auth.service';
+import { Unit } from './unit';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +16,7 @@ export class ApiService {
   mailExpf: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   mailExp: RegExp = /^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;
   public user: User = {};
+  public user_pu: Unit[] = [];
 
   constructor(
     private http: HttpClient,
@@ -29,11 +31,11 @@ export class ApiService {
   }
 
   public fetchUser() {
-    this.http.get(`${ApiService.apiUrl}/user`);
+    this.http.get.bind(this.http)(`${ApiService.apiUrl}/user`);
   }
 
   public updateUser() {
-    this.http.get<User>(`${ApiService.apiUrl}/user`).subscribe({
+    this.http.get.bind(this.http)<User>(`${ApiService.apiUrl}/user`).subscribe({
       next: (r)=> {
         this.user = r;
       },
@@ -44,13 +46,17 @@ export class ApiService {
   }
 
   public async vtk() {
-    return this.http.get(`${ApiService.apiUrl}/auth/vtk`).pipe(
+    return this.http.get.bind(this.http)(`${ApiService.apiUrl}/auth/vtk`).pipe(
       map(() => true),
       catchError(() => of(false))
     );
   }
 
   public search(q: string) {
-    return(this.http.get<Song[]>(`${ApiService.apiUrl}/song/search?q=`+encodeURIComponent(q)));
+    return(this.http.get.bind(this.http)<Song[]>(`${ApiService.apiUrl}/song/search?q=`+encodeURIComponent(q)));
+  }
+
+  public getUnits() {
+    return(this.http.get.bind(this.http)<Unit[]>(`${ApiService.apiUrl}/user/units`));
   }
 }

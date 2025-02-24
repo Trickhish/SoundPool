@@ -1,3 +1,7 @@
+router-outlet {
+    margin-top:1em;
+}
+
 .main {
     padding-top: 4em;
     justify-content: flex-start;
@@ -259,9 +263,9 @@
 
 @media only screen and (max-width: 800px) {
     router-outlet {
-        margin-top:1em;
+        margin-top:2em;
     }
-    
+
     .main {
         padding-top: 1em;
         height: calc(100dvh - 1em);
@@ -270,6 +274,7 @@
     .burger_ctn {
         opacity: 1;
         pointer-events: all;
+        z-index: 1000;
     }
 
     #page_title {
@@ -277,6 +282,7 @@
     }
 
     .navbar {
+        z-index: 999;
         left: 0;
         translate: 0;
         opacity: 0;

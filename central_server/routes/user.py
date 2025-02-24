@@ -25,13 +25,16 @@ async def test_handler(
         "email": user.email
     })
 
-@router.get("/test")
-async def test_handler(request: LoginRequest, 
+@router.get("/units")
+async def test_handler( 
         db: SessionLocal = Depends(get_db), 
         user: User = Depends(verify_token)
     ):
     
+    unl = db.query(Unit).filter(
+        Unit.owner_id==user.id or Unit.owner_mail==user.email
+    ).all()
 
-    return JSONResponse(content="Valid token")
+    return JSONResponse(content=[jsonObject(e) for e in unl])
 
 

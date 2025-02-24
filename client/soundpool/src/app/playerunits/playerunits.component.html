@@ -1,1 +1,7 @@
-<p>playerunits works!</p>
+<div class="content">
+    <div class="ctn">
+        <div [class.online]="u.online" class="unit" *ngFor="let u of units">
+            <h2 class="title">{{u.name}}</h2>
+        </div>
+    </div>
+</div>

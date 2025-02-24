@@ -46,9 +46,9 @@ async def runSocket():
                 STATUS = Status.CONNECTED
                 print("🟢 Connected to CentralServer")
                 if (config["player_unit"]["uid"]):
-                    await ws.send(json.dumps(["id", config["player_unit"]["uid"], config["player_unit"]["name"]]))
+                    await ws.send(json.dumps(["id", config["player_unit"]["uid"], config["player_unit"]["name"], config["player_unit"]["owner_mail"]]))
                 else:
-                    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"]]))
+                    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"], config["player_unit"]["owner_mail"]]))
 
                 while True:
                     try:
@@ -59,10 +59,14 @@ async def runSocket():
                         if r[0]=="id_assign":
                             mid = r[1]
                             print(f"I've been assigned the id '{mid}'")
-                            
+
                             config["player_unit"]["uid"] = mid
                             cfg.write_config(config, CONFIG_FILE)
-                            
+                        elif r[0]=="error":
+                            err_name = r[1]
+                            if err_name=="unknown_id":
+                                print(f"The id '{config["player_unit"]["uid"]}' isn't registered in the central server.\nIf you want to reset the id, delete it in the configuration and restart this unit.")
+                            #    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"]]))
                         elif r[0]=="play":
                             print("Playing the music.")
                         elif r[0]=="pause":

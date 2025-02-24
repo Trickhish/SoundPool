@@ -2,6 +2,7 @@ import bcrypt
 from fastapi import APIRouter, HTTPException, Depends
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 import traceback
 
@@ -12,7 +13,6 @@ from database import *
 from configuration import config
 
 router = APIRouter()
-
 
 async def fverify_token(
     x_token: str = Header(...),):
@@ -48,14 +48,13 @@ def delete_expired_tokens():
     expiry_time = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
     session.query(Token).filter(Token.creation_date < expiry_time).delete()
     session.commit()
+    session.close()
 
 def verify_token(
     x_token: str = Header(...),
-    #session = Depends(get_db)
 ):
     try:
-        session = SessionLocal()
-
+        session:Session = SessionLocal()
         delete_expired_tokens()
 
         expiry_time = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
@@ -74,13 +73,15 @@ def verify_token(
             raise HTTPException(status_code=404, detail="User not found")
 
         return user
-    
+
     except HTTPException as ex:
         raise ex
     except Exception as e:
         tb_str = traceback.format_exc()
         print(tb_str)
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
+    finally:
+        session.close()
 
 
 def hash_password(password: str) -> str:

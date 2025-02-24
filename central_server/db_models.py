@@ -16,6 +16,9 @@ import asyncio
 
 from database import Base
 
+def jsonObject(inst):
+    return({column.name: getattr(inst, column.name) for column in inst.__table__.columns})
+
 class Track(Base):
     __tablename__ = "tracks"
     id = Column(Integer, primary_key=True, index=True)
@@ -59,6 +62,8 @@ class Unit(Base):
     id = Column(String(255), primary_key=True, index=True)
     name = Column(String(255), nullable=True)
     online = Column(Boolean, nullable=False, default=False)
+    owner_mail = Column(String(255), nullable=True)
+    owner_id = Column(Integer, nullable=True)
     status = Column(String(255), nullable=False, default="empty")
     # Possible values:
     # - "playing"     -> Actively playing media

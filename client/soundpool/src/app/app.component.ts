@@ -1,6 +1,7 @@
 import { Component, HostListener } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { LivefbService } from './livefb.service';
 
 @Component({
   selector: 'app-root',
@@ -9,7 +10,10 @@ import { TranslateService } from '@ngx-translate/core';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  constructor(private translate: TranslateService) {
+  constructor(
+    private translate: TranslateService,
+    private livefb: LivefbService
+  ) {
     this.translate.setDefaultLang('en');
     this.translate.use(localStorage.getItem('lang') || 'en');
   }
@@ -19,6 +23,10 @@ export class AppComponent {
   switchLanguage(lang: string) {
     this.translate.use(lang);
     localStorage.setItem('lang', lang);
+  }
+
+  ngOnInit() {
+    this.livefb.launch();
   }
 
   @HostListener('document:click', ['$event'])

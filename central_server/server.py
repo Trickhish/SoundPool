@@ -13,6 +13,10 @@ from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocke
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
@@ -41,6 +45,7 @@ from routes.room import router as room_router
 from routes.user import router as user_router
 from routes.song import router as song_router
 from pu_connection import router as pu_router
+from sse import test_events, router as sse_router
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -78,8 +83,23 @@ async def lifespan(app: FastAPI):
     #Base.metadata.drop_all(engine)
     #Base.metadata.create_all(engine)
 
+    asyncio.create_task(test_events())
+
     Base.metadata.reflect(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    db:Session = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        if db.is_active:
+            db.rollback()
+        print("✅ Database is connected\n")
+    except SQLAlchemyError as e:
+        print(f"❌ Database connection failed: {e}")
+        raise RuntimeError("Database connection failed. Fix the issue before starting the server.")
+    finally:
+        db.close()
+
 
     print("🟢 CentralServer is up and ready\n")
 
@@ -91,47 +111,51 @@ async def lifespan(app: FastAPI):
 
 class RequestLoggerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        mtcl = {"GET": Colors.NONE, "POST":Colors.MAGENTA, "PUT":Colors.LIGHT_GREEN, "OPTIONS":Colors.LIGHT_CYAN}
-        print(f"{mtcl[request.method] if request.method in mtcl.keys() else Colors.NONE}[{request.method}]{Colors.NONE}", end='')
-        
-        host = str(request.base_url)
-        if ("://" in host):
-            host=host.split("://")[1]
-        host=host.split("/")[0]
-        endpoint=str(request.url).split(host)[1]
+        if (not "text/event-stream" in request.headers.get("Accept", "")):
+            mtcl = {"GET": Colors.NONE, "POST":Colors.MAGENTA, "PUT":Colors.LIGHT_GREEN, "OPTIONS":Colors.LIGHT_CYAN}
+            print(f"{mtcl[request.method] if request.method in mtcl.keys() else Colors.NONE}[{request.method}]{Colors.NONE}", end='')
+            
+            host = str(request.base_url)
+            if ("://" in host):
+                host=host.split("://")[1]
+            host=host.split("/")[0]
+            endpoint=str(request.url).split(host)[1]
 
-        host=host.split(":")[0]
+            host=host.split(":")[0]
 
-        print(f" {host} : {endpoint} ->", end='')
-        
-        response = await call_next(request)
-        body = b"".join([chunk async for chunk in response.body_iterator])
+            print(f" {host} : {endpoint} ->", end='')
+            
+            response = await call_next(request)
+            body = b"".join([chunk async for chunk in response.body_iterator])
 
-        rpc=Colors.NONE
-        if response.status_code<300: # GOOD
-            rpc=Colors.GREEN
-        elif response.status_code<400: # REDIRECTION
-            rpc=Colors.LIGHT_BLACK
-        elif response.status_code<500: # BAD
-            rpc=Colors.LIGHT_RED
-        else: # SERVER ERROR
-            rpc=Colors.RED
-        print(f" {rpc}{response.status_code}{Colors.NONE}")
+            rpc=Colors.NONE
+            if response.status_code<300: # GOOD
+                rpc=Colors.GREEN
+            elif response.status_code<400: # REDIRECTION
+                rpc=Colors.LIGHT_BLACK
+            elif response.status_code<500: # BAD
+                rpc=Colors.LIGHT_RED
+            else: # SERVER ERROR
+                rpc=Colors.RED
+            print(f" {rpc}{response.status_code}{Colors.NONE}")
 
-        try:
-            bdd = body.decode(errors="replace")
-            print(f"   -> {bdd[:100]}{"..." if len(bdd)>100 else ""}\n")
-        except Exception as e:
-            pass
-        
-        async def response_stream():
-            yield body
+            try:
+                bdd = body.decode(errors="replace")
+                print(f"   -> {bdd[:100]}{"..." if len(bdd)>100 else ""}\n")
+            except Exception as e:
+                pass
+            
+            async def response_stream():
+                yield body
 
-        return StreamingResponse(response_stream(), 
-            status_code=response.status_code,
-            headers=dict(response.headers),
-            media_type=response.media_type
-        )
+            return StreamingResponse(response_stream(), 
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.media_type
+            )
+        else:
+            response = await call_next(request)
+            return(response)
 
 
 # FastAPI initialization
@@ -142,6 +166,7 @@ app.include_router(room_router, prefix="/room", tags=["Rooms"])
 app.include_router(user_router, prefix="/user", tags=["User"])
 app.include_router(song_router, prefix="/song", tags=["Song"])
 app.include_router(pu_router, prefix="/unit", tags=["Unit"])
+app.include_router(sse_router, prefix="/event", tags=["SSE"])
 
 if (config and config["server"]["debug"]=="true"):
     app.add_middleware(

@@ -35,6 +35,8 @@ else:
 
 engine = create_engine(db_url, connect_args=({"check_same_thread": False} if (config["database"]["engine"]=="sqlite") else {}))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# autoflush : load changes before queries
+# autocommit : commit changes after queries
 AsyncSessionLocal = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 Base = declarative_base()
 

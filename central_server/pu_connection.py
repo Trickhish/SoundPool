@@ -16,6 +16,7 @@ from req_models import *
 from database import *
 
 from configuration import config
+import sse
 
 router = APIRouter()
 
@@ -26,6 +27,9 @@ class PlayerUnit():
         self.ws=ws
         self.id = None
         self.name = None
+        self.ownerMail = None
+        self.ownerId = None
+        self.owner = None
     
     def sendTest(self):
         rr=tm.search("emmenez moi")
@@ -54,9 +58,11 @@ class PlayerUnit():
         if (r[0]=="id"):
             pun = r[2]
             piud = r[1]
+            owm = r[3]
+            self.ownerMail = owm
             self.name = pun
 
-            pu = db.query(Unit).filter(
+            pu:Unit = db.query(Unit).filter(
                 Unit.id == piud
             ).first()
 
@@ -64,18 +70,63 @@ class PlayerUnit():
                 print(f"{pun} used an unregistered id")
                 await self.send(["error", "unknown_id"])
                 return
-
+            
             self.id = piud
+            pu.online=True
+            pu.name=pun
+            
+            if (owm):
+                pu.owner_mail = owm
+
+                owner:User = db.query(User).filter(
+                    User.email == owm
+                ).first()
+
+                if owner!=None:
+                    self.ownerId=owner.id
+                    self.owner=owner
+                    pu.owner_id = owner.id
+
+                    scl = sse.getSseClients(owner.id)
+                    for sc in scl:
+                        if sc!=None:
+                            await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
+                
+            db.commit()
+            db.refresh(pu)
+           
             print(f"🚀 PU_{self.id[:4]} is online ({pun})")
         elif r[0]=='ask_id':
             self.id = str(uuid4())
             pun = r[1]
+            owm = r[2]
+            self.ownerMail = owm
             self.name = pun
             print(f"📯 New player unit PU_{self.id[:4]} ({pun})")
+
+            npu = Unit(id=self.id, name=pun, online=True, status="idle")
 
             #await self.ws.send_text(json.dumps(["id_assign", self.id]))
             await self.send(["id_assign", self.id])
 
+            if (owm):
+                owner:User = db.query(User).filter(
+                    User.email == owm
+                ).first()
+
+                if owner!=None:
+                    self.ownerId=owner.id
+                    self.owner=owner
+                    npu.owner_id = owner.id
+
+                    scl = sse.getSseClients(owner.id)
+                    for sc in scl:
+                        if sc!=None:
+                            await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
+
+            db.add(npu)
+            db.commit()
+            db.refresh(npu)
             #await asyncio.to_thread(self.sendTest)
 
         #await websocket.send_text(f"Command received: {data}")
@@ -103,7 +154,24 @@ async def websocket_endpoint(websocket: WebSocket):
             
     except WebSocketDisconnect:
         units.remove(thisPlayerUnit)
-        print(f"🚨 PlayerUnit {thisPlayerUnit.id[:4]} disconnected")
+
+        if (thisPlayerUnit.owner):
+            scl = sse.getSseClients(thisPlayerUnit.owner.id)
+            for sc in scl:
+                if sc!=None:
+                    await sc.trigger("mypu", {"type": "status", "id": thisPlayerUnit.id, "status": False, "name": thisPlayerUnit.name})
+
+        if (thisPlayerUnit.id != None):
+            unit:Unit = db.query(Unit).filter(
+                Unit.id==thisPlayerUnit.id
+            ).first()
+            if (unit!=None):
+                unit.online=False
+                db.commit()
+                db.refresh(unit)
+            print(f"🚨 PlayerUnit {thisPlayerUnit.id[:4]} disconnected")
+        else:
+            print(f"🚨 unregistered PlayerUnit ({thisPlayerUnit.name}) disconnected")
 
 @router.post("/send_command/")
 async def send_command(command: str):
