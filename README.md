@@ -4,6 +4,7 @@ An app that allows the creation of a music pool where people can add/vote for so
 **Thanks to [@Kmille](https://github.com/kmille) for [deezer-downloader](https://github.com/kmille/deezer-downloader)**
 
 ## Central Server
+Hosts the website, handles the player units and acts as an intermediary between the player units and the clients.
 
 ## Player Unit
 
