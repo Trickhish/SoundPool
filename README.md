@@ -62,7 +62,7 @@ Like the `Central Server`, it is advised to create a service to automate the sta
 By default, the unit will use `localhost:21623` as the server url.
 
 ### Website
-Once the static website is built, you can \
+Once the static website is built, you can use any HTTP server to make it accessible (apache, nginx, caddy...).\
 For the angular routing to work, it may be necessary to setup [`URL rewriting`](). \
 For apache, you can follow [this article](https://dev.to/timetc/angular-with-clean-urls-using-apaches-modrewrite-2bjb).
 
