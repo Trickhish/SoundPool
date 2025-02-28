@@ -1,7 +1,14 @@
-# SoundPool
-An app that allows the creation of a music pool where people can add/vote for songs to be played
+<div align="center">
+  <img style="height:180px;" src="https://github.com/Trickhish/SoundPool/blob/main/soundpool.png?raw=true" />
+</div>
 
-**Thanks to [@Kmille](https://github.com/kmille) for [deezer-downloader](https://github.com/kmille/deezer-downloader)**
+
+<h1 align="center">SoundPool</h1>
+<p align="center">
+  An app that allows the creation of a music pool where people can add/vote for songs to be played <br/><br/>
+  <b>Thanks to <a target="_blank" href="https://github.com/kmille">@Kmille</a> for <a target="_blank" href="https://github.com/kmille/deezer-downloader">deezer-downloader</a></b>
+</p>
+
 
 <br/>
 SoundPool works with three components: 
