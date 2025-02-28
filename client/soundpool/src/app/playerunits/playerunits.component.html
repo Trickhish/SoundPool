@@ -1,7 +1,7 @@
 <div class="content">
     <div class="ctn">
-        <div [class.online]="u.online" class="unit" *ngFor="let u of units">
+        <a [routerLink]="'/player/'+u.id" [class.online]="u.online" class="unit" *ngFor="let u of units">
             <h2 class="title">{{u.name}}</h2>
-        </div>
+        </a>
     </div>
 </div>

@@ -21,6 +21,7 @@ export const apiInterceptor:HttpInterceptorFn = (req:HttpRequest<any>, next:Http
     }),
     catchError((error: HttpErrorResponse) => {
       if (error.status==403) {
+        localStorage.removeItem("token");
         router.navigate(['/login']);
       }
       return throwError(error);

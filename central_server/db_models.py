@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, FileResponse
 
-from sqlalchemy import DateTime, create_engine, Column, Integer, String, Boolean, ForeignKey, select
+from sqlalchemy import DateTime, Table, create_engine, Column, Integer, String, Boolean, ForeignKey, select
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
@@ -71,3 +71,10 @@ class Unit(Base):
     # - "empty"       -> No media loaded
     # - "passthrough" -> Relaying external audio (no playback control)
     # - "idle"      -> Online but idle (not playing or paused)
+
+room_rights = Table(
+    "room_rights",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("room_id", Integer, ForeignKey("rooms.id"), primary_key=True)
+)

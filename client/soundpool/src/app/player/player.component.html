@@ -1,0 +1,39 @@
+<div class="content">
+    <div [class.moving]="mouseMoving" [style.--percent]="musicProgress" class="music_ctn prog_ctn" id="music_ctn">
+        <div id="disc_ctn">
+            <svg id="music_svg" class="prog_svg">
+                <defs>
+                    <radialGradient id="music_gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                      <stop offset="0%" style="stop-color: #00f; stop-opacity: 1" />
+                      <stop offset="100%" style="stop-color: #0ff; stop-opacity: 1" />
+                    </radialGradient>
+                </defs>
+
+                <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle_bg" cx="50%" cy="50%" r="50%"></circle>
+                <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle" cx="50%" cy="50%" r="50%"></circle>
+                <circle class="prog_circle_mask" cx="50%" cy="50%" r="48%"></circle>
+            </svg>
+
+            <img id="cover_bg" [src]="cover_url"/>
+            <img id="cover" [src]="cover_url"/>
+        </div>
+        <p class="music_elt">2:34</p>
+
+        <div class="music_pp_ctn" [class.play]="!playing">
+            <svg class="music_pp_bt play" role="img" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path></svg>
+            <svg class="music_pp_bt pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>
+        </div>
+
+        <div class="music_nav_ctn music_prev_ctn" [class.play]="!playing">
+            <svg class="music_nav_bt music_prev_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
+        </div>
+        <div class="music_nav_ctn music_next_ctn" [class.play]="!playing">
+            <svg class="music_nav_bt music_next_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
+        </div>
+    </div>
+
+    <h1 class="music_title">Rumpled Time</h1>
+    <h2 class="music_artist">The Rumpled</h2>
+    <p class="music_dur">3:26</p>
+</div>
+

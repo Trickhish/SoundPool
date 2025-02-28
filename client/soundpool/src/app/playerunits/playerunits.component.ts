@@ -4,10 +4,11 @@ import { Unit } from '../unit';
 import { CommonModule } from '@angular/common';
 import { LivefbService } from '../livefb.service';
 import { CachingService } from '../caching.service';
+import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-playerunits',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './playerunits.component.html',
   styleUrl: './playerunits.component.scss'
 })

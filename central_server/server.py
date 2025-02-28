@@ -44,6 +44,8 @@ from routes.auth import router as auth_router
 from routes.room import router as room_router
 from routes.user import router as user_router
 from routes.song import router as song_router
+from routes.player import router as pl_router
+
 from pu_connection import router as pu_router
 from sse import test_events, router as sse_router
 
@@ -165,6 +167,8 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(room_router, prefix="/room", tags=["Rooms"])
 app.include_router(user_router, prefix="/user", tags=["User"])
 app.include_router(song_router, prefix="/song", tags=["Song"])
+app.include_router(pl_router, prefix="/player", tags=["Player"])
+
 app.include_router(pu_router, prefix="/unit", tags=["Unit"])
 app.include_router(sse_router, prefix="/event", tags=["SSE"])
 

@@ -65,7 +65,7 @@ def verify_token(
         ).first()
 
         if not token:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise HTTPException(status_code=403, detail="Unauthorized")
 
         user = session.query(User).filter(User.id == token.user_id).first()
 

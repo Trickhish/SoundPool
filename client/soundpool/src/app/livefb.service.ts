@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, TimeInterval } from 'rxjs';
 import { ApiService } from './api.service';
 import {EventSource as es} from 'eventsource'
 import { HttpClient } from '@angular/common/http';
@@ -14,7 +14,9 @@ export class LivefbService {
   ) { }
   listening:boolean = false;
   tosub:[string, Function][] = [];
+  subbed:[string, Function][] = [];
   callbacks:{[id: string]: Function[];} = {};
+  lint:any = null;
 
   startListening() {
     const eventSource = new es(`${ApiService.apiUrl}/event/sse`, {
@@ -30,9 +32,11 @@ export class LivefbService {
 
     eventSource.onopen = ()=> {
       this.listening=true;
+      //console.log("LISTENNING");
 
       for (var [ev,cb] of this.tosub) {
         this.subscribe(ev, cb);
+        this.subbed.push([ev, cb]);
       }
     }
 
@@ -56,43 +60,69 @@ export class LivefbService {
   }
 
   launch() {
+    if (this.listening) {
+      return;
+    }
     this.startListening();
 
-    setInterval(() => {
+    this.lint = setInterval(() => {
       if (!this.listening) {
         this.startListening();
       }
     }, 2000);
   }
 
+  stop() {
+    if (this.lint!=null) {
+      clearInterval(this.lint);
+    }
+    this.listening=false;
+  }
 
-
-  subscribe(ev: string, cb:Function) {
-    var fn=false;
-    for (var [evi, cbi] of this.tosub) {
-      if (ev==evi && cb==cbi) {
-        fn=true;
-        break;
+  isSubbed(ev:any, cb:any) {
+    for (var [evi, cbi] of this.subbed) {
+      if (ev==evi && cb.toString()==cbi.toString()) {
+        return(true);
       }
     }
-    if (!fn) {
+    return(false);
+  }
+
+  isToSub(ev:any, cb:any) {
+    for (var [evi, cbi] of this.tosub) {
+      if (ev==evi && cb.toString()==cbi.toString()) {
+        return(true);
+      }
+    }
+    return(false);
+  }
+
+  subscribe(ev: string, cb:Function, pid:string="") {
+    var issubbed=this.isSubbed(ev, cb);
+    var istosub=this.isToSub(ev, cb);
+
+    if (!istosub) {
       this.tosub.push([ev, cb]);
     }
-    
 
-    if (this.listening) {
-      this.http.get(`${ApiService.apiUrl}/event/subscribe/${ev}`).subscribe({
-        next: (r)=> {
-          if (!Object.keys(this.callbacks).includes(ev)) {
-            this.callbacks[ev] = [];
+    if (!issubbed) {
+      if (this.listening) {
+        this.http.get(`${ApiService.apiUrl}/event/subscribe/${ev}`).subscribe({
+          next: (r)=> {
+            this.tosub.splice(this.tosub.indexOf([ev, cb]), 1);
+            this.subbed.push([ev, cb]);
+
+            if (!Object.keys(this.callbacks).includes(ev)) {
+              this.callbacks[ev] = [];
+            }
+            if (!this.callbacks[ev].includes(cb)) {
+              this.callbacks[ev].push(cb);
+            }
           }
-          if (!this.callbacks[ev].includes(cb)) {
-            this.callbacks[ev].push(cb);
-          }
-        }
-      });
-    } else {
-      
+        });
+      } else {
+        
+      }
     }
   }
 

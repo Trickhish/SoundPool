@@ -9,6 +9,7 @@ import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../api.service';
 import { DisplayService } from '../display.service';
 import { Router } from '@angular/router';
+import { LivefbService } from '../livefb.service';
 
 @Component({
   selector: 'app-login',
@@ -25,7 +26,8 @@ export class LoginComponent {
     private api: ApiService,
     private auth: AuthService,
     private disp: DisplayService,
-    private router: Router
+    private router: Router,
+    private livefb: LivefbService
   ) {
     library.addIcons(faEye, fasEye, faEyeSlash);
 
@@ -80,6 +82,7 @@ export class LoginComponent {
       next: (r: any)=> {
         this.api.user.username = r["username"];
         localStorage.setItem("token", r["token"]);
+        this.livefb.launch();
         this.router.navigate(['/']);
       },
       error: (err)=> {

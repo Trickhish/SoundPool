@@ -2,6 +2,7 @@ import { Component, HostListener } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { LivefbService } from './livefb.service';
+import { ApiService } from './api.service';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +13,8 @@ import { LivefbService } from './livefb.service';
 export class AppComponent {
   constructor(
     private translate: TranslateService,
-    private livefb: LivefbService
+    private livefb: LivefbService,
+    private api: ApiService
   ) {
     this.translate.setDefaultLang('en');
     this.translate.use(localStorage.getItem('lang') || 'en');
@@ -26,7 +28,14 @@ export class AppComponent {
   }
 
   ngOnInit() {
-    this.livefb.launch();
+    this.api.vtk().subscribe({
+      next: (r)=> {
+        this.livefb.launch();
+      },
+      error: (err)=> {
+        localStorage.removeItem("token");
+      }
+    });
   }
 
   @HostListener('document:click', ['$event'])

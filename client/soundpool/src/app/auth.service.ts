@@ -10,11 +10,20 @@ import { Observable } from 'rxjs';
 export class AuthService {
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private api: ApiService
   ) { }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('token');
+    var tk = localStorage.getItem('token');
+    if (tk==null || tk=="") {
+      return(false)
+    } else {
+      /*this.api.vtk().subscribe({
+
+      });*/
+      return(true);
+    }
   }
 
   getcookie(cname:string) {

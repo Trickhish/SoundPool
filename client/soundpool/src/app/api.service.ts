@@ -11,7 +11,7 @@ import { Unit } from './unit';
   providedIn: 'root'
 })
 export class ApiService {
-  public static apiUrl = 'http://192.168.1.95:8080';
+  public static apiUrl = 'http://192.168.1.94:8080';
   public userPP:string = "/assets/user.png";
   mailExpf: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   mailExp: RegExp = /^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;
@@ -20,8 +20,7 @@ export class ApiService {
 
   constructor(
     private http: HttpClient,
-    private router: Router,
-    private auth: AuthService
+    private router: Router
   ) {
     
   }
@@ -45,11 +44,15 @@ export class ApiService {
     });
   }
 
-  public async vtk() {
+  public async vtks() {
     return this.http.get.bind(this.http)(`${ApiService.apiUrl}/auth/vtk`).pipe(
       map(() => true),
       catchError(() => of(false))
     );
+  }
+
+  public vtk() {
+    return(this.http.get(`${ApiService.apiUrl}/auth/vtk`));
   }
 
   public search(q: string) {
@@ -58,5 +61,9 @@ export class ApiService {
 
   public getUnits() {
     return(this.http.get.bind(this.http)<Unit[]>(`${ApiService.apiUrl}/user/units`));
+  }
+
+  public getPlayer(pid:string) {
+    return(this.http.get.bind(this.http)(`${ApiService.apiUrl}/player/${pid}`));
   }
 }
