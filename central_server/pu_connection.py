@@ -74,6 +74,8 @@ class PlayerUnit():
             self.id = piud
             pu.online=True
             pu.name=pun
+
+            await sse.triggerEvent(f"pu_{piud}", {"type":"status", "id":pu.id, "status":pu.status, "name":pu.name})
             
             if (owm):
                 pu.owner_mail = owm
@@ -87,11 +89,12 @@ class PlayerUnit():
                     self.owner=owner
                     pu.owner_id = owner.id
 
-                    scl = sse.getSseClients(owner.id)
-                    for sc in scl:
-                        if sc!=None:
-                            await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
-                
+                    #scl = sse.getSseClients(owner.id)
+                    #for sc in scl:
+                    #    if sc!=None:
+                    #        await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
+                    await sse.clientsTrigger(owner.id, "mypu", {"type": "status", "id": pu.id, "status": pu.status, "name": pu.name})
+
             db.commit()
             db.refresh(pu)
            
@@ -109,6 +112,8 @@ class PlayerUnit():
             #await self.ws.send_text(json.dumps(["id_assign", self.id]))
             await self.send(["id_assign", self.id])
 
+            await sse.triggerEvent(f"pu_{self.id}", {"type":"status", "id":self.id, "status":pu.status, "name":self.name})
+
             if (owm):
                 owner:User = db.query(User).filter(
                     User.email == owm
@@ -119,26 +124,44 @@ class PlayerUnit():
                     self.owner=owner
                     npu.owner_id = owner.id
 
-                    scl = sse.getSseClients(owner.id)
-                    for sc in scl:
-                        if sc!=None:
-                            await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
-
+                    #scl = sse.getSseClients(owner.id)
+                    #for sc in scl:
+                    #    if sc!=None:
+                    #        await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
+                    await sse.clientsTrigger(owner.id, "mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
             db.add(npu)
             db.commit()
             db.refresh(npu)
             #await asyncio.to_thread(self.sendTest)
+        
+        elif r[0]=="status":
+            [_,sts] = r
+
+            unit:Unit = db.query(Unit).filter(Unit.id==self.id).first()
+            unit.status=sts
+            db.commit()
+            db.refresh(unit)
+
+            await sse.triggerEvent(f"pu_{self.id}", {"type":"status", "id":self.id, "status":sts, "name":self.name})
 
         #await websocket.send_text(f"Command received: {data}")
 
     async def send(self, dt):
         await self.ws.send_text(json.dumps(dt))
 
-    def play(self):
-        return
+    async def play(self):
+        await self.send(["control", "play"])
+    async def pause(self):
+        await self.send(["control", "pause"])
 
 units: List[PlayerUnit] = []
 
+
+def getUnitById(uid):
+    for u in units:
+        if u.id == uid:
+            return(u)
+    return(None)
 
 
 @router.websocket("")
@@ -155,12 +178,14 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         units.remove(thisPlayerUnit)
 
-        if (thisPlayerUnit.owner):
-            scl = sse.getSseClients(thisPlayerUnit.owner.id)
-            for sc in scl:
-                if sc!=None:
-                    await sc.trigger("mypu", {"type": "status", "id": thisPlayerUnit.id, "status": False, "name": thisPlayerUnit.name})
+        await sse.triggerEvent(f"pu_{thisPlayerUnit.id}", {"type":"status", "id":thisPlayerUnit.id, "status":"offline", "name":thisPlayerUnit.name})
 
+        if (thisPlayerUnit.owner):
+            #scl = sse.getSseClients(thisPlayerUnit.owner.id)
+            #for sc in scl:
+            #    if sc!=None:
+            #        await sc.trigger("mypu", {"type": "status", "id": thisPlayerUnit.id, "status": False, "name": thisPlayerUnit.name})
+            await sse.clientsTrigger(thisPlayerUnit.owner, "mypu", {"type": "status", "id": thisPlayerUnit.id, "status":"offline", "name": thisPlayerUnit.name})
         if (thisPlayerUnit.id != None):
             unit:Unit = db.query(Unit).filter(
                 Unit.id==thisPlayerUnit.id

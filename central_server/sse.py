@@ -8,6 +8,8 @@ import json
 from db_models import *
 from routes.auth import verify_token
 
+import pu_connection as puc
+
 router = APIRouter()
 
 clients = []
@@ -21,6 +23,11 @@ def getSseClients(uid):
     global clients
 
     return([cl for cl in clients if cl.user.id==uid])
+
+async def clientsTrigger(uid, evn, dt):
+    for sc in getSseClients(uid):
+        if sc!=None:
+            await sc.trigger(evn, dt)
 
 class sseClient():
     def __init__(self, user):

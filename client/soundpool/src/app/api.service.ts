@@ -66,4 +66,26 @@ export class ApiService {
   public getPlayer(pid:string) {
     return(this.http.get.bind(this.http)(`${ApiService.apiUrl}/player/${pid}`));
   }
+
+
+  // INTERACTION WITH THE PLAYER
+  //
+
+  public play(pid:string) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/play`, null));
+  }
+  public pause(pid:string) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/pause`, null));
+  }
+  public prev(pid:string) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/prev`, null));
+  }
+  public next(pid:string) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/next`, null));
+  }
+
+  //
+  // INTERACTION WITH THE PLAYER
+
+
 }

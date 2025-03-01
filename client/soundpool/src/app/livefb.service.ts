@@ -49,11 +49,21 @@ export class LivefbService {
     };
 
     eventSource.onerror = (error) => {
+      for (var ev of this.subbed) {
+        this.tosub.push(ev);
+      }
+      this.subbed=[];
+
       eventSource.close();
       this.listening=false;
     };
 
     return () => {
+      for (var ev of this.subbed) {
+        this.tosub.push(ev);
+      }
+      this.subbed=[];
+      
       eventSource.close();
       this.listening=false;
     };
@@ -76,6 +86,7 @@ export class LivefbService {
     if (this.lint!=null) {
       clearInterval(this.lint);
     }
+    this.subbed=[];
     this.listening=false;
   }
 

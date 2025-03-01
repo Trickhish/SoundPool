@@ -20,5 +20,6 @@
     "profile": "Profile",
     "units": "My players",
 
-    "search_for_songs": "Search for songs"
+    "search_for_songs": "Search for songs",
+    "no_song": "Add a song to the playlist to start playing"
 }

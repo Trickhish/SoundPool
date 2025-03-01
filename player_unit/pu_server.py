@@ -34,6 +34,9 @@ def quit():
     print("\n🔴 PlayerUnit stopped")
     exit()
 
+async def sendcmd(ws, cmd):
+    await ws.send(json.dumps(cmd))
+
 async def runSocket():
     global STATUS
 
@@ -67,10 +70,23 @@ async def runSocket():
                             if err_name=="unknown_id":
                                 print(f"The id '{config["player_unit"]["uid"]}' isn't registered in the central server.\nIf you want to reset the id, delete it in the configuration and restart this unit.")
                             #    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"]]))
-                        elif r[0]=="play":
-                            print("Playing the music.")
-                        elif r[0]=="pause":
-                            print("Pausing the music.")
+                        elif r[0]=="control":
+                            if r[1]=="play":
+                                print("Playing the music.")
+                                mp.playing=True
+                                mp.mix.music.play()
+                                await sendcmd(ws, ["status", "playing"])
+                            elif r[1]=="pause":
+                                print("Pausing the music.")
+                                mp.playing=False
+                                mp.mix.music.pause()
+                                await sendcmd(ws, ["status", "paused"])
+                            elif r[1]=="prev":
+                                print("Loading previous song.")
+                                await sendcmd(ws, ["status", "loading"])
+                            elif r[1]=="next":
+                                print("Loading next song.")
+                                await sendcmd(ws, ["status", "loading"])
                         elif r[0]=="download":
                             _,song,url,key = r
 
@@ -104,13 +120,12 @@ async def runSocket():
         time.sleep(5)
 
 async def main():
-    player = mp.AsyncPlayer()
+    #player = mp.AsyncPlayer()
 
     task1 = asyncio.create_task(runSocket())
-    #task2 = asyncio.create_task(mp.runPlayer(player))
+    task2 = asyncio.create_task(mp.runPlayer())
 
-    await task1
-    #await task2
+    await asyncio.gather(task1, task2)
 
 if __name__ == "__main__":
     try:

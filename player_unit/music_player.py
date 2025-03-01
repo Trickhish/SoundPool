@@ -1,7 +1,16 @@
 import asyncio
 import os
-from pydub import AudioSegment
-import simpleaudio as sa
+#from pydub import AudioSegment
+#import simpleaudio as sa
+from pathlib import Path
+import threading
+import pygame.mixer as mix
+
+musics = []
+playing = False
+
+def isPlaying():
+    return(mix.music.get_busy())
 
 class AsyncPlayer:
     def __init__(self):
@@ -97,8 +106,30 @@ class AsyncPlayer:
         return self.playlist
 
 
-async def runPlayer(player):
+def playerManager():
+    while True:
+        if (not playing) or isPlaying():
+            continue
+        print(f"Music ended")
+
+        if musics!=[]:
+            m = musics.pop(0)
+            print(f"Playing {m}")
+            mix.music.load(m)
+            mix.music.play()
+
+async def runPlayer():
+    global musics
+
+    mix.init()
     print("🎵 Player ready to play")
+
+    for _ in range(5):
+        musics.append("songs/doigby_guerrier.mp3")
+
+    threading.Thread(target=playerManager, daemon=True).start()
+
+
     return
     player.add_to_playlist(r"C:\Users\charl\Music\Doigby - GUERRIER (clip officiel).mp3")
 

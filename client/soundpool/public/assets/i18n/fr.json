@@ -20,5 +20,6 @@
     "profile": "Profil",
     "units": "Mes lecteurs",
 
-    "search_for_songs": "Rechercher des musiques"
+    "search_for_songs": "Rechercher des musiques",
+    "no_song": "Ajoute une musique à la file d'attente"
 }

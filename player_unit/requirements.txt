@@ -7,3 +7,4 @@ pydub
 simpleaudio
 asyncio
 websockets
+play_sounds

@@ -1,4 +1,6 @@
 <div class="content">
+    <h1 class="player_title">{{this.player?.name}}</h1>
+
     <div [class.moving]="mouseMoving" [style.--percent]="musicProgress" class="music_ctn prog_ctn" id="music_ctn">
         <div id="disc_ctn">
             <svg id="music_svg" class="prog_svg">
@@ -17,23 +19,28 @@
             <img id="cover_bg" [src]="cover_url"/>
             <img id="cover" [src]="cover_url"/>
         </div>
-        <p class="music_elt">2:34</p>
+        <p class="music_elt">{{songProgress}}</p>
 
-        <div class="music_pp_ctn" [class.play]="!playing">
+        <div (click)="playpause()" class="music_pp_ctn" [class.play]="!playing">
             <svg class="music_pp_bt play" role="img" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path></svg>
             <svg class="music_pp_bt pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>
         </div>
 
-        <div class="music_nav_ctn music_prev_ctn" [class.play]="!playing">
+        <div (click)="prev()" class="music_nav_ctn music_prev_ctn" [class.play]="!playing">
             <svg class="music_nav_bt music_prev_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
         </div>
-        <div class="music_nav_ctn music_next_ctn" [class.play]="!playing">
+        <div (click)="next()" class="music_nav_ctn music_next_ctn" [class.play]="!playing">
             <svg class="music_nav_bt music_next_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
+        </div>
+
+        <div class="offline_msg" [class.active]="!this.player?.online">
+            <h2>The player is offline</h2>
+            <svg viewBox="0 0 76 76" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" enable-background="new 0 0 76.00 76.00" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" d="M 19,22L 57,22L 57,31L 19,31L 19,22 Z M 55,24L 53,24L 53,29L 55,29L 55,24 Z M 51,24L 49,24L 49,29L 51,29L 51,24 Z M 47,24L 45,24L 45,29L 47,29L 47,24 Z M 21,27L 21,29L 23,29L 23,27L 21,27 Z M 19,33L 57,33L 57,42L 19,42L 19,33 Z M 55,35L 53,35L 53,40L 55,40L 55,35 Z M 51,35L 49,35L 49,40L 51,40L 51,35 Z M 47,35L 45,35L 45,40L 47,40L 47,35 Z M 21,38L 21,40L 23,40L 23,38L 21,38 Z M 46.75,53L 57,53L 57,57L 46.75,57L 44.75,55L 46.75,53 Z M 29.25,53L 31.25,55L 29.25,57L 19,57L 19,53L 29.25,53 Z M 29.5147,59.9926L 34.5073,55L 29.5147,50.0074L 33.0074,46.5147L 38,51.5074L 42.9926,46.5147L 46.4853,50.0074L 41.7426,55L 46.4853,59.9926L 42.9926,63.4853L 38,58.7426L 33.0074,63.4853L 29.5147,59.9926 Z M 36,46.25L 36,44L 40,44L 40,46.25L 38,48.25L 36,46.25 Z "></path> </g></svg>
         </div>
     </div>
 
-    <h1 class="music_title">Rumpled Time</h1>
-    <h2 class="music_artist">The Rumpled</h2>
-    <p class="music_dur">3:26</p>
+    <h1 class="music_title">{{this.currentSong ? this.currentSong.title : ('no_song' | translate)}}</h1>
+    <h2 class="music_artist">{{this.currentSong ? this.currentSong.artist : ''}}</h2>
+    <p class="music_dur">{{this.currentSong ? this.currentSong.duration : ''}}</p>
 </div>
 

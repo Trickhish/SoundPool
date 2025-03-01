@@ -6,6 +6,26 @@
         rotate: 360deg;
     }
 }
+@keyframes blink {
+    0% {
+        opacity: 0;
+    }
+    10% {
+        opacity: 0;
+    }
+    40% {
+        opacity: 1;
+    }
+    60% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+    }
+}
 
 .content {
     height: 100%;
@@ -13,6 +33,55 @@
 
     --controls_color: #a63580;
     --lc_nav-dist: 3.5rem;
+}
+
+.offline_msg {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    padding:0;
+    background-color: #00000036;
+    backdrop-filter: blur(2px);
+    border-radius: 200em;
+    display: none;
+
+    &.active {
+        display: block;
+    }
+
+    h2 {
+        position: absolute;
+        left:50%;
+        top:50%;
+        translate: -50% -50%;
+        height:max-content;
+        width:90%;
+        padding:0;
+        margin: 0;
+        font-size: 3.9rem;
+    }
+
+    svg {
+        fill:#a63580;
+        height:70%;
+        top:50%;
+        left:50%;
+        translate: -50% -50%;
+        position: absolute;
+        opacity: 1;
+        animation-name: blink;
+        animation-duration: 3s;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+    }
+}
+
+.player_title {
+    font-size:2rem;
+    color:#191919;
 }
 
 .music_title {

@@ -73,7 +73,7 @@ export class PlayerunitsComponent {
           var id = dt.id;
           var u = this.getUnitById(id);
           if (u!=null) {
-            u.online=dt.status;
+            u.online=(dt.status!="offline");
             u.name=dt.name;
           }
         }
