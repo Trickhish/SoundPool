@@ -38,19 +38,23 @@ def quit():
     exit()
 
 async def sendcmd(ws, cmd):
-    global cnx
 
     await ws.send(json.dumps(cmd))
 
 async def send(cmd):
-    global tosend
+    print(player)
     
-    await tosend.put(cmd)
-    print(cmd, tosend.qsize())
+    if player!=None:
+        await player.tosend.put(cmd)
+        #await player.send(cmd)
+    
+    #await tosend.put(cmd)
+    #print(cmd, tosend.qsize())
     #msgl.append(cmd)
 
+
+
 async def senderHandler(ws):
-    global tosend
     #global msgl
     
     print("SENDER HANDLING")
@@ -72,6 +76,8 @@ async def senderHandler(ws):
             print(f"Error: {ex}")
         
         await asyncio.sleep(3)
+
+
 
 async def receiveHandler(ws, ro):
     r = json.loads(ro)
@@ -125,72 +131,73 @@ async def receiveHandler(ws, ro):
         print(f"    ➤ Done - {song_path}")
     else:
         print(f"Received command: {ro}")
+        
 
-def test():
-    global tosend
+
+
+class PlayerServer():
+    def __init__(self):
+        self.uri = uri = f"ws://{config['server']['host']}:{config['server']['port']}/unit"
+        self.tosend = asyncio.Queue()
+        self.ws = None
     
-    while True:
-        print(f"TOSEND: {tosend.qsize()}")
-        time.sleep(1)
+    async def send(self, msg):
+        await self.ws.send(json.dumps(msg))
+    
+    async def msgHandler(self):
+        print("Handling Messages")
+        while True:
+            msg = await self.tosend.get()
+            print(msg)
+            await asyncio.sleep(3)
+            
+    async def run(self):
+        print(f"Trying to connect to {config['server']['host']}:{config['server']['port']}")
 
-async def runSocket():
-    global STATUS
-    global cnx
-
-    print(f"Trying to connect to {config['server']['host']}:{config['server']['port']}")
-
-    uri = f"ws://{config['server']['host']}:{config['server']['port']}/unit"
-    while True:
-        try:
-            async with websockets.connect(uri) as ws:
+        while True:
+            try:
+                self.ws = await websockets.connect(self.uri)
                 STATUS = Status.CONNECTED
                 print("🟢 Connected to CentralServer")
-
+                
                 if (config["player_unit"]["uid"]):
-                    await ws.send(json.dumps(["id", config["player_unit"]["uid"], config["player_unit"]["name"], config["player_unit"]["owner_mail"]]))
+                    await self.send(["id", config["player_unit"]["uid"], config["player_unit"]["name"], config["player_unit"]["owner_mail"]])
                 else:
-                    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"], config["player_unit"]["owner_mail"]]))
-
-                asyncio.create_task(senderHandler(ws))
-
+                    await self.send(["ask_id", config["player_unit"]["name"], config["player_unit"]["owner_mail"]])
+                
                 while True:
                     try:
-                        ro = await ws.recv()
+                        ro = await self.ws.recv()
 
-                        await receiveHandler(ws, ro)
+                        await receiveHandler(self.ws, ro)
                             
                     except KeyboardInterrupt:
                         quit()
                     except websockets.exceptions.ConnectionClosedError:
                         print("Got disconnected from the server, attempting to reconnect")
                         break
-
-                #send_task = asyncio.create_task()
-                #receive_task = asyncio.create_task(receiveHandler(ws))
-                #await asyncio.gather(send_task, receive_task)
                 
-                #asyncio.create_task(senderHandler(ws))
-                #asyncio.create_task(receiveHandler(ws))
-                
-        except (websockets.exceptions.InvalidURI, ConnectionRefusedError, OSError) as e:
+            except (websockets.exceptions.InvalidURI, ConnectionRefusedError, OSError) as e:
+                print(e)
+                time.sleep(5)
+            except KeyboardInterrupt:
+                quit()
+            except Exception as e:
+                print(e)
+                time.sleep(5)
             time.sleep(5)
-        except KeyboardInterrupt:
-            quit()
-        except Exception as e:
-            time.sleep(5)
-        time.sleep(5)
 
 
+player = PlayerServer()
 
 async def main():
     #player = mp.AsyncPlayer()
-
-    task1 = asyncio.create_task(runSocket())
+    task1 = asyncio.create_task(player.run())
+    task3 = asyncio.create_task(player.msgHandler())
+    #task1 = asyncio.create_task(runSocket())
     task2 = asyncio.create_task(mp.runPlayer())
 
-    #threading.Thread(target=test, daemon=True).start()
-
-    await asyncio.gather(task1, task2)
+    await asyncio.gather(task1, task2, task3)
 
 if __name__ == "__main__":
     try:

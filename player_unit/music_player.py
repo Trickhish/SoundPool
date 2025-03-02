@@ -5,147 +5,85 @@ import os
 from pathlib import Path
 import threading
 import pygame.mixer as mix
+from mutagen.mp3 import MP3
+
+import pu_server as serv2
+import pu_server2 as serv
+import time
 
 musics = []
+msid = 0
 playing = False
+currentSong = None
+
+class Song():
+    def __init__(self, name, file, id):
+        self.name = name
+        self.file = file
+        self.id = id
+        self.duration = getSongDuration(file)
+
+def getSongDuration(filename):
+    audio = MP3(filename)
+    return(audio.info.length*1000)
 
 def isPlaying():
     return(mix.music.get_busy())
 
-class AsyncPlayer:
-    def __init__(self):
-        self.playlist = []  # List of MP3 file paths
-        self.current_index = 0
-        self.playing = False
-        self.current_audio = None
-        self.playback_obj = None
-
-    async def play(self):
-        """Play the current song."""
-        if not self.playlist:
-            print("Playlist is empty!")
-            return
-
-        # Load the current track
-        try:
-            current_file = self.playlist[self.current_index]
-            print(f"Playing {current_file}...")
-            audio = AudioSegment.from_mp3(current_file)
-            self.current_audio = audio
-        except Exception as e:
-            print(f"Failed to play: {e}")
-
-        # Play the audio asynchronously
-        self.playing = True
-        self.playback_obj = sa.play_buffer(audio.raw_data, num_channels=audio.channels,
-                                           bytes_per_sample=audio.sample_width, sample_rate=audio.frame_rate)
-        await asyncio.sleep(audio.duration_seconds)
-
-    def pause(self):
-        """Pause the current song."""
-        if self.playing and self.playback_obj:
-            print("Pausing playback.")
-            self.playback_obj.stop()
-            self.playing = False
-
-    async def next_song(self):
-        """Skip to the next song in the playlist."""
-        if not self.playlist:
-            print("Playlist is empty!")
-            return
-
-        self.current_index = (self.current_index + 1) % len(self.playlist)
-        print(f"Skipping to next song: {self.playlist[self.current_index]}")
-        if self.playing:
-            self.pause()
-        await self.play()
-
-    async def previous_song(self):
-        """Go to the previous song in the playlist."""
-        if not self.playlist:
-            print("Playlist is empty!")
-            return
-
-        self.current_index = (self.current_index - 1) % len(self.playlist)
-        print(f"Going back to previous song: {self.playlist[self.current_index]}")
-        if self.playing:
-            self.pause()
-        await self.play()
-
-    def go_to_timestamp(self, timestamp: float):
-        """Go to a specific timestamp in the current song."""
-        if self.current_audio and self.playing:
-            # Pause, seek to timestamp, and resume
-            self.pause()
-            print(f"Going to {timestamp} seconds in {self.playlist[self.current_index]}...")
-            play_duration = self.current_audio.duration_seconds
-            if timestamp < play_duration:
-                # Slice the audio from the timestamp onwards
-                sliced_audio = self.current_audio[timestamp * 1000:]
-                self.current_audio = sliced_audio
-                self.playback_obj = sa.play_buffer(sliced_audio.raw_data,
-                                                   num_channels=sliced_audio.channels,
-                                                   bytes_per_sample=sliced_audio.sample_width,
-                                                   sample_rate=sliced_audio.frame_rate)
-                self.playing = True
-            else:
-                print(f"Timestamp {timestamp} exceeds track duration.")
-        else:
-            print("No audio is playing.")
-
-    def add_to_playlist(self, file_path: str):
-        """Add a new MP3 file to the playlist."""
-        if os.path.exists(file_path):
-            self.playlist.append(file_path)
-            print(f"Added {file_path} to the playlist.")
-        else:
-            print(f"File {file_path} does not exist.")
-
-    def get_playlist(self):
-        """Return the current playlist."""
-        return self.playlist
-
-
 def playerManager():
+    global playing
+    global msid
+    global currentSong
+
     while True:
         if (not playing) or isPlaying():
             continue
         print(f"Music ended")
 
         if musics!=[]:
-            m = musics.pop(0)
-            print(f"Playing {m}")
-            mix.music.load(m)
-            mix.music.play()
+            if msid<0:
+                msid=0
+            
+            if msid<len(musics):
+                m:Song = musics[msid]
+                print(f"Playing {m.name}")
+                currentSong = m
+                mix.music.load(m.file)
+                mix.music.play()
+                #await serv.send(["playing", m.id, m.name])
+                
+                asyncio.run(serv.send(["playing", m.id, m.name, m.duration]))
+                asyncio.run(serv.send(["status", "playing"]))
+            else:
+                print(f"No more music to play")
+                playing = False
+                currentSong = None
+                asyncio.run(serv.send(["status", "idle"]))
+            msid+=1
+
+def sendProgress():
+    global currentSong
+    
+    while True:
+        if (isPlaying()):
+            pos = mix.music.get_pos()
+            #print(pos)
+            asyncio.run(serv.send(["progress", pos, currentSong.duration]))
+            #await serv.send(["progress", pos])
+            time.sleep(3)
+
+# mix.music.set_volume(0-1)
 
 async def runPlayer():
     global musics
 
     mix.init()
     print("🎵 Player ready to play")
+    #await serv.send(["status", "idle"])
 
-    for _ in range(5):
-        musics.append("songs/doigby_guerrier.mp3")
+    for _ in range(2):
+        musics.append(Song("Doigby Guerrier", "songs/doigby_guerrier.mp3", "unknown_id"))
+        musics.append(Song("La ferme", "songs/la_ferme.mp3", "unknown_id"))
 
     threading.Thread(target=playerManager, daemon=True).start()
-
-
-    return
-    player.add_to_playlist(r"C:\Users\charl\Music\Doigby - GUERRIER (clip officiel).mp3")
-
-    await player.play()
-
-    await asyncio.sleep(5)
-
-    print("PAUSING")
-    player.pause()
-
-    await asyncio.sleep(2)
-
-    print("NEXT")
-    await player.next_song()
-
-    await asyncio.sleep(3)
-
-    print("GOTO 10")
-    player.go_to_timestamp(10)
+    threading.Thread(target=sendProgress, daemon=True).start()
