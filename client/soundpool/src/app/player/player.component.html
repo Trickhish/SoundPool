@@ -16,8 +16,8 @@
                 <circle class="prog_circle_mask" cx="50%" cy="50%" r="48%"></circle>
             </svg>
 
-            <img id="cover_bg" [src]="cover_url"/>
-            <img id="cover" [src]="cover_url"/>
+            <img id="cover_bg" [src]="currentSong ? currentSong.img_url : 'soundpool_sqrd.png'"/>
+            <img id="cover" [src]="currentSong ? currentSong.img_url : 'soundpool_sqrd.png'"/>
         </div>
         <p class="music_elt">{{songProgress}}</p>
 

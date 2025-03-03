@@ -11,7 +11,7 @@ import { Unit } from './unit';
   providedIn: 'root'
 })
 export class ApiService {
-  public static apiUrl = 'http://192.168.1.94:8080';
+  public static apiUrl = 'http://localhost:8080'; // 192.168.1.94
   public userPP:string = "/assets/user.png";
   mailExpf: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   mailExp: RegExp = /^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;

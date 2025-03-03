@@ -41,16 +41,10 @@ async def sendcmd(ws, cmd):
 
     await ws.send(json.dumps(cmd))
 
-async def send(cmd):
-    print(player)
-    
+async def send(cmd):    
     if player!=None:
-        await player.tosend.put(cmd)
-        #await player.send(cmd)
-    
-    #await tosend.put(cmd)
-    #print(cmd, tosend.qsize())
-    #msgl.append(cmd)
+        pl=player
+        await player.send(cmd)
 
 
 
@@ -91,7 +85,7 @@ async def receiveHandler(ws, ro):
     elif r[0]=="error":
         err_name = r[1]
         if err_name=="unknown_id":
-            print(f"The id '{config["player_unit"]["uid"]}' isn't registered in the central server.\nIf you want to reset the id, delete it in the configuration and restart this unit.")
+            print(f"The id '{config['player_unit']['uid']}' isn't registered in the central server.\nIf you want to reset the id, delete it in the configuration and restart this unit.")
         #    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"]]))
     elif r[0]=="control":
         if r[1]=="play":
@@ -140,8 +134,10 @@ class PlayerServer():
         self.uri = uri = f"ws://{config['server']['host']}:{config['server']['port']}/unit"
         self.tosend = asyncio.Queue()
         self.ws = None
+        self.ready_event = asyncio.Event()
     
     async def send(self, msg):
+        print(f"Sending {msg}")
         await self.ws.send(json.dumps(msg))
     
     async def msgHandler(self):
@@ -159,6 +155,8 @@ class PlayerServer():
                 self.ws = await websockets.connect(self.uri)
                 STATUS = Status.CONNECTED
                 print("🟢 Connected to CentralServer")
+
+                self.ready_event.set()
                 
                 if (config["player_unit"]["uid"]):
                     await self.send(["id", config["player_unit"]["uid"], config["player_unit"]["name"], config["player_unit"]["owner_mail"]])
@@ -169,11 +167,13 @@ class PlayerServer():
                     try:
                         ro = await self.ws.recv()
 
+                        print(ro)
                         await receiveHandler(self.ws, ro)
                             
                     except KeyboardInterrupt:
                         quit()
-                    except websockets.exceptions.ConnectionClosedError:
+                    except websockets.exceptions.ConnectionClosedError as ex:
+                        print(ex)
                         print("Got disconnected from the server, attempting to reconnect")
                         break
                 
@@ -191,11 +191,11 @@ class PlayerServer():
 player = PlayerServer()
 
 async def main():
-    #player = mp.AsyncPlayer()
     task1 = asyncio.create_task(player.run())
-    task3 = asyncio.create_task(player.msgHandler())
-    #task1 = asyncio.create_task(runSocket())
-    task2 = asyncio.create_task(mp.runPlayer())
+    await player.ready_event.wait()
+
+    task3 = asyncio.sleep(1)#asyncio.create_task(player.msgHandler())
+    task2 = asyncio.create_task(mp.runPlayer(player))
 
     await asyncio.gather(task1, task2, task3)
 

@@ -145,14 +145,14 @@ class PlayerUnit():
             await sse.triggerEvent(f"pu_{self.id}", {"type":"status", "id":self.id, "status":sts, "name":self.name})
 
         elif r[0]=="playing":
-            [_,mid,mn,mdur] = r
+            [_,mid,mn,mdur,img_url] = r
             
-            await sse.triggerEvent(f"pu_{self.id}", {"type":"playing_song", "id":mid, "name":mn, "duration":mdur})
+            await sse.triggerEvent(f"pu_{self.id}", {"type":"playing_song", "id":mid, "name":mn, "duration":mdur, "img_url":img_url})
 
         elif r[0]=="progress":
-            [_,pos,dur] = r
+            [_,sname, sid, pos, dur, img_url] = r
             
-            await sse.triggerEvent(f"pu_{self.id}", {"type":"progress", "progress":pos, "duration":mdur})
+            await sse.triggerEvent(f"pu_{self.id}", {"type":"progress", "progress":pos, "duration":dur, "name":sname, "id":sid, "img_url":img_url})
 
         #await websocket.send_text(f"Command received: {data}")
 

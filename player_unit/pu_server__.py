@@ -85,7 +85,7 @@ async def receiveHandler(ws, ro):
     elif r[0]=="error":
         err_name = r[1]
         if err_name=="unknown_id":
-            print(f"The id '{config["player_unit"]["uid"]}' isn't registered in the central server.\nIf you want to reset the id, delete it in the configuration and restart this unit.")
+            print(f"The id '{config['player_unit']['uid']}' isn't registered in the central server.\nIf you want to reset the id, delete it in the configuration and restart this unit.")
         #    await ws.send(json.dumps(["ask_id", config["player_unit"]["name"]]))
     elif r[0]=="control":
         if r[1]=="play":

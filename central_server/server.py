@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
                 print(f"   {chk}: {chv[:MAX_LINE_LENGTH]}")
                 for i in range(1, floor(len(chv)/(MAX_LINE_LENGTH+1))+1):
                     print(pref, end="")
-                    print(f"   {" "*(len(chk)+2)}{chv[(MAX_LINE_LENGTH*i):(MAX_LINE_LENGTH*(i+1))]}")
+                    print(f"   {' '*(len(chk)+2)}{chv[(MAX_LINE_LENGTH*i):(MAX_LINE_LENGTH*(i+1))]}")
             print(pref)
         print(f"{Colors.BLUE}╚{'═'*pll}{Colors.NONE}")
 
@@ -143,7 +143,7 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
 
             try:
                 bdd = body.decode(errors="replace")
-                print(f"   -> {bdd[:100]}{"..." if len(bdd)>100 else ""}\n")
+                print(f"   -> {bdd[:100]}{'...' if len(bdd)>100 else ''}\n")
             except Exception as e:
                 pass
             

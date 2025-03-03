@@ -4,7 +4,7 @@ pycryptodome==3.21.0
 Requests==2.32.3
 websockets==14.2
 pydub
-simpleaudio
+pygame
 asyncio
 websockets
-play_sounds
+mutagen

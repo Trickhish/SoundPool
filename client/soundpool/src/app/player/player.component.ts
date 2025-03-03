@@ -103,7 +103,7 @@ export class PlayerComponent {
     this.loadContent();
 
     this.event.subscribe(`pu_${this.pid}`, (dt: any)=>{
-      console.log(dt);
+      //console.log(dt);
       if (dt.type=="status") {
         // {type: 'status', id: '8bebdc6f-bc80-4df2-b419-1ad5b20db9de', status: true, name: 'Test Unit 0'}
         if (!this.player) {
@@ -113,6 +113,34 @@ export class PlayerComponent {
         this.player.online = (dt.status!="offline");
         this.playing = (this.player.status=="playing");
         this.player.name = dt.name;
+      } else if (dt.type=="playing_song") {
+        console.log(dt);
+        // {type: 'playing_song', id: 'unknown_id', name: 'Doigby Guerrier', duration: 165642.44897959183, img_url}
+        this.currentSong = {
+          title: dt.name,
+          duration: dt.duration,
+          img_url: dt.img_url
+        };
+
+        this.musicProgress = 0;
+
+      } else if (dt.type=="progress") {
+        // {type: 'progress', progress: 5989, duration: 165642.44897959183, name: 'Doigby Guerrier', id: 'unknown_id', img_url}
+        //console.log(dt);
+
+        if (this.currentSong) {
+          this.currentSong.title = dt.name;
+          this.currentSong.img_url = dt.img_url;
+        } else {
+          this.currentSong = {
+            title: dt.name,
+            duration: dt.duration,
+            img_url: dt.img_url
+          };
+        }
+        
+        this.musicProgress = parseFloat(dt.progress)/parseFloat(dt.duration)*100;
+        //console.log(this.musicProgress);
       }
     });
   }
