@@ -27,10 +27,11 @@ currentSong = None
 sws = None
 play_offset_ms = 0       # base offset of the current play() call (for seek + absolute position)
 
-# Playback options (UI wired up in later phases; persisted across restarts)
+# Playback options (persisted across restarts)
 volume = 1.0
 shuffle = False
 repeat = "off"           # off | all | one
+_manual_skip = False     # set by prev/next so repeat-one doesn't replay instead
 
 class Song():
     def __init__(self, name, file, id, img_url, artist="", album="", ready=True):
@@ -173,6 +174,40 @@ def seek(percent):
         return
     emit_state()
 
+def set_volume(level):
+    """Set playback volume (0.0..1.0) and apply it to the current stream."""
+    global volume
+    volume = max(0.0, min(1.0, float(level)))
+    try:
+        mix.music.set_volume(volume)
+    except Exception:
+        pass
+    save_queue()
+    emit_state()
+
+
+def set_shuffle(on):
+    """Toggle shuffle. Enabling randomizes the order of the upcoming songs."""
+    global shuffle
+    shuffle = bool(on)
+    if shuffle and msid < len(musics):
+        import random
+        upcoming = musics[msid:]
+        random.shuffle(upcoming)
+        musics[msid:] = upcoming
+    save_queue()
+    emit_state()
+
+
+def set_repeat(mode):
+    """Set repeat mode: off | all | one."""
+    global repeat
+    if mode in ("off", "all", "one"):
+        repeat = mode
+    save_queue()
+    emit_state()
+
+
 def sendcmd(cmd):
     global sws
 
@@ -186,7 +221,7 @@ def isPlaying():
     return(mix.music.get_busy())
 
 async def playerManager(ws):
-    global playing, msid, currentSong, current_index, play_offset_ms
+    global playing, msid, currentSong, current_index, play_offset_ms, _manual_skip
 
     while True:
         if (not playing) or isPlaying():
@@ -194,7 +229,16 @@ async def playerManager(ws):
             continue
 
         # The current song has finished (or nothing is loaded yet).
+        # repeat-one: replay the same song, unless the user pressed prev/next.
+        if repeat == "one" and not _manual_skip and currentSong is not None and current_index >= 0:
+            msid = current_index
+        _manual_skip = False
+
         if msid < 0:
+            msid = 0
+
+        # repeat-all: wrap back to the start once the queue is exhausted.
+        if repeat == "all" and musics and msid >= len(musics):
             msid = 0
 
         if musics and msid < len(musics):

@@ -261,6 +261,86 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ── Shuffle / repeat / volume ── */
+.extra-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.2rem;
+}
+
+.ec-btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    color: var(--font-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+
+    &:hover { color: var(--font-color); background: rgba(255,255,255,0.06); }
+    &.active { color: var(--accent); }
+
+    .ec-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        font-size: 0.6rem;
+        font-weight: 700;
+        background: var(--accent);
+        color: #fff;
+        border-radius: 50%;
+        width: 13px;
+        height: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Syne', sans-serif;
+    }
+}
+
+.volume {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--font-muted);
+    margin-left: 0.3rem;
+}
+
+.vol-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 90px;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.12);
+    outline: none;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        box-shadow: 0 0 6px rgba(255,43,109,0.6);
+    }
+    &::-moz-range-thumb {
+        width: 13px;
+        height: 13px;
+        border: none;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+    }
+}
+
 /* ── Queue sidebar ── */
 .queue-pane {
     width: 340px;

@@ -171,6 +171,48 @@ async def seek_handler(
     return JSONResponse(content={"message": "seeking"})
 
 
+def _require_controllable_unit(player_id, db, user):
+    u: Unit = db.query(Unit).filter(Unit.id == player_id).first()
+    if u is None:
+        raise HTTPException(404, "Player not found")
+    if u.owner_id != user.id:
+        raise HTTPException(401, "You do not have control rights over this player")
+    uc = puc.getUnitById(u.id)
+    if uc is None:
+        raise HTTPException(503, "The player is offline")
+    return uc
+
+
+@router.post("/{player_id}/volume")
+async def volume_handler(
+    player_id: str, body: VolumeRequest,
+    db: SessionLocal = Depends(get_db), user: User = Depends(verify_token)  # type: ignore
+):
+    uc = _require_controllable_unit(player_id, db, user)
+    await uc.send(["control", "volume", body.level])
+    return JSONResponse(content={"message": "volume set"})
+
+
+@router.post("/{player_id}/shuffle")
+async def shuffle_handler(
+    player_id: str, body: ShuffleRequest,
+    db: SessionLocal = Depends(get_db), user: User = Depends(verify_token)  # type: ignore
+):
+    uc = _require_controllable_unit(player_id, db, user)
+    await uc.send(["control", "shuffle", body.on])
+    return JSONResponse(content={"message": "shuffle set"})
+
+
+@router.post("/{player_id}/repeat")
+async def repeat_handler(
+    player_id: str, body: RepeatRequest,
+    db: SessionLocal = Depends(get_db), user: User = Depends(verify_token)  # type: ignore
+):
+    uc = _require_controllable_unit(player_id, db, user)
+    await uc.send(["control", "repeat", body.mode])
+    return JSONResponse(content={"message": "repeat set"})
+
+
 @router.post("/{player_id}/queue/add")
 async def queue_add(
     player_id: str,

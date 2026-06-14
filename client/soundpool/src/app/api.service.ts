@@ -86,6 +86,15 @@ export class ApiService {
   public seek(pid:string, percent:number) {
     return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/seek`, { percent }));
   }
+  public setVolume(pid:string, level:number) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/volume`, { level }));
+  }
+  public setShuffle(pid:string, on:boolean) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/shuffle`, { on }));
+  }
+  public setRepeat(pid:string, mode:string) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/repeat`, { mode }));
+  }
 
   public queueAdd(pid: string, song: {song_id: string, title: string, artist: string, img_url: string}) {
     return this.http.post(`${ApiService.apiUrl}/player/${pid}/queue/add`, song);

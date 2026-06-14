@@ -293,6 +293,27 @@ export class PlayerComponent implements OnInit, OnDestroy {
   prev() { this.api.prev(this.player!.id).subscribe(); }
   next() { this.api.next(this.player!.id).subscribe(); }
 
+  // ── Volume / shuffle / repeat ──
+  private volumeDebounce: any = null;
+  onVolumeInput(v: number) {
+    this.state.volume = v;
+    clearTimeout(this.volumeDebounce);
+    this.volumeDebounce = setTimeout(() => {
+      if (this.pid) this.api.setVolume(this.pid, v).subscribe();
+    }, 120);
+  }
+  toggleShuffle() {
+    const on = !this.state.shuffle;
+    this.state.shuffle = on;
+    if (this.pid) this.api.setShuffle(this.pid, on).subscribe();
+  }
+  cycleRepeat() {
+    const order: ('off' | 'all' | 'one')[] = ['off', 'all', 'one'];
+    const next = order[(order.indexOf(this.state.repeat) + 1) % 3];
+    this.state.repeat = next;
+    if (this.pid) this.api.setRepeat(this.pid, next).subscribe();
+  }
+
   // ── Queue browse ──
   toggleMode(mode: QueueMode) {
     this.queueMode = this.queueMode === mode ? 'none' : mode;

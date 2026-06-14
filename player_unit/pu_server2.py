@@ -136,16 +136,27 @@ async def receiveHandler(ws, ro):
             mp.emit_state()
         elif r[1]=="prev":
             print("Loading previous song.")
+            mp._manual_skip = True
             mp.msid-=2
             mp.mix.music.stop()
             await sendcmd(ws, ["status", "loading"])
         elif r[1]=="next":
             print("Loading next song.")
+            mp._manual_skip = True
             mp.mix.music.stop()
             await sendcmd(ws, ["status", "loading"])
         elif r[1]=="seek":
             print(f"Seeking to {r[2]}%.")
             mp.seek(r[2])
+        elif r[1]=="volume":
+            print(f"Setting volume to {r[2]}.")
+            mp.set_volume(r[2])
+        elif r[1]=="shuffle":
+            print(f"Setting shuffle to {r[2]}.")
+            mp.set_shuffle(r[2])
+        elif r[1]=="repeat":
+            print(f"Setting repeat to {r[2]}.")
+            mp.set_repeat(r[2])
         elif r[1]=="clear":
             print("Clearing queue.")
             mp.musics.clear()

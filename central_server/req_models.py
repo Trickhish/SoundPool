@@ -31,3 +31,12 @@ class QueueAddRequest(BaseModel):
 
 class SeekRequest(BaseModel):
     percent: float
+
+class VolumeRequest(BaseModel):
+    level: float
+
+class ShuffleRequest(BaseModel):
+    on: bool
+
+class RepeatRequest(BaseModel):
+    mode: str
