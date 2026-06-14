@@ -110,8 +110,19 @@ async def sse_sub(event_name: str, user: User = Depends(verify_token)):
     
     for cl in cll:
         cl.events.append(event_name)
-    
+
     print(f"[SSE]: {user.username} subscribed to '{event_name}'")
+
+    # Seed the new subscriber with the player's current snapshot so a fresh
+    # page load is instantly correct (cover/title/queue/position) instead of
+    # waiting for the next change.
+    if event_name.startswith("pu_"):
+        uc = puc.getUnitById(event_name[3:])
+        if uc is not None and uc.state is not None:
+            snapshot = dict(uc.state)
+            snapshot["type"] = "state"
+            for cl in cll:
+                await cl.send(event_name, snapshot)
 
     
 

@@ -96,11 +96,13 @@ async def receiveHandler(ws, ro):
             mp.playing=True
             mp.mix.music.unpause()
             await sendcmd(ws, ["status", "playing"])
+            mp.emit_state()
         elif r[1]=="pause":
             print("Pausing the music.")
             mp.playing=False
             mp.mix.music.pause()
             await sendcmd(ws, ["status", "paused"])
+            mp.emit_state()
         elif r[1]=="prev":
             print("Loading previous song.")
             mp.msid-=2
@@ -110,19 +112,25 @@ async def receiveHandler(ws, ro):
             print("Loading next song.")
             mp.mix.music.stop()
             await sendcmd(ws, ["status", "loading"])
+        elif r[1]=="seek":
+            print(f"Seeking to {r[2]}%.")
+            mp.seek(r[2])
         elif r[1]=="clear":
             print("Clearing queue.")
             mp.musics.clear()
             mp.msid = 0
+            mp.current_index = -1
             mp.mix.music.stop()
             mp.playing = False
             mp.currentSong = None
             mp.save_queue()
             await sendcmd(ws, ["status", "idle"])
+            mp.emit_state()
     elif r[0]=="queue_add":
         _,song,url,key = r
         song_name = song["SNG_TITLE"]
         artist_name = song["ART_NAME"]
+        album_name = song.get("ALB_TITLE", "")
         pic = song.get("ALB_PICTURE", "")
         img_url = f"https://e-cdns-images.dzcdn.net/images/cover/{pic}/500x500-000000-80-0-0.jpg" if pic else ""
         song_path = os.path.join(config["download_dirs"]["songs"], artist_name+" - "+song_name+".mp3")
@@ -132,11 +140,13 @@ async def receiveHandler(ws, ro):
             await dz.downloadSong(song, url, key, song_path,
                         config["player_unit"]["download_covers"].lower()=="true",
                         config["player_unit"]["cover_size"])
-            mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""), img_url))
+            mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""),
+                                     img_url, artist_name, album_name))
             mp.save_queue()
             print(f"    ➤ Queued: {song_name}")
             if not mp.playing:
                 mp.playing = True
+            mp.emit_state()
 
         asyncio.create_task(_download_and_queue())
     elif r[0]=="download":

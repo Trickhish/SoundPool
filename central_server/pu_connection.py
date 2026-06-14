@@ -30,6 +30,7 @@ class PlayerUnit():
         self.ownerMail = None
         self.ownerId = None
         self.owner = None
+        self.state = None   # latest authoritative snapshot reported by the unit
     
     def sendTest(self):
         rr=tm.search("emmenez moi")
@@ -153,15 +154,18 @@ class PlayerUnit():
 
             await sse.triggerEvent(f"pu_{self.id}", {"type":"status", "id":self.id, "status":sts, "name":self.name})
 
-        elif r[0]=="playing":
-            [_,mid,mn,mdur,img_url] = r
-            
-            await sse.triggerEvent(f"pu_{self.id}", {"type":"playing_song", "id":mid, "name":mn, "duration":mdur, "img_url":img_url})
+        elif r[0]=="state":
+            # Full authoritative snapshot from the unit. Cache it (so fresh
+            # page loads / new SSE subscribers can be seeded) and forward it.
+            self.state = r[1]
+            evt = dict(r[1])
+            evt["type"] = "state"
+            await sse.triggerEvent(f"pu_{self.id}", evt)
 
         elif r[0]=="progress":
-            [_,sname, sid, pos, dur, img_url] = r
-            
-            await sse.triggerEvent(f"pu_{self.id}", {"type":"progress", "progress":pos, "duration":dur, "name":sname, "id":sid, "img_url":img_url})
+            [_, pos, dur] = r
+
+            await sse.triggerEvent(f"pu_{self.id}", {"type":"progress", "progress":pos, "duration":dur})
 
         #await websocket.send_text(f"Command received: {data}")
 

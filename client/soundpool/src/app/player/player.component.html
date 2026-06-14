@@ -1,4 +1,7 @@
-<div class="content">
+<div class="player_layout">
+
+  <!-- ── Stage: disc + controls ── -->
+  <section class="stage">
     <h1 class="player_title">{{this.player?.name}}</h1>
 
     <div [class.moving]="mouseMoving" [style.--percent]="musicProgress" class="music_ctn prog_ctn" id="music_ctn">
@@ -8,8 +11,8 @@
                 <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle" cx="50%" cy="50%" r="50%"></circle>
                 <circle class="prog_circle_mask" cx="50%" cy="50%" r="48%"></circle>
             </svg>
-            <img id="cover_bg" [src]="currentSong ? currentSong.img_url : 'soundpool_sqrd.png'"/>
-            <img id="cover" [src]="currentSong ? currentSong.img_url : 'soundpool_sqrd.png'"/>
+            <img id="cover_bg" [src]="cover"/>
+            <img id="cover" [src]="cover"/>
         </div>
 
         <div (click)="playpause()" class="music_pp_ctn" [class.play]="!playing">
@@ -31,74 +34,81 @@
     </div>
 
     <p class="music_elt">{{songProgress}}</p>
-
     <h1 class="music_title">{{this.currentSong ? this.currentSong.title : ('no_song' | translate)}}</h1>
     <h2 class="music_artist">{{this.currentSong ? this.currentSong.artist : ''}}</h2>
-    <p class="music_dur">{{this.currentSong ? this.currentSong.duration : ''}}</p>
+  </section>
 
-    <!-- ── Queue controls ── -->
-    <div class="queue-section">
-
-        <div class="queue-bar">
-            <button class="q-btn" [class.active]="queueMode === 'search'" (click)="toggleMode('search')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Add song
-            </button>
-            <button class="q-btn" [class.active]="queueMode === 'playlists'" (click)="toggleMode('playlists')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                Add playlist
-            </button>
-            <button class="q-btn danger" (click)="clearQueue()">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                Clear
-            </button>
-        </div>
-
-        <!-- Search panel -->
-        <div *ngIf="queueMode === 'search'" class="queue-panel">
-            <input class="q-search-input" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search songs…" autofocus />
-            <div class="q-results">
-                <div *ngIf="searchResults.length === 0 && searchQuery.length > 0" class="q-empty">No results</div>
-                <div *ngFor="let s of searchResults" class="q-result-item" (click)="addSong(s)" [class.disabled]="queueBusy">
-                    <img *ngIf="s.img_url" [src]="s.img_url" class="q-result-cover" />
-                    <div class="q-result-info">
-                        <span class="q-result-title">{{ s.title }}</span>
-                        <span class="q-result-artist">{{ s.artist }}</span>
-                    </div>
-                    <div *ngIf="queueBusy" class="q-spinner"></div>
-                    <svg *ngIf="!queueBusy" class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Playlist picker -->
-        <div *ngIf="queueMode === 'playlists'" class="queue-panel">
-            <div *ngIf="!playlistsLoaded" class="q-loading">
-                <div class="q-spinner"></div><span>Loading playlists…</span>
-            </div>
-            <div *ngIf="playlistsLoaded && deezerPlaylists.length === 0" class="q-empty">No Deezer playlists found</div>
-            <div *ngFor="let pl of deezerPlaylists" class="q-playlist-item" (click)="addPlaylist(pl)" [class.disabled]="addingPlaylistId !== null">
-                <img *ngIf="pl.picture" [src]="pl.picture" class="q-pl-cover" />
-                <div class="q-result-info">
-                    <span class="q-result-title">{{ pl.title }}</span>
-                    <span class="q-result-artist">{{ pl.nb_tracks }} tracks</span>
-                </div>
-                <div *ngIf="addingPlaylistId === pl.id" class="q-spinner"></div>
-                <svg *ngIf="addingPlaylistId !== pl.id" class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </div>
-        </div>
-
-        <!-- Local queue list -->
-        <div *ngIf="queueList.length > 0" class="queue-list">
-            <div class="queue-list-header">Up next ({{ queueList.length }})</div>
-            <div *ngFor="let e of queueList; let i = index" class="queue-list-item">
-                <img *ngIf="e.img_url" [src]="e.img_url" class="q-result-cover" />
-                <div class="q-result-info">
-                    <span class="q-result-title">{{ e.title }}</span>
-                    <span class="q-result-artist">{{ e.artist }}</span>
-                </div>
-            </div>
-        </div>
-
+  <!-- ── Queue sidebar ── -->
+  <aside class="queue-pane">
+    <div class="queue-pane-head">
+      <span class="qp-title">Up Next <em *ngIf="upNext.length">({{ upNext.length }})</em></span>
+      <button class="qp-clear" (click)="clearQueue()" title="Clear queue">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
     </div>
+
+    <div class="queue-scroll">
+      <div *ngIf="upNext.length === 0" class="qp-empty">
+        <p>Nothing queued</p>
+        <span>Add songs or a playlist below</span>
+      </div>
+      <div *ngFor="let item of upNext" class="qp-row">
+        <img class="qp-cover" [src]="item.cover || 'soundpool_sqrd.png'"/>
+        <div class="qp-info">
+          <span class="qp-row-title">{{ item.title }}</span>
+          <span class="qp-row-artist">{{ item.artist }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="queue-pane-foot">
+      <button class="q-btn" [class.active]="queueMode === 'search'" (click)="toggleMode('search')">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Add song
+      </button>
+      <button class="q-btn" [class.active]="queueMode === 'playlists'" (click)="toggleMode('playlists')">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Playlist
+      </button>
+    </div>
+
+    <!-- Browse slide-over -->
+    <div class="browse" *ngIf="queueMode !== 'none'">
+      <div class="browse-head">
+        <span>{{ queueMode === 'search' ? 'Add a song' : 'Add a playlist' }}</span>
+        <button class="browse-close" (click)="toggleMode(queueMode)">✕</button>
+      </div>
+
+      <input *ngIf="queueMode === 'search'" class="q-search-input" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search songs…" autofocus />
+
+      <div class="browse-scroll">
+        <ng-container *ngIf="queueMode === 'search'">
+          <div *ngIf="searchResults.length === 0 && searchQuery.length > 0" class="q-empty">No results</div>
+          <div *ngFor="let s of searchResults" class="q-result-item" (click)="addSong(s)" [class.disabled]="queueBusy">
+            <img *ngIf="s.img_url" [src]="s.img_url" class="q-result-cover" />
+            <div class="q-result-info">
+              <span class="q-result-title">{{ s.title }}</span>
+              <span class="q-result-artist">{{ s.artist }}</span>
+            </div>
+            <svg class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="queueMode === 'playlists'">
+          <div *ngIf="!playlistsLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading playlists…</span></div>
+          <div *ngIf="playlistsLoaded && deezerPlaylists.length === 0" class="q-empty">No Deezer playlists found</div>
+          <div *ngFor="let pl of deezerPlaylists" class="q-result-item" (click)="addPlaylist(pl)" [class.disabled]="addingPlaylistId !== null">
+            <img *ngIf="pl.picture" [src]="pl.picture" class="q-result-cover" />
+            <div class="q-result-info">
+              <span class="q-result-title">{{ pl.title }}</span>
+              <span class="q-result-artist">{{ pl.nb_tracks }} tracks</span>
+            </div>
+            <div *ngIf="addingPlaylistId === pl.id" class="q-spinner"></div>
+            <svg *ngIf="addingPlaylistId !== pl.id" class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </aside>
+
 </div>

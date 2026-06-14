@@ -41,7 +41,10 @@ async def test_handler(
         if not lnk:
             raise HTTPException(401, "You're not allowed to view this player")
 
-    return JSONResponse(content=jsonObject(u))
+    content = jsonObject(u)
+    uc = puc.getUnitById(u.id)
+    content["state"] = uc.state if (uc is not None) else None
+    return JSONResponse(content=content)
 
 @router.post("/{player_id}/play")
 async def play_handler(
@@ -143,6 +146,29 @@ async def prev_handler(
     db.refresh(u)
 
     return JSONResponse(content={"message": "loading next song"})
+
+
+@router.post("/{player_id}/seek")
+async def seek_handler(
+    player_id: str,
+    body: SeekRequest,
+    db: SessionLocal = Depends(get_db),  # type: ignore
+    user: User = Depends(verify_token)
+):
+    u:Unit = db.query(Unit).filter(Unit.id==player_id).first()
+    if (u==None):
+        raise HTTPException(404, "Player not found")
+
+    if (u.owner_id != user.id):
+        raise HTTPException(401, "You do not have control rights over this player")
+
+    uc = puc.getUnitById(u.id)
+    if uc==None:
+        raise HTTPException(503, "The player is offline")
+
+    await uc.send(["control", "seek", body.percent])
+
+    return JSONResponse(content={"message": "seeking"})
 
 
 @router.post("/{player_id}/queue/add")

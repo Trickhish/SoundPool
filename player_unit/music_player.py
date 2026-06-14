@@ -20,26 +20,39 @@ QUEUE_STATE_DIR = os.path.join(os.path.expanduser("~"), ".soundpool")
 QUEUE_STATE_FILE = os.path.join(QUEUE_STATE_DIR, "queue_state.json")
 
 musics = []
-msid = 0
+msid = 0                 # index of the NEXT song to play
+current_index = -1       # index in `musics` of the song currently loaded
 playing = False
 currentSong = None
 sws = None
+play_offset_ms = 0       # base offset of the current play() call (for seek + absolute position)
+
+# Playback options (UI wired up in later phases; persisted across restarts)
+volume = 1.0
+shuffle = False
+repeat = "off"           # off | all | one
 
 class Song():
-    def __init__(self, name, file, id, img_url):
+    def __init__(self, name, file, id, img_url, artist="", album=""):
         self.name = name
         self.file = file
         self.id = id
         self.duration = getSongDuration(file)
         self.img_url = img_url
+        self.artist = artist
+        self.album = album
 
 def save_queue():
     try:
         os.makedirs(QUEUE_STATE_DIR, exist_ok=True)
         data = {
             "msid": msid,
+            "volume": volume,
+            "shuffle": shuffle,
+            "repeat": repeat,
             "musics": [
-                {"name": m.name, "file": m.file, "id": m.id, "img_url": m.img_url}
+                {"name": m.name, "file": m.file, "id": m.id, "img_url": m.img_url,
+                 "artist": m.artist, "album": m.album}
                 for m in musics
             ],
         }
@@ -49,7 +62,7 @@ def save_queue():
         print(f"⚠️ Failed to save queue state: {ex}")
 
 def load_queue():
-    global musics, msid
+    global musics, msid, volume, shuffle, repeat
 
     if not os.path.exists(QUEUE_STATE_FILE):
         return
@@ -61,6 +74,10 @@ def load_queue():
         print(f"⚠️ Failed to read queue state: {ex}")
         return
 
+    volume = data.get("volume", 1.0)
+    shuffle = data.get("shuffle", False)
+    repeat = data.get("repeat", "off")
+
     saved_msid = data.get("msid", 0)
     adjusted_msid = saved_msid
     restored = []
@@ -70,7 +87,8 @@ def load_queue():
             print(f"⚠️ Queued file missing, skipping: {e['file']}")
         else:
             try:
-                restored.append(Song(e["name"], e["file"], e["id"], e["img_url"]))
+                restored.append(Song(e["name"], e["file"], e["id"], e["img_url"],
+                                     e.get("artist", ""), e.get("album", "")))
                 ok = True
             except Exception as ex:
                 print(f"⚠️ Skipping '{e.get('name')}': {ex}")
@@ -85,6 +103,70 @@ def load_queue():
     if musics:
         print(f"🔁 Restored {len(musics)} queued song(s) from previous session")
 
+
+def current_position():
+    """Absolute playback position (ms) within the current song."""
+    if currentSong is None:
+        return 0
+    p = mix.music.get_pos()  # ms since the last play(); -1 when not playing
+    if p < 0:
+        p = 0
+    return play_offset_ms + p
+
+
+def state_dict():
+    """Full authoritative snapshot of the player, sent to the central server."""
+    return {
+        "now_playing": ({
+            "id": currentSong.id,
+            "title": currentSong.name,
+            "artist": currentSong.artist,
+            "album": currentSong.album,
+            "cover": currentSong.img_url,
+            "duration": currentSong.duration,
+        } if currentSong else None),
+        "position": current_position(),
+        "playing": bool(playing),
+        "current_index": current_index,
+        "msid": msid,
+        "volume": volume,
+        "shuffle": shuffle,
+        "repeat": repeat,
+        "queue": [
+            {"key": i, "id": m.id, "title": m.name, "artist": m.artist,
+             "cover": m.img_url, "duration": m.duration}
+            for i, m in enumerate(musics)
+        ],
+    }
+
+
+def emit_state():
+    """Schedule sending the full state snapshot to the server (non-blocking)."""
+    if sws is None:
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    loop.create_task(serv.sendcmd(sws, ["state", state_dict()]))
+
+
+def seek(percent):
+    """Seek within the current song to `percent` (0..100) of its duration."""
+    global play_offset_ms, playing
+    if currentSong is None:
+        return
+    seconds = max(0.0, (float(percent) / 100.0) * (currentSong.duration / 1000.0))
+    try:
+        mix.music.play(start=seconds)
+        mix.music.set_volume(volume)
+        play_offset_ms = int(seconds * 1000)
+        playing = True
+    except Exception as ex:
+        print(f"⚠️ Seek failed: {ex}")
+        return
+    emit_state()
+
 def sendcmd(cmd):
     global sws
 
@@ -98,63 +180,46 @@ def isPlaying():
     return(mix.music.get_busy())
 
 async def playerManager(ws):
-    global playing
-    global msid
-    global currentSong
+    global playing, msid, currentSong, current_index, play_offset_ms
 
     while True:
         if (not playing) or isPlaying():
             await asyncio.sleep(0.1)
             continue
-        print(f"Music ended")
 
-        if musics!=[]:
-            if msid<0:
-                msid=0
-            
-            if msid<len(musics):
-                m:Song = musics[msid]
-                print(f"Playing {m.name}")
-                currentSong = m
-                mix.music.load(m.file)
-                mix.music.play()
-                #await serv.send(["playing", m.id, m.name])
-                
-                await serv.sendcmd(ws, ["playing", m.id, m.name, m.duration, m.img_url])
-                await serv.sendcmd(ws, ["status", "playing"])
+        # The current song has finished (or nothing is loaded yet).
+        if msid < 0:
+            msid = 0
 
-                #asyncio.run(serv.send(["playing", m.id, m.name, m.duration]))
-                #asyncio.run(serv.send(["status", "playing"]))
-            else:
-                print(f"No more music to play")
-                playing = False
-                currentSong = None
-                asyncio.run(serv.send(["status", "idle"]))
-            msid+=1
+        if musics and msid < len(musics):
+            m: Song = musics[msid]
+            current_index = msid
+            currentSong = m
+            print(f"Playing {m.name}")
+            mix.music.load(m.file)
+            mix.music.play()
+            mix.music.set_volume(volume)
+            play_offset_ms = 0
+            msid += 1
             save_queue()
-        else:
-            playing=False
-        
-        await asyncio.sleep(0.01)
+            await serv.sendcmd(ws, ["status", "playing"])
+            emit_state()
+        elif playing:
+            print("No more music to play")
+            playing = False
+            currentSong = None
+            current_index = -1
+            await serv.sendcmd(ws, ["status", "idle"])
+            emit_state()
+
+        await asyncio.sleep(0.05)
 
 async def sendProgress():
-    global currentSong
     global sws
 
-    #while True:
-    #    await serv.sendcmd(sws, ["progress", "1", "2"])
-    #    await asyncio.sleep(1)
-    
     while True:
-        if (isPlaying()):
-            pos = mix.music.get_pos()
-            #print(pos)
-            await serv.sendcmd(sws, ["progress", currentSong.name, currentSong.id, pos, currentSong.duration, currentSong.img_url])
-            
-            #await serv.sendcmd(sws, ["progress", pos, currentSong.duration])
-            #asyncio.run(serv.sendcmd(sws, ["progress", pos, currentSong.duration]))
-            #asyncio.run(serv.send(["progress", pos, currentSong.duration]))
-            #await serv.send(["progress", pos])
+        if isPlaying() and currentSong is not None:
+            await serv.sendcmd(sws, ["progress", current_position(), currentSong.duration])
         await asyncio.sleep(1)
 
 # mix.music.set_volume(0-1)
@@ -169,6 +234,7 @@ async def runPlayer(player):
     load_queue()
     print("🎵 Player ready to play")
     await serv.sendcmd(sws, ["status", "idle"])
+    emit_state()
 
     t1=asyncio.create_task(sendProgress())
     t2=asyncio.create_task(playerManager(sws))

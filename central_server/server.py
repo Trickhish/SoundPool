@@ -48,6 +48,7 @@ from routes.player import router as pl_router
 from routes.deezer import router as deezer_router
 
 from pu_connection import router as pu_router
+import pu_connection as puc
 from sse import test_events, router as sse_router
 import sse
 

@@ -28,3 +28,6 @@ class QueueAddRequest(BaseModel):
     title: str
     artist: str
     img_url: str = ""
+
+class SeekRequest(BaseModel):
+    percent: float

@@ -83,6 +83,9 @@ export class ApiService {
   public next(pid:string) {
     return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/next`, null));
   }
+  public seek(pid:string, percent:number) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/seek`, { percent }));
+  }
 
   public queueAdd(pid: string, song: {song_id: string, title: string, artist: string, img_url: string}) {
     return this.http.post(`${ApiService.apiUrl}/player/${pid}/queue/add`, song);

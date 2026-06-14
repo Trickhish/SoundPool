@@ -14,10 +14,25 @@ import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-export interface QueueEntry { title: string; artist: string; img_url: string; }
+export interface NowPlaying { id: string; title: string; artist: string; album: string; cover: string; duration: number; }
+export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; }
 export interface DeezerPlaylist { id: number; title: string; nb_tracks: number; picture: string; }
 
+export interface PlayerState {
+  now_playing: NowPlaying | null;
+  position: number;
+  playing: boolean;
+  current_index: number;
+  msid: number;
+  volume: number;
+  shuffle: boolean;
+  repeat: 'off' | 'all' | 'one';
+  queue: QueueItem[];
+}
+
 type QueueMode = 'none' | 'search' | 'playlists';
+
+const FALLBACK_COVER = 'soundpool_sqrd.png';
 
 @Component({
   selector: 'app-player',
@@ -44,110 +59,228 @@ export class PlayerComponent implements OnInit, OnDestroy {
     private api: ApiService,
     private event: LivefbService
   ) {
-    window.addEventListener('mousemove', (e) => this.onMouseMove(e));
-    window.addEventListener('mouseup', () => this.onMouseUp());
+    this.mouseMoveHandler = (e) => this.onMouseMove(e);
+    this.mouseUpHandler = () => this.onMouseUp();
+    window.addEventListener('mousemove', this.mouseMoveHandler);
+    window.addEventListener('mouseup', this.mouseUpHandler);
     library.addIcons(faPlay, faPlayCircle);
   }
 
   pid: string | null = null;
-  cover_url = "soundpool_sqrd.png";
-  movingProgress = false;
-  musicProgress = 0;
-  mouseMoving = false;
-  playing = false;
   player: Unit | null = null;
-  currentSong: Song | null = null;
-  songProgress = "";
 
-  // Queue state
+  // Authoritative player state (mirrors the unit snapshot)
+  state: PlayerState = this.emptyState();
+
+  // Progress ring / scrubbing
+  musicProgress = 0;            // 0..100, drives the ring
+  positionMs = 0;               // smoothed current position for display
+  private lastReportedPos = 0;  // last position from a progress/state event
+  private lastReportedAt = 0;   // timestamp of that report
+  mouseMoving = false;
+  movingProgress = false;
+  private seekSuppressUntil = 0; // ignore incoming progress right after a seek
+  private ticker: any = null;
+  private mouseMoveHandler: (e: MouseEvent) => void;
+  private mouseUpHandler: () => void;
+
+  // Queue browse
   queueMode: QueueMode = 'none';
-  queueList: QueueEntry[] = [];
   queueBusy = false;
-
-  // Search panel
   searchQuery = '';
   searchResults: any[] = [];
   searchDebounce: any = null;
-
-  // Playlist panel
   deezerPlaylists: DeezerPlaylist[] = [];
   playlistsLoaded = false;
   addingPlaylistId: number | null = null;
 
-  async loadContent() {
-    this.cache.fetchData(`player_${this.pid!}`, () => this.api.getPlayer(this.pid!)).subscribe({
-      next: (r: any) => {
-        if (r.currentData != null) this.player = r.currentData;
-        r.newData$.subscribe({
-          next: (dt: any) => {
-            this.player = dt;
-            this.playing = this.player?.status == "playing";
-          }
-        });
-      }
-    });
+  emptyState(): PlayerState {
+    return { now_playing: null, position: 0, playing: false, current_index: -1,
+             msid: 0, volume: 1, shuffle: false, repeat: 'off', queue: [] };
   }
 
+  // ── Derived view helpers ──
+  get currentSong(): Song | null {
+    const np = this.state.now_playing;
+    if (!np) return null;
+    return { id: np.id, title: np.title, artist: np.artist, album: np.album,
+             img_url: np.cover || FALLBACK_COVER, duration: np.duration };
+  }
+  get playing(): boolean { return this.state.playing; }
+  get cover(): string { return this.state.now_playing?.cover || FALLBACK_COVER; }
+  get durationMs(): number { return this.state.now_playing?.duration || 0; }
+
+  /** Upcoming songs (everything after the currently playing index). */
+  get upNext(): QueueItem[] {
+    const start = this.state.current_index >= 0 ? this.state.current_index + 1 : 0;
+    return this.state.queue.slice(start);
+  }
+
+  get songProgress(): string {
+    if (!this.state.now_playing) return '';
+    return `${this.fmt(this.positionMs)} / ${this.fmt(this.durationMs)}`;
+  }
+
+  fmt(ms: number): string {
+    const s = Math.max(0, Math.floor((ms || 0) / 1000));
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  // ── Lifecycle ──
   ngOnInit() {
     this.pid = this.aroute.snapshot.paramMap.get('player_id');
     if (!this.pid) return;
     this.loadContent();
 
-    this.event.subscribe(`pu_${this.pid}`, (dt: any) => {
-      if (dt.type == "status") {
-        if (!this.player) return;
-        this.player.status = dt.status;
-        this.player.online = (dt.status != "offline");
-        this.playing = (this.player.status == "playing");
-        this.player.name = dt.name;
-      } else if (dt.type == "playing_song") {
-        this.currentSong = { title: dt.name, duration: dt.duration, img_url: dt.img_url };
-        this.musicProgress = 0;
-      } else if (dt.type == "progress") {
-        if (this.currentSong) {
-          this.currentSong.title = dt.name;
-          this.currentSong.img_url = dt.img_url;
-        } else {
-          this.currentSong = { title: dt.name, duration: dt.duration, img_url: dt.img_url };
-        }
-        this.musicProgress = parseFloat(dt.progress) / parseFloat(dt.duration) * 100;
+    this.event.subscribe(`pu_${this.pid}`, (dt: any) => this.onEvent(dt));
+
+    this.ticker = setInterval(() => this.tick(), 250);
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('mousemove', this.mouseMoveHandler);
+    window.removeEventListener('mouseup', this.mouseUpHandler);
+    if (this.ticker) clearInterval(this.ticker);
+  }
+
+  loadContent() {
+    this.cache.fetchData(`player_${this.pid!}`, () => this.api.getPlayer(this.pid!)).subscribe({
+      next: (r: any) => {
+        if (r.currentData != null) this.applyPlayer(r.currentData);
+        r.newData$.subscribe({ next: (dt: any) => this.applyPlayer(dt) });
       }
     });
   }
 
-  ngOnDestroy() {
-    window.removeEventListener('mousemove', (e) => this.onMouseMove(e));
-    window.removeEventListener('mouseup', () => this.onMouseUp());
+  private applyPlayer(p: any) {
+    if (!p) return;
+    this.player = p;
+    if (p.state) this.applyState(p.state);
   }
 
-  // ── Progress bar ──
+  // ── Live events ──
+  private onEvent(dt: any) {
+    if (!dt) return;
+    switch (dt.type) {
+      case 'state':
+        this.applyState(dt);
+        break;
+      case 'progress':
+        this.onProgress(dt);
+        break;
+      case 'status':
+        if (this.player) {
+          this.player.status = dt.status;
+          this.player.online = (dt.status != 'offline');
+          if (dt.name) this.player.name = dt.name;
+        }
+        if (dt.status === 'paused') this.state.playing = false;
+        if (dt.status === 'playing') this.state.playing = true;
+        break;
+    }
+  }
+
+  private applyState(s: any) {
+    this.state = {
+      now_playing: s.now_playing ?? null,
+      position: s.position ?? 0,
+      playing: !!s.playing,
+      current_index: s.current_index ?? -1,
+      msid: s.msid ?? 0,
+      volume: s.volume ?? 1,
+      shuffle: !!s.shuffle,
+      repeat: s.repeat ?? 'off',
+      queue: s.queue ?? [],
+    };
+    if (!this.isScrubbing()) {
+      this.lastReportedPos = this.state.position;
+      this.lastReportedAt = Date.now();
+      this.refreshProgress();
+    }
+  }
+
+  private onProgress(dt: any) {
+    if (this.isScrubbing()) return;
+    const dur = parseFloat(dt.duration);
+    if (this.state.now_playing) this.state.now_playing.duration = dur;
+    this.lastReportedPos = parseFloat(dt.progress);
+    this.lastReportedAt = Date.now();
+    this.refreshProgress();
+  }
+
+  private isScrubbing(): boolean {
+    return this.movingProgress || Date.now() < this.seekSuppressUntil;
+  }
+
+  /** Smoothly advance the position between 1s server ticks. */
+  private tick() {
+    if (this.isScrubbing() || !this.state.playing || !this.state.now_playing) return;
+    const est = this.lastReportedPos + (Date.now() - this.lastReportedAt);
+    this.positionMs = Math.min(est, this.durationMs);
+    this.refreshProgress();
+  }
+
+  private refreshProgress() {
+    if (!this.isScrubbing()) this.positionMs = this.lastReportedPos + (Date.now() - this.lastReportedAt);
+    this.musicProgress = this.durationMs > 0
+      ? Math.min(100, (this.positionMs / this.durationMs) * 100)
+      : 0;
+  }
+
+  // ── Progress bar / scrubbing ──
+  private pctFromEvent(ev: MouseEvent): number {
+    const svg = document.querySelector('#music_svg');
+    const rect = svg!.getBoundingClientRect();
+    const dx = ev.clientX - rect.left - rect.width / 2;
+    const dy = ev.clientY - rect.top - rect.height / 2;
+    let angle = ((Math.atan2(dy, dx) / Math.PI) * 50) + 25;
+    if (angle < 0) angle = 100 + angle;
+    return angle;
+  }
 
   setPct(ev: MouseEvent) {
-    var svg = document.querySelector("#music_svg");
-    const rect = svg!.getBoundingClientRect();
-    const dx = ev.pageX - rect.left - rect.width / 2;
-    const dy = ev.pageY - rect.top - rect.height / 2;
-    var angle = ((Math.atan2(dy, dx) / Math.PI) * 50) + 25;
-    if (angle < 0) angle = 100 + angle;
-    this.musicProgress = angle;
+    const pct = this.pctFromEvent(ev);
+    this.musicProgress = pct;
+    this.positionMs = (pct / 100) * this.durationMs;
+    this.commitSeek(pct);
   }
-  followMouse(ev: MouseEvent) { this.movingProgress = true; }
+
+  followMouse(ev: MouseEvent) { this.movingProgress = true; this.setPctVisual(ev); }
+
+  private setPctVisual(ev: MouseEvent) {
+    const pct = this.pctFromEvent(ev);
+    this.musicProgress = pct;
+    this.positionMs = (pct / 100) * this.durationMs;
+  }
+
   onMouseMove(ev: MouseEvent) {
     this.mouseMoving = true;
-    if (this.movingProgress) this.setPct(ev);
+    if (this.movingProgress) this.setPctVisual(ev);
   }
-  onMouseUp() { this.movingProgress = false; this.mouseMoving = false; }
+
+  onMouseUp() {
+    if (this.movingProgress) this.commitSeek(this.musicProgress);
+    this.movingProgress = false;
+    this.mouseMoving = false;
+  }
+
+  private commitSeek(pct: number) {
+    if (!this.pid || !this.state.now_playing) return;
+    this.seekSuppressUntil = Date.now() + 1500;
+    this.lastReportedPos = (pct / 100) * this.durationMs;
+    this.lastReportedAt = Date.now();
+    this.api.seek(this.pid, pct).subscribe();
+  }
 
   // ── Playback ──
-
   play() { this.api.play(this.player!.id).subscribe(); }
   pause() { this.api.pause(this.player!.id).subscribe(); }
   playpause() { this.playing ? this.pause() : this.play(); }
   prev() { this.api.prev(this.player!.id).subscribe(); }
   next() { this.api.next(this.player!.id).subscribe(); }
 
-  // ── Queue controls ──
-
+  // ── Queue browse ──
   toggleMode(mode: QueueMode) {
     this.queueMode = this.queueMode === mode ? 'none' : mode;
     if (this.queueMode === 'playlists' && !this.playlistsLoaded) {
@@ -179,11 +312,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.api.queueAdd(this.pid, {
       song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || ''
     }).subscribe({
-      next: () => {
-        this.queueList.push({ title: song.title, artist: song.artist, img_url: song.img_url || '' });
-        this.queueBusy = false;
-        this.queueMode = 'none';
-      },
+      next: () => { this.queueBusy = false; },
       error: () => { this.queueBusy = false; }
     });
   }
@@ -192,19 +321,13 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid || this.addingPlaylistId !== null) return;
     this.addingPlaylistId = pl.id;
     this.api.queuePlaylist(this.pid, pl.id).subscribe({
-      next: (r) => {
-        this.queueList.push({ title: `${pl.title} (${r.total} tracks)`, artist: 'Deezer playlist', img_url: pl.picture });
-        this.addingPlaylistId = null;
-        this.queueMode = 'none';
-      },
+      next: () => { this.addingPlaylistId = null; this.queueMode = 'none'; },
       error: () => { this.addingPlaylistId = null; }
     });
   }
 
   clearQueue() {
     if (!this.pid) return;
-    this.api.queueClear(this.pid).subscribe({
-      next: () => { this.queueList = []; }
-    });
+    this.api.queueClear(this.pid).subscribe();
   }
 }
