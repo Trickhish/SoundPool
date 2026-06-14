@@ -122,14 +122,18 @@ async def receiveHandler(ws, ro):
         pic = song.get("ALB_PICTURE", "")
         img_url = f"https://e-cdns-images.dzcdn.net/images/cover/{pic}/500x500-000000-80-0-0.jpg" if pic else ""
         song_path = os.path.join(config["download_dirs"]["songs"], artist_name+" - "+song_name+".mp3")
-        print(f"💿 Downloading for queue: {song_name}...")
-        await dz.downloadSong(song, url, key, song_path,
-                    config["player_unit"]["download_covers"].lower()=="true",
-                    config["player_unit"]["cover_size"])
-        mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""), img_url))
-        print(f"    ➤ Queued: {song_name}")
-        if not mp.playing:
-            mp.playing = True
+
+        async def _download_and_queue():
+            print(f"💿 Downloading for queue: {song_name}...")
+            await asyncio.to_thread(dz.downloadSong, song, url, key, song_path,
+                        config["player_unit"]["download_covers"].lower()=="true",
+                        config["player_unit"]["cover_size"])
+            mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""), img_url))
+            print(f"    ➤ Queued: {song_name}")
+            if not mp.playing:
+                mp.playing = True
+
+        asyncio.create_task(_download_and_queue())
     elif r[0]=="download":
         _,song,url,key = r
 

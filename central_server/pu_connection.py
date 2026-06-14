@@ -72,6 +72,15 @@ class PlayerUnit():
                 return
             
             self.id = piud
+
+            # Close and evict any stale connections for the same unit
+            for stale in [u for u in units if u is not self and u.id == piud]:
+                try:
+                    await stale.ws.close()
+                except Exception:
+                    pass
+                units.remove(stale)
+
             pu.online=True
             pu.name=pun
 
