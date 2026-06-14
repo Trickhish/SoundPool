@@ -111,10 +111,11 @@ export class PlayerComponent implements OnInit, OnDestroy {
   get cover(): string { return this.state.now_playing?.cover || FALLBACK_COVER; }
   get durationMs(): number { return this.state.now_playing?.duration || 0; }
 
-  /** Upcoming songs (everything after the currently playing index). */
+  /** Upcoming songs. `msid` is the unit's cursor = index of the next song to
+   *  play, so this matches the unit exactly (empty once the queue is done,
+   *  rather than re-showing already-played songs). */
   get upNext(): QueueItem[] {
-    const start = this.state.current_index >= 0 ? this.state.current_index + 1 : 0;
-    return this.state.queue.slice(start);
+    return this.state.queue.slice(this.state.msid);
   }
 
   get songProgress(): string {

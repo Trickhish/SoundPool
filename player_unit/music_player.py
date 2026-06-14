@@ -217,9 +217,15 @@ async def playerManager(ws):
 async def sendProgress():
     global sws
 
+    n = 0
     while True:
         if isPlaying() and currentSong is not None:
             await serv.sendcmd(sws, ["progress", current_position(), currentSong.duration])
+        n += 1
+        if n % 5 == 0:
+            # Periodic full-state heartbeat: self-heals any client/unit desync
+            # caused by a dropped event, without waiting for the next change.
+            emit_state()
         await asyncio.sleep(1)
 
 # mix.music.set_volume(0-1)
