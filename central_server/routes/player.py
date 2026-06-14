@@ -191,7 +191,7 @@ async def queue_add(
 
     song = await asyncio.to_thread(tmg.get_song_gw_data, body.song_id, user.deezer_arl)
     song_data, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, song, user.deezer_arl)
-    await uc.send(["queue_add", song_data, url, key])
+    await uc.send(["queue_add", song_data, url, key, True])
     return JSONResponse(content={"status": "queued"})
 
 
@@ -238,7 +238,7 @@ async def queue_playlist(
         for track in tracks:
             try:
                 song_data, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, track, user.deezer_arl)
-                await uc.send(["queue_add", song_data, url, key])
+                await uc.send(["queue_add", song_data, url, key, False])
             except Exception as e:
                 print(f"[queue_playlist] skipped track: {e}")
 

@@ -31,6 +31,37 @@ STATUS = Status.STARTING
 tosend = asyncio.Queue()
 msgl = []
 
+# Bounded download pool: songs are queued instantly as placeholders and
+# downloaded a few at a time IN ORDER, so the earliest songs become playable
+# quickly instead of 16 downloads crawling in parallel.
+download_queue = asyncio.Queue()
+DOWNLOAD_WORKERS = 3
+
+async def download_worker():
+    while True:
+        song_obj, song, url, key, autoplay = await download_queue.get()
+        print(f"💿 Downloading for queue: {song_obj.name}...")
+        try:
+            await dz.downloadSong(song, url, key, song_obj.file,
+                        config["player_unit"]["download_covers"].lower()=="true",
+                        config["player_unit"]["cover_size"])
+        except Exception as ex:
+            print(f"    ✖ Download failed for {song_obj.name}: {ex}")
+            song_obj.failed = True
+            mp.emit_state()
+            download_queue.task_done()
+            continue
+        song_obj.ready = True
+        song_obj.duration = mp.getSongDuration(song_obj.file)
+        mp.save_queue()
+        print(f"    ➤ Queued: {song_obj.name}")
+        # Only auto-start from a truly idle player (nothing playing AND no
+        # current/paused song) — never resume over a pause.
+        if autoplay and not mp.playing and mp.currentSong is None:
+            mp.playing = True
+        mp.emit_state()
+        download_queue.task_done()
+
 def rndId(l=4):
     al="ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
     random.seed(time.time())
@@ -127,7 +158,12 @@ async def receiveHandler(ws, ro):
             await sendcmd(ws, ["status", "idle"])
             mp.emit_state()
     elif r[0]=="queue_add":
-        _,song,url,key = r
+        # Optional 5th element: whether to start playback once queued. Defaults
+        # to True for backward compat; the server sends False for playlist loads
+        # so they only fill the queue (and a completing download never overrides
+        # a user's pause).
+        _,song,url,key,*rest = r
+        autoplay = rest[0] if rest else True
         song_name = song["SNG_TITLE"]
         artist_name = song["ART_NAME"]
         album_name = song.get("ALB_TITLE", "")
@@ -135,20 +171,13 @@ async def receiveHandler(ws, ro):
         img_url = f"https://e-cdns-images.dzcdn.net/images/cover/{pic}/500x500-000000-80-0-0.jpg" if pic else ""
         song_path = os.path.join(config["download_dirs"]["songs"], artist_name+" - "+song_name+".mp3")
 
-        async def _download_and_queue():
-            print(f"💿 Downloading for queue: {song_name}...")
-            await dz.downloadSong(song, url, key, song_path,
-                        config["player_unit"]["download_covers"].lower()=="true",
-                        config["player_unit"]["cover_size"])
-            mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""),
-                                     img_url, artist_name, album_name))
-            mp.save_queue()
-            print(f"    ➤ Queued: {song_name}")
-            if not mp.playing:
-                mp.playing = True
-            mp.emit_state()
-
-        asyncio.create_task(_download_and_queue())
+        # Add the song to the queue immediately as a pending placeholder so it
+        # shows up right away; the bounded download pool fetches it in order.
+        song_obj = mp.Song(song_name, song_path, song.get("SNG_ID", ""),
+                           img_url, artist_name, album_name, ready=False)
+        mp.musics.append(song_obj)
+        mp.emit_state()
+        await download_queue.put((song_obj, song, url, key, autoplay))
     elif r[0]=="download":
         _,song,url,key = r
 
@@ -237,10 +266,10 @@ async def main():
     task1 = asyncio.create_task(player.run())
     await player.ready_event.wait()
 
-    task3 = asyncio.sleep(1)#asyncio.create_task(player.msgHandler())
+    workers = [asyncio.create_task(download_worker()) for _ in range(DOWNLOAD_WORKERS)]
     task2 = asyncio.create_task(mp.runPlayer(player))
 
-    await asyncio.gather(task1, task2, task3)
+    await asyncio.gather(task1, task2, *workers)
 
 if __name__ == "__main__":
     try:

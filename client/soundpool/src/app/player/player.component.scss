@@ -325,6 +325,8 @@
     border-radius: 10px;
     transition: background 0.12s;
     &:hover { background: rgba(255,255,255,0.05); }
+    &.pending { opacity: 0.6; }
+    &.failed { opacity: 0.45; .qp-row-artist { color: var(--accent); } }
 }
 .qp-cover {
     width: 40px;

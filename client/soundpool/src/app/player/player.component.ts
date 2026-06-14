@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NgCircleProgressModule, CircleProgressOptions  } from 'ng-circle-progress';
 
@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export interface NowPlaying { id: string; title: string; artist: string; album: string; cover: string; duration: number; }
-export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; }
+export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; ready?: boolean; failed?: boolean; }
 export interface DeezerPlaylist { id: number; title: string; nb_tracks: number; picture: string; }
 
 export interface PlayerState {
@@ -58,7 +58,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     private cache: CachingService,
     private api: ApiService,
     private event: LivefbService,
-    private zone: NgZone
+    private zone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {
     this.mouseMoveHandler = (e) => this.onMouseMove(e);
     this.mouseUpHandler = () => this.onMouseUp();
@@ -137,8 +138,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
     // SSE callbacks come from the `eventsource` package's custom fetch, which
     // runs OUTSIDE Angular's zone — so mutations here would not trigger change
-    // detection. Re-enter the zone to keep the view in sync with live events.
-    this.event.subscribe(`pu_${this.pid}`, (dt: any) => this.zone.run(() => this.onEvent(dt)));
+    // detection. Re-enter the zone AND force a detection pass so live events
+    // (queue updates, now-playing, status) always render immediately.
+    this.event.subscribe(`pu_${this.pid}`, (dt: any) => this.zone.run(() => {
+      this.onEvent(dt);
+      try { this.cdr.detectChanges(); } catch {}
+    }));
 
     this.ticker = setInterval(() => this.tick(), 250);
   }

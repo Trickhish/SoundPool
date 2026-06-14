@@ -33,14 +33,19 @@ shuffle = False
 repeat = "off"           # off | all | one
 
 class Song():
-    def __init__(self, name, file, id, img_url, artist="", album=""):
+    def __init__(self, name, file, id, img_url, artist="", album="", ready=True):
         self.name = name
         self.file = file
         self.id = id
-        self.duration = getSongDuration(file)
         self.img_url = img_url
         self.artist = artist
         self.album = album
+        self.failed = False
+        # A song is only playable once its file is on disk. Placeholders for
+        # still-downloading songs are added to the queue immediately (so they
+        # show up) with ready=False, then marked ready once downloaded.
+        self.ready = bool(ready and file and os.path.exists(file))
+        self.duration = getSongDuration(file) if self.ready else 0
 
 def save_queue():
     try:
@@ -53,7 +58,7 @@ def save_queue():
             "musics": [
                 {"name": m.name, "file": m.file, "id": m.id, "img_url": m.img_url,
                  "artist": m.artist, "album": m.album}
-                for m in musics
+                for m in musics if m.ready  # only persist fully-downloaded songs
             ],
         }
         with open(QUEUE_STATE_FILE, "w") as f:
@@ -134,7 +139,8 @@ def state_dict():
         "repeat": repeat,
         "queue": [
             {"key": i, "id": m.id, "title": m.name, "artist": m.artist,
-             "cover": m.img_url, "duration": m.duration}
+             "cover": m.img_url, "duration": m.duration,
+             "ready": m.ready, "failed": m.failed}
             for i, m in enumerate(musics)
         ],
     }
@@ -193,6 +199,14 @@ async def playerManager(ws):
 
         if musics and msid < len(musics):
             m: Song = musics[msid]
+            if m.failed:
+                print(f"Skipping failed song: {m.name}")
+                msid += 1
+                continue
+            if not m.ready:
+                # Next song is still downloading — wait for it (don't advance).
+                await asyncio.sleep(0.2)
+                continue
             current_index = msid
             currentSong = m
             print(f"Playing {m.name}")

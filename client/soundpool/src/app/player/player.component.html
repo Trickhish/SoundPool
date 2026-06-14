@@ -52,12 +52,13 @@
         <p>Nothing queued</p>
         <span>Add songs or a playlist below</span>
       </div>
-      <div *ngFor="let item of upNext" class="qp-row">
+      <div *ngFor="let item of upNext" class="qp-row" [class.pending]="item.ready === false && !item.failed" [class.failed]="item.failed">
         <img class="qp-cover" [src]="item.cover || 'soundpool_sqrd.png'"/>
         <div class="qp-info">
           <span class="qp-row-title">{{ item.title }}</span>
-          <span class="qp-row-artist">{{ item.artist }}</span>
+          <span class="qp-row-artist">{{ item.failed ? 'Failed' : (item.ready === false ? 'Downloading…' : item.artist) }}</span>
         </div>
+        <div *ngIf="item.ready === false && !item.failed" class="q-spinner"></div>
       </div>
     </div>
 
