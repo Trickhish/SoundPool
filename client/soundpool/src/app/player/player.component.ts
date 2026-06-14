@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NgCircleProgressModule, CircleProgressOptions  } from 'ng-circle-progress';
 
@@ -57,7 +57,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     private library: FaIconLibrary,
     private cache: CachingService,
     private api: ApiService,
-    private event: LivefbService
+    private event: LivefbService,
+    private zone: NgZone
   ) {
     this.mouseMoveHandler = (e) => this.onMouseMove(e);
     this.mouseUpHandler = () => this.onMouseUp();
@@ -133,7 +134,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid) return;
     this.loadContent();
 
-    this.event.subscribe(`pu_${this.pid}`, (dt: any) => this.onEvent(dt));
+    // SSE callbacks come from the `eventsource` package's custom fetch, which
+    // runs OUTSIDE Angular's zone — so mutations here would not trigger change
+    // detection. Re-enter the zone to keep the view in sync with live events.
+    this.event.subscribe(`pu_${this.pid}`, (dt: any) => this.zone.run(() => this.onEvent(dt)));
 
     this.ticker = setInterval(() => this.tick(), 250);
   }
@@ -274,8 +278,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   // ── Playback ──
-  play() { this.api.play(this.player!.id).subscribe(); }
-  pause() { this.api.pause(this.player!.id).subscribe(); }
+  play() { this.state.playing = true; this.api.play(this.player!.id).subscribe(); }
+  pause() { this.state.playing = false; this.api.pause(this.player!.id).subscribe(); }
   playpause() { this.playing ? this.pause() : this.play(); }
   prev() { this.api.prev(this.player!.id).subscribe(); }
   next() { this.api.next(this.player!.id).subscribe(); }
