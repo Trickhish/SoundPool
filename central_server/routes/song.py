@@ -1,3 +1,4 @@
+import asyncio
 import bcrypt
 from fastapi import APIRouter, HTTPException, Depends, Query
 import jwt
@@ -26,13 +27,14 @@ async def test_handler(request: LoginRequest,
 
 @router.get("/search")
 async def search_handler(
-        db: SessionLocal = Depends(get_db), 
+        db: SessionLocal = Depends(get_db),
         user: User = Depends(verify_token),
         q: str = Query(..., description="Search query")
     ):
-    
-    r = tmg.search(q)
+    if not user.deezer_arl:
+        raise HTTPException(403, "Deezer account not connected")
 
+    r = await asyncio.to_thread(tmg.search, q, user.deezer_arl)
     return JSONResponse(content=r)
 
 

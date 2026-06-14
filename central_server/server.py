@@ -45,6 +45,7 @@ from routes.room import router as room_router
 from routes.user import router as user_router
 from routes.song import router as song_router
 from routes.player import router as pl_router
+from routes.deezer import router as deezer_router
 
 from pu_connection import router as pu_router
 from sse import test_events, router as sse_router
@@ -61,7 +62,7 @@ async def lifespan(app: FastAPI):
     #config=load_config("cs_config.ini")
 
     if not config["deezer"]["cookie_arl"]:
-        raise ConfigError("cookie_arl must be defined either in the config file or via the SP_DEEZER_ARL variable (.env files will be loaded)")
+        print(f"⚠️ {Colors.YELLOW}No global cookie_arl set — Deezer features require users to connect their own account.{Colors.NONE}")
 
     if config["server"]["debug"]=="true":
         print(f"⚙️ {Colors.BLUE}CONFIG: {Colors.NONE}")
@@ -168,6 +169,7 @@ app.include_router(room_router, prefix="/room", tags=["Rooms"])
 app.include_router(user_router, prefix="/user", tags=["User"])
 app.include_router(song_router, prefix="/song", tags=["Song"])
 app.include_router(pl_router, prefix="/player", tags=["Player"])
+app.include_router(deezer_router, prefix="/deezer", tags=["Deezer"])
 
 app.include_router(pu_router, prefix="/unit", tags=["Unit"])
 app.include_router(sse_router, prefix="/event", tags=["SSE"])

@@ -1,44 +1,18 @@
 import os
-from configuration import load_config
 import deezer as dz
 import requests
 from io import BytesIO
 
 from configuration import config
 
-#config=None
 
-#config=load_config("cs_config.ini")
-dz.init_deezer_session(config)
-
-dzhds={}
-
-def setDzHds(config):
-    global dzhds
-
-    cookies = {'arl': config['deezer']['cookie_arl'], 'comeback': '1'}
-
-    dzhds = {
-        'Pragma': 'no-cache',
-        'Origin': 'https://www.deezer.com',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'Accept': '*/*',
-        'Cache-Control': 'no-cache',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Connection': 'keep-alive',
-        'Referer': 'https://www.deezer.com/login',
-        'DNT': '1',
-        "Cookie": ("; ".join(f"{key}={value}" for key, value in cookies.items()))
-    }
+def _init_session(arl: str):
+    dz.init_deezer_session({"deezer": {"cookie_arl": arl}})
 
 
-
-def search(q):
-    r = dz.deezer_search(q, "track")
-    return(r)
+def search(q: str, arl: str):
+    _init_session(arl)
+    return dz.deezer_search(q, "track")
 
 
 def download_song_and_get_absolute_filename(search_type, song, playlist_name=None):
@@ -147,18 +121,18 @@ def download(id, type="track"):
 
 
 
-def getDownloadData(song):
+def getDownloadData(song, arl: str):
+    _init_session(arl)
     song_quality = 3 if song.get("FILESIZE_MP3_320") and song.get("FILESIZE_MP3_320") != '0' else \
                    5 if song.get("FILESIZE_MP3_256") and song.get("FILESIZE_MP3_256") != '0' else \
                    1
-    
+
     song, url, extension = dz.get_song_url(song, song_quality)
-    if (not "mp3" in extension):
+    if "mp3" not in extension:
         raise Exception(f"Extension isn't mp3 but {extension}")
 
     key = dz.calcbfkey(song["SNG_ID"])
-
-    return(song, url, extension, key)
+    return song, url, extension, key
 
 
 

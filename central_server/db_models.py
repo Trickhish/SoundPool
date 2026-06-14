@@ -49,6 +49,7 @@ class User(Base):
     room_id = Column(Integer, ForeignKey("rooms.id", name="fk_tracks_room"), nullable=True)
     email = Column(String(255), unique=True, nullable=True)
     creation_date = Column(DateTime, default=datetime.utcnow)
+    deezer_arl = Column(String(512), nullable=True)
 
 class Token(Base):
     __tablename__ = "tokens"
