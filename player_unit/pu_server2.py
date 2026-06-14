@@ -24,6 +24,9 @@ class Status(Enum):
 
 CONFIG_FILE = "pu_config.ini"
 config = cfg.load_config(CONFIG_FILE)
+
+for _d in ["songs", "albums", "playlists"]:
+    os.makedirs(config["download_dirs"][_d], exist_ok=True)
 STATUS = Status.STARTING
 tosend = asyncio.Queue()
 msgl = []
