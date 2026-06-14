@@ -128,7 +128,7 @@ async def receiveHandler(ws, ro):
 
         async def _download_and_queue():
             print(f"💿 Downloading for queue: {song_name}...")
-            await asyncio.to_thread(dz.downloadSong, song, url, key, song_path,
+            await dz.downloadSong(song, url, key, song_path,
                         config["player_unit"]["download_covers"].lower()=="true",
                         config["player_unit"]["cover_size"])
             mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""), img_url))
