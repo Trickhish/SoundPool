@@ -108,11 +108,6 @@ async def runPlayer(player):
     print("🎵 Player ready to play")
     await serv.sendcmd(sws, ["status", "idle"])
 
-    for _ in range(2):
-        musics.append(Song("Doigby Guerrier", "songs/doigby_guerrier.mp3", "unknown_id", "https://mir-s3-cdn-cf.behance.net/project_modules/1400/fe529a64193929.5aca8500ba9ab.jpg"))
-        musics.append(Song("Doigby Guerrier 2", "songs/doigby_guerrier.mp3", "unknown_id", "https://www.premadepixels.com/wp-content/uploads/2021/09/Rebirth-Album-Cover-PP1.jpg"))
-        #musics.append(Song("La ferme", "songs/la_ferme.mp3", "unknown_id"))
-
     t1=asyncio.create_task(sendProgress())
     t2=asyncio.create_task(playerManager(sws))
 

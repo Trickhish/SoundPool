@@ -486,7 +486,8 @@ def deezer_search(search, search_type):
             i['id'] = str(item['id'])
             i['id_type'] = TYPE_TRACK
             i['title'] = item['title']
-            i['img_url'] = item['album']['cover_small']
+            i['img_url'] = item['album']['cover_medium']
+            i['img_url_big'] = item['album']['cover_big']
             i['album'] = item['album']['title']
             i['album_id'] = item['album']['id']
             i['artist'] = item['artist']['name']
@@ -571,23 +572,27 @@ def get_deezer_favorites(user_id: str) -> Optional[Sequence[int]]:
     return songs
 
 
-def test_deezer_login():
-    print("Let's check if the deezer login is still working")
+def test_deezer_login(debug=False):
+    if debug:
+        print("Let's check if the deezer login is still working")
     try:
         song = get_song_infos_from_deezer_website(TYPE_TRACK, "917265")
     except (Deezer403Exception, Deezer404Exception) as msg:
-        print(msg)
-        print("Login is not working anymore.")
+        if debug:
+            print(msg)
+            print("Login is not working anymore.")
         return False
 
     if song:
-        print("Login is still working.")
+        if debug:
+            print("Login is still working.")
         return True
     else:
-        print("Login is not working anymore.")
+        if debug:
+            print("Login is not working anymore.")
         return False
 
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "check-login":
-        test_deezer_login()
+        test_deezer_login(debug=True)

@@ -131,7 +131,8 @@ async def receiveHandler(ws, ro):
 
 class PlayerServer():
     def __init__(self):
-        self.uri = uri = f"ws://{config['server']['host']}:{config['server']['port']}/unit"
+        scheme = "wss" if config["server"].get("wss", "false").lower() == "true" else "ws"
+        self.uri = uri = f"{scheme}://{config['server']['host']}:{config['server']['port']}/unit"
         self.tosend = asyncio.Queue()
         self.ws = None
         self.ready_event = asyncio.Event()
