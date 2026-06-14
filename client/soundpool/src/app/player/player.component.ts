@@ -219,7 +219,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   /** Smoothly advance the position between 1s server ticks. */
   private tick() {
-    if (this.isScrubbing() || !this.state.playing || !this.state.now_playing) return;
+    // Only freeze while actively dragging; after a click/seek we still advance
+    // from the (clicked) baseline — incoming stale ticks are gated separately.
+    if (this.movingProgress || !this.state.playing || !this.state.now_playing) return;
     const est = this.lastReportedPos + (Date.now() - this.lastReportedAt);
     this.positionMs = Math.min(est, this.durationMs);
     this.refreshProgress();
@@ -271,6 +273,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   private commitSeek(pct: number) {
     if (!this.pid || !this.state.now_playing) return;
+    this.state.playing = true; // seeking resumes playback on the unit
     this.seekSuppressUntil = Date.now() + 1500;
     this.lastReportedPos = (pct / 100) * this.durationMs;
     this.lastReportedAt = Date.now();
