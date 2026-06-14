@@ -109,6 +109,11 @@ async def lifespan(app: FastAPI):
     yield
 
     print("⛔ Shutting down the CentralServer...\n")
+    for unit in list(puc.units):
+        try:
+            await unit.ws.close()
+        except Exception:
+            pass
 
 
 
