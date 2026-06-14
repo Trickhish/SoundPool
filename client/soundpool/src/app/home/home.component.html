@@ -1,1 +1,4 @@
-<input (keyup)="search()" [(ngModel)]="squery" class="searchbar" type="text" [placeholder]="'search_for_songs' | translate" />
+<div class="search-wrap">
+    <span class="search-label">{{ 'search_for_songs' | translate }}</span>
+    <input (keyup)="search()" [(ngModel)]="squery" class="searchbar" type="text" [placeholder]="'search_for_songs' | translate" />
+</div>

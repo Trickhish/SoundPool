@@ -1,33 +1,71 @@
-<div class="content">
-  <div class="section">
-    <h3>{{ api.user.username }}</h3>
-    <p class="email">{{ api.user.email }}</p>
-  </div>
+<div class="profile-wrap">
 
-  <div class="section">
-    <h3>Deezer</h3>
-
-    <div *ngIf="deezerState === 'connected'" class="deezer-status connected">
-      <span class="dot"></span>
-      <span>Account connected</span>
-      <button class="btn-secondary" (click)="disconnectDeezer()">Disconnect</button>
-    </div>
-
-    <div *ngIf="deezerState === 'disconnected'" class="deezer-status disconnected">
-      <span class="dot"></span>
-      <span>No Deezer account linked</span>
-      <button class="btn-primary" (click)="connectDeezer()">Connect Deezer</button>
-    </div>
-
-    <div *ngIf="deezerState === 'loading'" class="deezer-status loading">
-      <span>Starting Deezer login…</span>
-    </div>
-
-    <div *ngIf="deezerState === 'pending'" class="deezer-pending">
-      <p>Go to <a [href]="deezerJourneyUrl" target="_blank">{{ deezerJourneyUrl }}</a> and enter the code:</p>
-      <div class="code">{{ deezerCode }}</div>
-      <p class="hint">Waiting for you to log in…</p>
-      <button class="btn-secondary" (click)="cancelLogin()">Cancel</button>
+  <!-- User section -->
+  <div class="user-card">
+    <div class="avatar">{{ (api.user.username || '?')[0].toUpperCase() }}</div>
+    <div class="user-info">
+      <h2 class="username">{{ api.user.username }}</h2>
+      <p class="email">{{ api.user.email }}</p>
     </div>
   </div>
+
+  <!-- Deezer section -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-label">Deezer</span>
+      <span *ngIf="deezerState === 'connected'" class="badge connected">Connected</span>
+      <span *ngIf="deezerState === 'disconnected'" class="badge disconnected">Not linked</span>
+    </div>
+
+    <!-- Connected -->
+    <div *ngIf="deezerState === 'connected'" class="dz-connected">
+      <div class="dz-check">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <p>Your Deezer account is linked. Music search and playback are enabled.</p>
+      <button class="btn-ghost" (click)="disconnectDeezer()">Unlink account</button>
+    </div>
+
+    <!-- Disconnected -->
+    <div *ngIf="deezerState === 'disconnected'" class="dz-disconnected">
+      <p>Link your Deezer account to enable music search and playback on your players.</p>
+      <button class="btn-accent" (click)="connectDeezer()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Connect Deezer
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="deezerState === 'loading'" class="dz-loading">
+      <div class="spinner"></div>
+      <span>Opening Deezer login…</span>
+    </div>
+
+    <!-- Pending — QR + code -->
+    <div *ngIf="deezerState === 'pending'" class="dz-pending">
+      <div class="pending-inner">
+
+        <div *ngIf="deezerQrUrl" class="qr-wrap">
+          <img [src]="deezerQrUrl" alt="Deezer QR code" class="qr-img" />
+          <div class="qr-scan-label">Scan to open</div>
+        </div>
+
+        <div class="pending-right">
+          <p class="pending-hint">Go to <a [href]="deezerJourneyUrl" target="_blank" rel="noopener">deezer.com/link</a> and enter:</p>
+          <div class="code-display">
+            <span *ngFor="let ch of deezerCode.split('')" class="code-char">{{ ch }}</span>
+          </div>
+          <div class="waiting-row">
+            <span class="pulse-dot"></span>
+            <span class="waiting-label">Waiting for login…</span>
+          </div>
+          <button class="btn-ghost small" (click)="cancelLogin()">Cancel</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </div>

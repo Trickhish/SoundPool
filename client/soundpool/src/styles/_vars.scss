@@ -1,36 +1,46 @@
 :root {
-    --main-color: #c2377e; /* #345c8b */
-    --err-color: #bd1d46;
+    --accent:           #FF2B6D;
+    --accent-cyan:      #00DFFF;
+    --accent-dim:       rgba(255, 43, 109, 0.12);
+    --accent-glow:      rgba(255, 43, 109, 0.25);
+    --main-color:       #FF2B6D;
+    --err-color:        #FF3B5C;
 
-    --bg-color: #12121e;
+    --bg:               #07070f;
+    --bg-color:         rgba(11, 11, 22, 0.90);
+    --surface-1:        #0e0e1d;
+    --surface-2:        #15152a;
+    --surface-hover:    #1a1a30;
 
-    --bg-gradient: linear-gradient(15deg, #c02b6a 0%, #447dd8 50%, #060b1c 100%) center;;
-    /* linear-gradient(15deg, #1dc9a3 0%, #1d516e 50%, #06071c 100%) center; */
+    --font-color:       #EEEDF7;
+    --font-muted:       #52527A;
+    --ph_color:         #363658;
 
-    --lg-bg: linear-gradient(15deg, #1dc9a3 0%, #1d516e 50%, #06071c 100%) center;
-    --font-color: white;
-    --client-hover-filter: brightness(1.15);
-    --sw-on-bg: var(--main-color);
-    --sw-off-bg: #373e4b;
-    --sw-color: white;
-    --card-bg: #1e1e2c;
-    --sidebar-bg: #1d1d29;
-    --sidebt-color: #c2c3cc;
+    --inp-bg:           #0b0b1a;
+    --inp-bd:           #21213a;
+    --inp-hover-bg:     #0f0f20;
+    --inp-focus-bg:     #101022;
+    --inp-focus-bd:     var(--accent);
 
-    --inp-bg: #21242a;
-    --inp-hover-bg: #22262c;
-    --inp-focus-bg: #25282e;
-    --inp-focus-bd: #a0577c; /* #595959 */
-    --inp-bd: #404040;
-    
-    --ctn-shadow: 0 2px 3px 1px #070b20;
-    --ctn-bg: #12121eb0;
-    --ctn-bd: #213752;
-    --btm-color: #213752;
-    --icon-bg: #415e81;
-    --left-btns-color: #687e99;
-    --subctn-color: #151a23;
+    --card-bg:          var(--surface-1);
+    --ctn-bg:           rgba(11, 11, 22, 0.82);
+    --ctn-bd:           rgba(255, 43, 109, 0.13);
+    --ctn-shadow:       0 12px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,43,109,0.08);
+    --btm-color:        #1a1a2f;
+    --sidebar-bg:       #0e0e1d;
+    --icon-bg:          #2a1a3a;
 
-    /*--ph_color: #8f4b9e;*/
-    --ph_color: #5e6986;
+    --sw-on-bg:         var(--accent);
+    --sw-off-bg:        #252540;
+    --sw-color:         white;
+    --client-hover-filter: brightness(1.1);
+
+    --bg-gradient:
+        radial-gradient(ellipse 75% 65% at 5% 5%, rgba(80, 20, 190, 0.38) 0%, transparent 60%),
+        radial-gradient(ellipse 65% 55% at 95% 95%, rgba(255, 30, 100, 0.28) 0%, transparent 60%),
+        #07070f;
+
+    --left-btns-color:  #52527A;
+    --sidebt-color:     #8888aa;
+    --subctn-color:     #0b0b1a;
 }

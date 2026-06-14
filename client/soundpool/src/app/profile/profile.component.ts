@@ -14,6 +14,7 @@ export class ProfileComponent implements OnDestroy {
   deezerState: DeezerState = 'unknown';
   deezerCode: string = '';
   deezerJourneyUrl: string = '';
+  deezerQrUrl: string = '';
   pollInterval: number = 2;
   private pollTimer: any = null;
 
@@ -21,69 +22,46 @@ export class ProfileComponent implements OnDestroy {
 
   ngOnInit() {
     this.api.deezerStatus().subscribe({
-      next: (r) => {
-        this.deezerState = r.connected ? 'connected' : 'disconnected';
-      },
-      error: () => {
-        this.deezerState = 'disconnected';
-      }
+      next: (r) => { this.deezerState = r.connected ? 'connected' : 'disconnected'; },
+      error: () => { this.deezerState = 'disconnected'; }
     });
   }
 
-  ngOnDestroy() {
-    this.stopPolling();
-  }
+  ngOnDestroy() { this.stopPolling(); }
 
   connectDeezer() {
     this.deezerState = 'loading';
     this.api.deezerLoginStart().subscribe({
-      next: (r) => {
+      next: (r: any) => {
         this.deezerCode = r.code;
         this.deezerJourneyUrl = r.journey_url;
+        this.deezerQrUrl = r.qr_url || '';
         this.pollInterval = r.poll_interval;
         this.deezerState = 'pending';
         this.startPolling();
       },
-      error: () => {
-        this.deezerState = 'disconnected';
-      }
+      error: () => { this.deezerState = 'disconnected'; }
     });
   }
 
   disconnectDeezer() {
-    this.api.deezerLogout().subscribe({
-      next: () => {
-        this.deezerState = 'disconnected';
-      }
-    });
+    this.api.deezerLogout().subscribe({ next: () => { this.deezerState = 'disconnected'; } });
   }
 
   private startPolling() {
     this.pollTimer = setInterval(() => {
       this.api.deezerLoginPoll().subscribe({
         next: (r) => {
-          if (r.status === 'ok') {
-            this.stopPolling();
-            this.deezerState = 'connected';
-          }
+          if (r.status === 'ok') { this.stopPolling(); this.deezerState = 'connected'; }
         },
-        error: () => {
-          this.stopPolling();
-          this.deezerState = 'disconnected';
-        }
+        error: () => { this.stopPolling(); this.deezerState = 'disconnected'; }
       });
     }, this.pollInterval * 1000);
   }
 
   private stopPolling() {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
+    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
   }
 
-  cancelLogin() {
-    this.stopPolling();
-    this.deezerState = 'disconnected';
-  }
+  cancelLogin() { this.stopPolling(); this.deezerState = 'disconnected'; }
 }

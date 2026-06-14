@@ -92,7 +92,7 @@ export class ApiService {
   }
 
   public deezerLoginStart() {
-    return this.http.post<{code: string, journey_url: string, ttl: number, poll_interval: number}>(
+    return this.http.post<{code: string, journey_url: string, ttl: number, poll_interval: number, qr_url?: string}>(
       `${ApiService.apiUrl}/deezer/login/start`, null
     );
   }

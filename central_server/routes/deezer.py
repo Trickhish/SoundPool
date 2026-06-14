@@ -21,12 +21,14 @@ async def deezer_status(user: User = Depends(verify_token)):
 @router.post("/login/start")
 async def deezer_login_start(user: User = Depends(verify_token)):
     info = await asyncio.to_thread(sl.start)
+    qr_hash = info.get("qr_hash")
     _pending[user.id] = {"jwt": info["jwt"], "sid": info["sid"], "code": info["code"]}
     return JSONResponse(content={
         "code": info["code"],
         "journey_url": info["journey_url"],
         "ttl": info["ttl"],
         "poll_interval": info["poll_interval"],
+        "qr_url": f"https://cdn-images.dzcdn.net/images/misc/{qr_hash}/500x500.png" if qr_hash else None,
     })
 
 

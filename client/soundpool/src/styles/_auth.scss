@@ -1,117 +1,105 @@
 .main {
-    background-size: 100% 100% !important;
     background: var(--bg-gradient);
+    background-attachment: fixed;
+    min-height: 100dvh;
     height: 100dvh;
-
-    margin:0;
-    padding:0;
-
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    
-    color: white;
+    color: var(--font-color);
     text-align: center;
 }
 
 .auth_ctn {
-    background-color: var(--ctn-bg);
-    box-shadow: var(--ctn-shadow);
-    /*height: 50%;
-    width: 50%;*/
-    border-radius: 1.5em;
+    background: rgba(10, 10, 22, 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 43, 109, 0.15);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    border-radius: 20px;
     text-align: center;
-    max-width: 670px;
-
-    height: max-content;
-    min-width: 40%;
-    width: max-content;
-    padding: 1.5em 0;
-
+    max-width: 420px;
+    width: 90%;
+    padding: 2.5em 2em;
     display: flex;
     flex-wrap: nowrap;
     flex-direction: column;
-    align-content: center;
     align-items: center;
     justify-content: center;
+    gap: 0.2em;
+    animation: authFadeIn 0.4s ease both;
 
     .errmsg {
-        margin: 0;
+        margin: 4px 0 0;
         padding: 0;
         font-size: 0.8rem;
-        /* color: #c92d84; */
         color: var(--err-color);
-
-        .active {
-            
-        }
+        min-height: 1.2em;
     }
-
 
     .pass {
-        width: calc(100% - 4em);
-        padding-right: 2em;
+        width: calc(100% - 3em);
+        padding-right: 2.5em;
     }
     .auth_form {
-        width: max-content;
+        width: 260px;
+        max-width: 100%;
         margin: 0 auto;
-        height: max-content;
     }
     .pass_eye {
         position: absolute;
-        color: var(--main-color);
-        right: -13px;
+        color: var(--font-muted);
+        right: -8px;
         font-size: 1em;
-        top: calc(50%);
+        top: 50%;
         translate: -100% -50%;
         cursor: pointer;
-        padding: 11px 5px;
+        padding: 12px 6px;
+        transition: color 0.15s;
+        &:hover { color: var(--accent); }
     }
-    
-    .pass_ctn {
-        position: relative;
-    }
+    .pass_ctn { position: relative; }
 
     .logo {
-        height: 7em;
+        height: 5.5em;
+        margin-bottom: 0.5em;
+        filter: drop-shadow(0 0 20px var(--accent-glow));
     }
 
     .valbt {
         width: 100%;
-        transition: all .2s ease-in-out;
-        margin-top: 1em;
+        margin-top: 1.2em;
+        background: linear-gradient(135deg, #FF2B6D, #c01856);
+        box-shadow: 0 4px 20px rgba(255,43,109,0.35);
+        font-family: 'Syne', sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    input {
+        width: 100%;
+        max-width: 100%;
     }
 
     .bottom_msg {
-        margin:0;
-        margin-top:5px;
-    }
-    
-} 
-
-.content {
-    font-size: 5vh;
-}
-
-
-@media only screen and (max-width: 800px) {
-    .auth_ctn {
-        width: 60%;
-        padding: 1.5em 0;
+        margin: 0.8em 0 0;
+        font-size: 0.85rem;
+        color: var(--font-muted);
+        a { color: var(--accent); }
     }
 }
 
-@media only screen and (max-width: 600px) {
-    .auth_ctn {
-        width: 90%;
-        padding: 1.5em 0;
-    }
+@keyframes authFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-@media only screen and (max-width: 350px) {
+@media only screen and (max-width: 500px) {
     .auth_ctn {
-        width: 95%;
-        padding: 1.5em 0;
+        padding: 2em 1.2em;
+        border-radius: 16px;
     }
 }
