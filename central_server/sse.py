@@ -55,28 +55,37 @@ async def triggerEvent(evn, msg):
         if evn in cl.events:
             asyncio.create_task(cl.send(evn, msg))
 
+_shutdown = False
+
+def shutdown_all():
+    global _shutdown
+    _shutdown = True
+    for cl in list(clients):
+        try:
+            cl.msgl.put_nowait(None)
+        except Exception:
+            pass
+
 async def events_handler(user:User):
     global clients
 
     client = sseClient(user)
     clients.append(client)
 
-    #client = getSseClient(user.id)
-    #if client==None:
-    #    client = sseClient(user)
-    #    clients.append(client)
-    
-    #client.events.append(evn)
-
     print(f"[SSE]: {user.username} is listening")
-    
+
     try:
-        while True:
+        while not _shutdown:
             msg = await client.msgl.get()
+            if msg is None:
+                break
             yield msg+"\n\n"
     except asyncio.CancelledError:
+        pass
+    finally:
         print(f"[SSE]: {client.user.username} is no longer listening")
-        clients.remove(client)
+        if client in clients:
+            clients.remove(client)
 
 
 async def test_events():

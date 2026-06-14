@@ -49,6 +49,7 @@ from routes.deezer import router as deezer_router
 
 from pu_connection import router as pu_router
 from sse import test_events, router as sse_router
+import sse
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -109,6 +110,7 @@ async def lifespan(app: FastAPI):
     yield
 
     print("⛔ Shutting down the CentralServer...\n")
+    sse.shutdown_all()
     for unit in list(puc.units):
         try:
             await unit.ws.close()
@@ -282,5 +284,6 @@ if (__name__=="__main__"):
         reload=dbg,
         workers=workersnb,
         log_level="warning",
-        access_log=dbg
+        access_log=dbg,
+        timeout_graceful_shutdown=5,
     )
