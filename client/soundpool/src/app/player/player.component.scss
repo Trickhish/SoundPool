@@ -61,7 +61,10 @@
 
     --percent: 0;
     --prog_trans: .2s;
-    --circ_nbr: 1020;
+    /* circumference of the progress path: r = 50% of the disc = lc_size/2,
+       so perimeter = π · lc_size. Computed from the size so the fill stays
+       correct across the responsive breakpoints. */
+    --circ_nbr: calc(3.14159265 * var(--lc_size));
     --bar-width: 10px;
     --bar-bg: rgba(255,255,255,0.06);
 
