@@ -117,6 +117,7 @@ async def receiveHandler(ws, ro):
             mp.mix.music.stop()
             mp.playing = False
             mp.currentSong = None
+            mp.save_queue()
             await sendcmd(ws, ["status", "idle"])
     elif r[0]=="queue_add":
         _,song,url,key = r
@@ -132,6 +133,7 @@ async def receiveHandler(ws, ro):
                         config["player_unit"]["download_covers"].lower()=="true",
                         config["player_unit"]["cover_size"])
             mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""), img_url))
+            mp.save_queue()
             print(f"    ➤ Queued: {song_name}")
             if not mp.playing:
                 mp.playing = True
