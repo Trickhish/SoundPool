@@ -64,7 +64,10 @@
 
     #cover_bg {
         position: absolute;
-        inset: 4%;
+        top: 4%;
+        left: 4%;
+        width: 92%;
+        height: 92%;
         border-radius: 50%;
         object-fit: cover;
         filter: blur(0px) brightness(0.7);
@@ -73,7 +76,10 @@
     }
     #cover {
         position: absolute;
-        inset: 8%;
+        top: 8%;
+        left: 8%;
+        width: 84%;
+        height: 84%;
         border-radius: 50%;
         object-fit: cover;
         box-shadow: 0 0 0 2px rgba(255,43,109,0.25), 0 8px 40px rgba(0,0,0,0.7);
@@ -141,7 +147,7 @@
     justify-content: center;
 
     &:hover {
-        transform: translate(-50%, -50%) scale(1.08);
+        transform: scale(1.08);
         box-shadow: 0 6px 28px rgba(255,43,109,0.7), 0 0 0 1px rgba(255,255,255,0.15) inset;
     }
 
@@ -171,7 +177,7 @@
     transition: transform 0.2s, opacity 0.2s;
     opacity: 0.7;
 
-    &:hover { transform: translateY(-50%) scale(1.12); opacity: 1; }
+    &:hover { transform: scale(1.12); opacity: 1; }
 
     .music_nav_bt { height: 100%; width: 100%; }
 
