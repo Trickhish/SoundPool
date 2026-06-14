@@ -121,6 +121,21 @@ def download(id, type="track"):
 
 
 
+def get_deezer_playlists(arl: str):
+    _init_session(arl)
+    resp = dz.session.get('https://api.deezer.com/user/me/playlists?limit=100')
+    data = resp.json()
+    result = []
+    for p in data.get('data', []):
+        result.append({
+            'id': p['id'],
+            'title': p['title'],
+            'nb_tracks': p.get('nb_tracks', 0),
+            'picture': p.get('picture_medium', ''),
+        })
+    return result
+
+
 def getDownloadData(song, arl: str):
     _init_session(arl)
     song_quality = 3 if song.get("FILESIZE_MP3_320") and song.get("FILESIZE_MP3_320") != '0' else \

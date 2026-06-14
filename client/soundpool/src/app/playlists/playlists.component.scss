@@ -1,0 +1,201 @@
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.playlists-wrap {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    gap: 2.4rem;
+    animation: fadeUp 0.35s ease both;
+}
+
+/* ── Section ── */
+.pl-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.section-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--font-muted);
+    flex-shrink: 0;
+
+    &.accent {
+        background: rgba(255,43,109,0.1);
+        border-color: rgba(255,43,109,0.2);
+        color: var(--accent);
+    }
+}
+
+.section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--font-color);
+}
+
+.track-count {
+    font-size: 0.75rem;
+    color: var(--font-muted);
+    margin-left: auto;
+}
+
+/* ── Loading ── */
+.loading-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.2rem 0;
+    color: var(--font-muted);
+    font-size: 0.88rem;
+
+    .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,43,109,0.15);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+    }
+}
+
+/* ── Empty state ── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2.4rem 1rem;
+    background: var(--surface-1);
+    border: 1px dashed rgba(255,255,255,0.08);
+    border-radius: 14px;
+    color: var(--font-muted);
+    text-align: center;
+
+    svg { opacity: 0.35; }
+
+    p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        strong { color: var(--font-color); font-weight: 600; }
+    }
+}
+
+/* ── Playlist grid ── */
+.pl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.pl-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    cursor: pointer;
+    border-radius: 12px;
+    padding: 0.6rem;
+    transition: background 0.15s;
+
+    &:hover {
+        background: rgba(255,255,255,0.04);
+
+        .pl-cover img { transform: scale(1.04); }
+    }
+}
+
+.pl-cover {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface-2);
+    border: 1px solid rgba(255,255,255,0.06);
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.25s ease;
+    }
+}
+
+.pl-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.15);
+}
+
+.pl-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0 0.1rem;
+}
+
+.pl-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--font-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pl-meta {
+    font-size: 0.75rem;
+    color: var(--font-muted);
+}
+
+/* ── Button ── */
+.btn-accent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, #FF2B6D, #c01856);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.55rem 1.2rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,43,109,0.3);
+    transition: opacity 0.15s, transform 0.15s;
+    margin-top: 0.25rem;
+
+    &:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    &:not(:disabled):hover { opacity: 0.88; transform: translateY(-1px); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 500px) {
+    .pl-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; }
+}

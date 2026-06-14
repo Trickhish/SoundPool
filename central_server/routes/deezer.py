@@ -6,6 +6,7 @@ from db_models import *
 from database import *
 from routes.auth import verify_token
 import deezer_smartlogin as sl
+import tracks_manager as tmg
 
 router = APIRouter()
 
@@ -50,6 +51,14 @@ async def deezer_login_poll(
     db.commit()
     del _pending[user.id]
     return JSONResponse(content={"status": "ok"})
+
+
+@router.get("/playlists")
+async def deezer_playlists(user: User = Depends(verify_token)):
+    if not user.deezer_arl:
+        raise HTTPException(403, "Deezer not connected")
+    playlists = await asyncio.to_thread(tmg.get_deezer_playlists, user.deezer_arl)
+    return JSONResponse(content={"playlists": playlists})
 
 
 @router.delete("/logout")

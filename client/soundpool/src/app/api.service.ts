@@ -105,6 +105,10 @@ export class ApiService {
     return this.http.delete(`${ApiService.apiUrl}/deezer/logout`);
   }
 
+  public deezerPlaylists() {
+    return this.http.get<{playlists: {id: number, title: string, nb_tracks: number, picture: string}[]}>(`${ApiService.apiUrl}/deezer/playlists`);
+  }
+
   //
   // INTERACTION WITH THE PLAYER
 
