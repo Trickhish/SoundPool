@@ -85,6 +85,27 @@ export class ApiService {
   }
 
   //
+  // DEEZER AUTH
+
+  public deezerStatus() {
+    return this.http.get<{connected: boolean}>(`${ApiService.apiUrl}/deezer/status`);
+  }
+
+  public deezerLoginStart() {
+    return this.http.post<{code: string, journey_url: string, ttl: number, poll_interval: number}>(
+      `${ApiService.apiUrl}/deezer/login/start`, null
+    );
+  }
+
+  public deezerLoginPoll() {
+    return this.http.get<{status: string}>(`${ApiService.apiUrl}/deezer/login/poll`);
+  }
+
+  public deezerLogout() {
+    return this.http.delete(`${ApiService.apiUrl}/deezer/logout`);
+  }
+
+  //
   // INTERACTION WITH THE PLAYER
 
 

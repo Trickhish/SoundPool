@@ -1,0 +1,106 @@
+.content {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 480px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+  }
+
+  .email {
+    margin: 0;
+    font-size: 1rem;
+    opacity: 0.8;
+  }
+}
+
+.deezer-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &.connected .dot { background: #1db954; }
+  &.disconnected .dot { background: #888; }
+  &.loading { opacity: 0.6; }
+
+  span:nth-child(2) {
+    flex: 1;
+  }
+}
+
+.deezer-pending {
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  p { margin: 0; }
+
+  a {
+    color: inherit;
+    opacity: 0.7;
+  }
+
+  .code {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-align: center;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
+  }
+
+  .hint {
+    opacity: 0.5;
+    font-size: 0.875rem;
+    text-align: center;
+  }
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.85; }
+}
+
+.btn-primary {
+  background: #a855f7;
+  color: white;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  color: inherit;
+}

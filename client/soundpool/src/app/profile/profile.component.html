@@ -1,1 +1,33 @@
-<p>profile works!</p>
+<div class="content">
+  <div class="section">
+    <h3>{{ api.user.username }}</h3>
+    <p class="email">{{ api.user.email }}</p>
+  </div>
+
+  <div class="section">
+    <h3>Deezer</h3>
+
+    <div *ngIf="deezerState === 'connected'" class="deezer-status connected">
+      <span class="dot"></span>
+      <span>Account connected</span>
+      <button class="btn-secondary" (click)="disconnectDeezer()">Disconnect</button>
+    </div>
+
+    <div *ngIf="deezerState === 'disconnected'" class="deezer-status disconnected">
+      <span class="dot"></span>
+      <span>No Deezer account linked</span>
+      <button class="btn-primary" (click)="connectDeezer()">Connect Deezer</button>
+    </div>
+
+    <div *ngIf="deezerState === 'loading'" class="deezer-status loading">
+      <span>Starting Deezer login…</span>
+    </div>
+
+    <div *ngIf="deezerState === 'pending'" class="deezer-pending">
+      <p>Go to <a [href]="deezerJourneyUrl" target="_blank">{{ deezerJourneyUrl }}</a> and enter the code:</p>
+      <div class="code">{{ deezerCode }}</div>
+      <p class="hint">Waiting for you to log in…</p>
+      <button class="btn-secondary" (click)="cancelLogin()">Cancel</button>
+    </div>
+  </div>
+</div>
