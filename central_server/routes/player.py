@@ -1,3 +1,4 @@
+import asyncio
 import bcrypt
 from fastapi import APIRouter, HTTPException, Depends
 import jwt
@@ -15,6 +16,7 @@ from configuration import config
 from routes.auth import verify_token
 
 import pu_connection as puc
+import tracks_manager as tmg
 
 router = APIRouter()
 
@@ -141,3 +143,78 @@ async def prev_handler(
     db.refresh(u)
 
     return JSONResponse(content={"message": "loading next song"})
+
+
+@router.post("/{player_id}/queue/add")
+async def queue_add(
+    player_id: str,
+    body: QueueAddRequest,
+    db: SessionLocal = Depends(get_db),
+    user: User = Depends(verify_token),
+):
+    u: Unit = db.query(Unit).filter(Unit.id == player_id).first()
+    if not u:
+        raise HTTPException(404, "Player not found")
+    if u.owner_id != user.id:
+        raise HTTPException(401, "Not your player")
+    if not user.deezer_arl:
+        raise HTTPException(403, "Deezer not connected")
+    uc = puc.getUnitById(u.id)
+    if not uc:
+        raise HTTPException(503, "Player offline")
+
+    song = await asyncio.to_thread(tmg.get_song_gw_data, body.song_id, user.deezer_arl)
+    song_data, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, song, user.deezer_arl)
+    await uc.send(["queue_add", song_data, url, key])
+    return JSONResponse(content={"status": "queued"})
+
+
+@router.delete("/{player_id}/queue/clear")
+async def queue_clear(
+    player_id: str,
+    db: SessionLocal = Depends(get_db),
+    user: User = Depends(verify_token),
+):
+    u: Unit = db.query(Unit).filter(Unit.id == player_id).first()
+    if not u:
+        raise HTTPException(404, "Player not found")
+    if u.owner_id != user.id:
+        raise HTTPException(401, "Not your player")
+    uc = puc.getUnitById(u.id)
+    if not uc:
+        raise HTTPException(503, "Player offline")
+
+    await uc.send(["control", "clear"])
+    return JSONResponse(content={"status": "cleared"})
+
+
+@router.post("/{player_id}/queue/playlist/{playlist_id}")
+async def queue_playlist(
+    player_id: str,
+    playlist_id: int,
+    db: SessionLocal = Depends(get_db),
+    user: User = Depends(verify_token),
+):
+    u: Unit = db.query(Unit).filter(Unit.id == player_id).first()
+    if not u:
+        raise HTTPException(404, "Player not found")
+    if u.owner_id != user.id:
+        raise HTTPException(401, "Not your player")
+    if not user.deezer_arl:
+        raise HTTPException(403, "Deezer not connected")
+    uc = puc.getUnitById(u.id)
+    if not uc:
+        raise HTTPException(503, "Player offline")
+
+    tracks = await asyncio.to_thread(tmg.get_deezer_playlist_tracks_gw, playlist_id, user.deezer_arl)
+
+    async def _enqueue():
+        for track in tracks:
+            try:
+                song_data, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, track, user.deezer_arl)
+                await uc.send(["queue_add", song_data, url, key])
+            except Exception as e:
+                print(f"[queue_playlist] skipped track: {e}")
+
+    asyncio.create_task(_enqueue())
+    return JSONResponse(content={"status": "queuing", "total": len(tracks)})

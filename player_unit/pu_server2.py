@@ -107,6 +107,29 @@ async def receiveHandler(ws, ro):
             print("Loading next song.")
             mp.mix.music.stop()
             await sendcmd(ws, ["status", "loading"])
+        elif r[1]=="clear":
+            print("Clearing queue.")
+            mp.musics.clear()
+            mp.msid = 0
+            mp.mix.music.stop()
+            mp.playing = False
+            mp.currentSong = None
+            await sendcmd(ws, ["status", "idle"])
+    elif r[0]=="queue_add":
+        _,song,url,key = r
+        song_name = song["SNG_TITLE"]
+        artist_name = song["ART_NAME"]
+        pic = song.get("ALB_PICTURE", "")
+        img_url = f"https://e-cdns-images.dzcdn.net/images/cover/{pic}/500x500-000000-80-0-0.jpg" if pic else ""
+        song_path = os.path.join(config["download_dirs"]["songs"], artist_name+" - "+song_name+".mp3")
+        print(f"💿 Downloading for queue: {song_name}...")
+        await dz.downloadSong(song, url, key, song_path,
+                    config["player_unit"]["download_covers"].lower()=="true",
+                    config["player_unit"]["cover_size"])
+        mp.musics.append(mp.Song(song_name, song_path, song.get("SNG_ID", ""), img_url))
+        print(f"    ➤ Queued: {song_name}")
+        if not mp.playing:
+            mp.playing = True
     elif r[0]=="download":
         _,song,url,key = r
 

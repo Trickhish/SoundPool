@@ -22,3 +22,9 @@ class RoomCreate(BaseModel):
     name: str
     password: Optional[str] = None
     admin_id: int
+
+class QueueAddRequest(BaseModel):
+    song_id: str
+    title: str
+    artist: str
+    img_url: str = ""

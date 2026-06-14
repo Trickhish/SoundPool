@@ -9,6 +9,9 @@
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 
 .content {
     height: 100%;
@@ -18,6 +21,7 @@
     justify-content: center;
     padding: 2rem;
     gap: 1.4rem;
+    padding-bottom: 3rem;
 
     --accent:        #FF2B6D;
     --controls_color: #FF2B6D;
@@ -38,6 +42,11 @@
 /* ── Disc ── */
 .music_ctn {
     position: relative;
+    /* explicit size so absolute children (pp/nav buttons) centre correctly */
+    --lc_size: 260px;
+    width: var(--lc_size);
+    height: var(--lc_size);
+
     --percent: 0;
     --prog_trans: .2s;
     --circ_nbr: 1020;
@@ -45,30 +54,29 @@
     --bar-bg: rgba(255,255,255,0.06);
 
     &.moving { --prog_trans: 0s; }
+}
 
-    #disc_ctn {
-        --lc_size: 260px;
-        position: relative;
-        height: var(--lc_size);
-        width: var(--lc_size);
+#disc_ctn {
+    position: relative;
+    height: var(--lc_size);
+    width: var(--lc_size);
+    border-radius: 50%;
+
+    #cover_bg {
+        position: absolute;
+        inset: 4%;
         border-radius: 50%;
-
-        #cover_bg {
-            position: absolute;
-            inset: 4%;
-            border-radius: 50%;
-            object-fit: cover;
-            filter: blur(0px) brightness(0.7);
-            animation: spin-slow 90s linear infinite;
-            pointer-events: none;
-        }
-        #cover {
-            position: absolute;
-            inset: 8%;
-            border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 0 0 2px rgba(255,43,109,0.25), 0 8px 40px rgba(0,0,0,0.7);
-        }
+        object-fit: cover;
+        filter: blur(0px) brightness(0.7);
+        animation: spin-slow 90s linear infinite;
+        pointer-events: none;
+    }
+    #cover {
+        position: absolute;
+        inset: 8%;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 0 0 2px rgba(255,43,109,0.25), 0 8px 40px rgba(0,0,0,0.7);
     }
 }
 
@@ -83,8 +91,6 @@
     z-index: -1;
     opacity: 0.7;
 }
-
-.prog_ctn { }
 
 .prog_svg {
     height: 100%;
@@ -239,14 +245,194 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ── Queue section ── */
+.queue-section {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.queue-bar {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.q-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: var(--font-muted);
+    border-radius: 10px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+    &:hover { background: rgba(255,255,255,0.1); color: var(--font-color); }
+
+    &.active {
+        background: rgba(255,43,109,0.12);
+        border-color: rgba(255,43,109,0.3);
+        color: var(--accent);
+    }
+
+    &.danger:hover {
+        background: rgba(255,43,109,0.12);
+        border-color: rgba(255,43,109,0.25);
+        color: var(--accent);
+    }
+}
+
+/* ── Panels ── */
+.queue-panel {
+    background: var(--surface-1);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    overflow: hidden;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+.q-search-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    color: var(--font-color);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    outline: none;
+
+    &::placeholder { color: var(--font-muted); }
+}
+
+.q-results, .queue-panel > div:not(.q-search-input) {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.q-result-item, .q-playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: rgba(255,255,255,0.05); }
+    &.disabled { opacity: 0.5; pointer-events: none; }
+}
+
+.q-result-cover, .q-pl-cover {
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface-2);
+}
+
+.q-result-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: hidden;
+}
+
+.q-result-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--font-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.q-result-artist {
+    font-size: 0.75rem;
+    color: var(--font-muted);
+}
+
+.q-add-icon {
+    color: var(--font-muted);
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.q-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,43,109,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+.q-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem;
+    color: var(--font-muted);
+    font-size: 0.85rem;
+}
+
+.q-empty {
+    padding: 1rem;
+    text-align: center;
+    color: var(--font-muted);
+    font-size: 0.85rem;
+}
+
+/* ── Queue list ── */
+.queue-list {
+    background: var(--surface-1);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    overflow: hidden;
+    max-height: 220px;
+    display: flex;
+    flex-direction: column;
+}
+
+.queue-list-header {
+    padding: 0.6rem 1rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--font-muted);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    flex-shrink: 0;
+}
+
+.queue-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+
+    &:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.04); }
+}
+
 /* ── Responsive ── */
 @media (max-width: 650px) {
-    .content { --lc_nav-dist: 2.8rem; padding: 1rem; }
-    .music_ctn #disc_ctn { --lc_size: 220px; }
-    .prog_svg { filter: drop-shadow(0 0 6px rgba(0,0,0,0.8)); }
+    .content { --lc_nav-dist: 2.8rem; padding: 1rem 1rem 2rem; }
+    .music_ctn { --lc_size: 220px; }
 }
 @media (max-width: 420px) {
-    .music_ctn #disc_ctn { --lc_size: 190px; }
+    .music_ctn { --lc_size: 190px; }
     .music_nav_ctn {
         height: 28px;
         width: 28px;

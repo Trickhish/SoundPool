@@ -121,6 +121,28 @@ def download(id, type="track"):
 
 
 
+def get_song_gw_data(song_id: str, arl: str) -> dict:
+    """Fetch full GW track data (includes TRACK_TOKEN) for a given Deezer song ID."""
+    _init_session(arl)
+    dz.session.cookies.set('arl', arl, domain='.deezer.com')
+    gw = 'https://www.deezer.com/ajax/gw-light.php'
+    resp = dz.session.post(gw, params={
+        'method': 'deezer.getUserData', 'input': '3', 'api_version': '1.0', 'api_token': '',
+    }, json={})
+    csrf = resp.json()['results']['checkForm']
+    resp = dz.session.post(gw, params={
+        'method': 'song.getData', 'input': '3', 'api_version': '1.0', 'api_token': csrf,
+    }, json={'sng_id': str(song_id)})
+    return resp.json()['results']
+
+
+def get_deezer_playlist_tracks_gw(playlist_id: int, arl: str) -> list:
+    """Fetch all GW track data (includes TRACK_TOKEN) for a Deezer playlist."""
+    _init_session(arl)
+    _, tracks = dz.parse_deezer_playlist(str(playlist_id))
+    return tracks
+
+
 def get_deezer_playlists(arl: str):
     _init_session(arl)
     # Ensure cookie is scoped to .deezer.com so it's sent to api.deezer.com

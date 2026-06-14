@@ -4,43 +4,101 @@
     <div [class.moving]="mouseMoving" [style.--percent]="musicProgress" class="music_ctn prog_ctn" id="music_ctn">
         <div id="disc_ctn">
             <svg id="music_svg" class="prog_svg">
-                <defs>
-                    <radialGradient id="music_gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                      <stop offset="0%" style="stop-color: #00f; stop-opacity: 1" />
-                      <stop offset="100%" style="stop-color: #0ff; stop-opacity: 1" />
-                    </radialGradient>
-                </defs>
-
                 <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle_bg" cx="50%" cy="50%" r="50%"></circle>
                 <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle" cx="50%" cy="50%" r="50%"></circle>
                 <circle class="prog_circle_mask" cx="50%" cy="50%" r="48%"></circle>
             </svg>
-
             <img id="cover_bg" [src]="currentSong ? currentSong.img_url : 'soundpool_sqrd.png'"/>
             <img id="cover" [src]="currentSong ? currentSong.img_url : 'soundpool_sqrd.png'"/>
         </div>
-        <p class="music_elt">{{songProgress}}</p>
 
         <div (click)="playpause()" class="music_pp_ctn" [class.play]="!playing">
             <svg class="music_pp_bt play" role="img" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path></svg>
             <svg class="music_pp_bt pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>
         </div>
 
-        <div (click)="prev()" class="music_nav_ctn music_prev_ctn" [class.play]="!playing">
-            <svg class="music_nav_bt music_prev_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
+        <div (click)="prev()" class="music_nav_ctn music_prev_ctn">
+            <svg class="music_nav_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
         </div>
-        <div (click)="next()" class="music_nav_ctn music_next_ctn" [class.play]="!playing">
-            <svg class="music_nav_bt music_next_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
+        <div (click)="next()" class="music_nav_ctn music_next_ctn">
+            <svg class="music_nav_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
         </div>
 
         <div class="offline_msg" [class.active]="!this.player?.online">
             <h2>The player is offline</h2>
-            <svg viewBox="0 0 76 76" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" enable-background="new 0 0 76.00 76.00" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" d="M 19,22L 57,22L 57,31L 19,31L 19,22 Z M 55,24L 53,24L 53,29L 55,29L 55,24 Z M 51,24L 49,24L 49,29L 51,29L 51,24 Z M 47,24L 45,24L 45,29L 47,29L 47,24 Z M 21,27L 21,29L 23,29L 23,27L 21,27 Z M 19,33L 57,33L 57,42L 19,42L 19,33 Z M 55,35L 53,35L 53,40L 55,40L 55,35 Z M 51,35L 49,35L 49,40L 51,40L 51,35 Z M 47,35L 45,35L 45,40L 47,40L 47,35 Z M 21,38L 21,40L 23,40L 23,38L 21,38 Z M 46.75,53L 57,53L 57,57L 46.75,57L 44.75,55L 46.75,53 Z M 29.25,53L 31.25,55L 29.25,57L 19,57L 19,53L 29.25,53 Z M 29.5147,59.9926L 34.5073,55L 29.5147,50.0074L 33.0074,46.5147L 38,51.5074L 42.9926,46.5147L 46.4853,50.0074L 41.7426,55L 46.4853,59.9926L 42.9926,63.4853L 38,58.7426L 33.0074,63.4853L 29.5147,59.9926 Z M 36,46.25L 36,44L 40,44L 40,46.25L 38,48.25L 36,46.25 Z "></path> </g></svg>
+            <svg viewBox="0 0 76 76" xmlns="http://www.w3.org/2000/svg"><path fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" d="M 19,22L 57,22L 57,31L 19,31L 19,22 Z M 55,24L 53,24L 53,29L 55,29L 55,24 Z M 51,24L 49,24L 49,29L 51,29L 51,24 Z M 47,24L 45,24L 45,29L 47,29L 47,24 Z M 21,27L 21,29L 23,29L 23,27L 21,27 Z M 19,33L 57,33L 57,42L 19,42L 19,33 Z M 55,35L 53,35L 53,40L 55,40L 55,35 Z M 51,35L 49,35L 49,40L 51,40L 51,35 Z M 47,35L 45,35L 45,40L 47,40L 47,35 Z M 21,38L 21,40L 23,40L 23,38L 21,38 Z M 46.75,53L 57,53L 57,57L 46.75,57L 44.75,55L 46.75,53 Z M 29.25,53L 31.25,55L 29.25,57L 19,57L 19,53L 29.25,53 Z M 29.5147,59.9926L 34.5073,55L 29.5147,50.0074L 33.0074,46.5147L 38,51.5074L 42.9926,46.5147L 46.4853,50.0074L 41.7426,55L 46.4853,59.9926L 42.9926,63.4853L 38,58.7426L 33.0074,63.4853L 29.5147,59.9926 Z M 36,46.25L 36,44L 40,44L 40,46.25L 38,48.25L 36,46.25 Z "></path></svg>
         </div>
     </div>
+
+    <p class="music_elt">{{songProgress}}</p>
 
     <h1 class="music_title">{{this.currentSong ? this.currentSong.title : ('no_song' | translate)}}</h1>
     <h2 class="music_artist">{{this.currentSong ? this.currentSong.artist : ''}}</h2>
     <p class="music_dur">{{this.currentSong ? this.currentSong.duration : ''}}</p>
-</div>
 
+    <!-- ── Queue controls ── -->
+    <div class="queue-section">
+
+        <div class="queue-bar">
+            <button class="q-btn" [class.active]="queueMode === 'search'" (click)="toggleMode('search')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Add song
+            </button>
+            <button class="q-btn" [class.active]="queueMode === 'playlists'" (click)="toggleMode('playlists')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Add playlist
+            </button>
+            <button class="q-btn danger" (click)="clearQueue()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Clear
+            </button>
+        </div>
+
+        <!-- Search panel -->
+        <div *ngIf="queueMode === 'search'" class="queue-panel">
+            <input class="q-search-input" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search songs…" autofocus />
+            <div class="q-results">
+                <div *ngIf="searchResults.length === 0 && searchQuery.length > 0" class="q-empty">No results</div>
+                <div *ngFor="let s of searchResults" class="q-result-item" (click)="addSong(s)" [class.disabled]="queueBusy">
+                    <img *ngIf="s.img_url" [src]="s.img_url" class="q-result-cover" />
+                    <div class="q-result-info">
+                        <span class="q-result-title">{{ s.title }}</span>
+                        <span class="q-result-artist">{{ s.artist }}</span>
+                    </div>
+                    <div *ngIf="queueBusy" class="q-spinner"></div>
+                    <svg *ngIf="!queueBusy" class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Playlist picker -->
+        <div *ngIf="queueMode === 'playlists'" class="queue-panel">
+            <div *ngIf="!playlistsLoaded" class="q-loading">
+                <div class="q-spinner"></div><span>Loading playlists…</span>
+            </div>
+            <div *ngIf="playlistsLoaded && deezerPlaylists.length === 0" class="q-empty">No Deezer playlists found</div>
+            <div *ngFor="let pl of deezerPlaylists" class="q-playlist-item" (click)="addPlaylist(pl)" [class.disabled]="addingPlaylistId !== null">
+                <img *ngIf="pl.picture" [src]="pl.picture" class="q-pl-cover" />
+                <div class="q-result-info">
+                    <span class="q-result-title">{{ pl.title }}</span>
+                    <span class="q-result-artist">{{ pl.nb_tracks }} tracks</span>
+                </div>
+                <div *ngIf="addingPlaylistId === pl.id" class="q-spinner"></div>
+                <svg *ngIf="addingPlaylistId !== pl.id" class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+        </div>
+
+        <!-- Local queue list -->
+        <div *ngIf="queueList.length > 0" class="queue-list">
+            <div class="queue-list-header">Up next ({{ queueList.length }})</div>
+            <div *ngFor="let e of queueList; let i = index" class="queue-list-item">
+                <img *ngIf="e.img_url" [src]="e.img_url" class="q-result-cover" />
+                <div class="q-result-info">
+                    <span class="q-result-title">{{ e.title }}</span>
+                    <span class="q-result-artist">{{ e.artist }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

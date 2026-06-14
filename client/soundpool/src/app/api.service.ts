@@ -84,6 +84,16 @@ export class ApiService {
     return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/next`, null));
   }
 
+  public queueAdd(pid: string, song: {song_id: string, title: string, artist: string, img_url: string}) {
+    return this.http.post(`${ApiService.apiUrl}/player/${pid}/queue/add`, song);
+  }
+  public queueClear(pid: string) {
+    return this.http.delete(`${ApiService.apiUrl}/player/${pid}/queue/clear`);
+  }
+  public queuePlaylist(pid: string, playlistId: number) {
+    return this.http.post<{status: string, total: number}>(`${ApiService.apiUrl}/player/${pid}/queue/playlist/${playlistId}`, null);
+  }
+
   //
   // DEEZER AUTH
 
