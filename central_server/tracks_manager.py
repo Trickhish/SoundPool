@@ -123,7 +123,18 @@ def download(id, type="track"):
 
 def get_deezer_playlists(arl: str):
     _init_session(arl)
-    resp = dz.session.get('https://api.deezer.com/user/me/playlists?limit=100')
+    # Ensure cookie is scoped to .deezer.com so it's sent to api.deezer.com
+    dz.session.cookies.set('arl', arl, domain='.deezer.com')
+
+    # Get user_id from GW API — /user/me requires OAuth, not cookie auth
+    gw = 'https://www.deezer.com/ajax/gw-light.php'
+    resp = dz.session.post(gw, params={
+        'method': 'deezer.getUserData', 'input': '3',
+        'api_version': '1.0', 'api_token': '',
+    }, json={})
+    user_id = resp.json()['results']['USER']['USER_ID']
+
+    resp = dz.session.get(f'https://api.deezer.com/user/{user_id}/playlists', params={'limit': 100})
     data = resp.json()
     result = []
     for p in data.get('data', []):
