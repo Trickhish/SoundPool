@@ -164,12 +164,22 @@ async def decryptfile(fh, key, fo):
     Decrypt data from file <fh>, and write to file <fo>.
     decrypt using blowfish with <key>.
     Only every third 2048 byte block is encrypted.
+
+    NOTE: the stream MUST be consumed in exact 2048-byte aligned blocks.
+    aiohttp's StreamReader.read(n) returns *up to* n bytes (often fewer mid-
+    stream), which would mis-align the blocks: encrypted blocks arriving in
+    fragments would be left un-decrypted and the i%3 counter would desync,
+    corrupting the file partway through. readexactly() guarantees full blocks.
     """
     blockSize = 2048
     i = 0
 
     while True:
-        data = await fh.content.read(blockSize)
+        try:
+            data = await fh.content.readexactly(blockSize)
+        except asyncio.IncompleteReadError as e:
+            data = e.partial  # final, short block at true EOF
+
         if not data:
             break
 
@@ -181,6 +191,9 @@ async def decryptfile(fh, key, fo):
 
         await fo.write(data)
         i += 1
+
+        if not isWholeBlock:
+            break  # reached EOF (partial block already written)
 
 async def writeid3v1_1(fo, song):
     def song_get(song, key):
