@@ -202,6 +202,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (this.isRoom) {
       this.api.getUnits().subscribe({ next: (u) => { this.myUnits = u || []; } });
       this.audioEl = new Audio();
+      this.audioEl.addEventListener('error', () => {
+        if (this.browserOutput) this.zone.run(() => this.toastr.error('Browser playback error'));
+      });
       this.browserOutput = localStorage.getItem(`browserOut_${this.pid}`) === '1';
     }
     this.ticker = setInterval(() => this.tick(), 250);
@@ -467,15 +470,36 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   isOutput(unitId: string): boolean { return this.roomOutputs.includes(unitId); }
 
+  // tiny silent WAV — played once inside the toggle click to satisfy the
+  // browser autoplay policy, so later programmatic play() (driven by SSE
+  // state) is allowed.
+  private static SILENT = 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ4AAACAgICAgICAgICAgICAgIA=';
+
   toggleBrowserOutput() {
     this.browserOutput = !this.browserOutput;
     localStorage.setItem(`browserOut_${this.pid}`, this.browserOutput ? '1' : '0');
     if (this.browserOutput) {
+      // Unlock audio within this user gesture.
+      this.autoplayWarned = false;
+      if (this.audioEl) {
+        try { this.audioEl.muted = false; this.audioEl.src = PlayerComponent.SILENT; this.audioEl.play().catch(() => {}); } catch {}
+      }
+      this.browserSongId = null;  // force (re)load of the real track
       this.syncBrowser();
     } else if (this.audioEl) {
       this.audioEl.pause();
       this.browserSongId = null;
     }
+  }
+
+  private autoplayWarned = false;
+  private tryPlay(a: HTMLAudioElement) {
+    a.play().catch((e: any) => {
+      if (e && e.name === 'NotAllowedError' && !this.autoplayWarned) {
+        this.autoplayWarned = true;
+        this.zone.run(() => this.toastr.warning("Tap 'This browser' in Output to enable sound"));
+      }
+    });
   }
 
   /** Drive the local <audio> element from the room state (browser as renderer). */
@@ -484,6 +508,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!a) return;
     const np = this.state.now_playing;
     if (!this.browserOutput || !np) { a.pause(); this.browserSongId = null; return; }
+    a.volume = Math.max(0, Math.min(1, this.state.volume ?? 1));  // room master volume
     if (np.id !== this.browserSongId) {
       this.loadBrowserSong(np.id);
       return;
@@ -491,7 +516,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     // same song already loaded
     const targetSec = this.positionMs / 1000;
     if (Math.abs(a.currentTime - targetSec) > 2) a.currentTime = targetSec;
-    if (this.state.playing && a.paused) a.play().catch(() => {});
+    if (this.state.playing && a.paused) this.tryPlay(a);
     if (!this.state.playing && !a.paused) a.pause();
   }
 
@@ -506,8 +531,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
       const onReady = () => {
         a.removeEventListener('loadedmetadata', onReady);
         if (this.browserSongId !== songId) return;
+        a.volume = Math.max(0, Math.min(1, this.state.volume ?? 1));
         a.currentTime = this.positionMs / 1000;
-        if (this.state.playing) a.play().catch(() => {});
+        if (this.state.playing) this.tryPlay(a);
       };
       a.addEventListener('loadedmetadata', onReady);
       a.load();
@@ -519,7 +545,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
         this.blobCache.set(songId, url);
         start(url);
       },
-      error: () => { if (this.browserSongId === songId) this.browserSongId = null; }
+      error: () => { if (this.browserSongId === songId) this.browserSongId = null; this.toastr.error('Could not load audio for browser playback'); }
     });
   }
   toggleOutput(unit: Unit) {
