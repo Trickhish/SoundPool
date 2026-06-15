@@ -95,6 +95,15 @@ export class ApiService {
   public setRepeat(pid:string, mode:string) {
     return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/repeat`, { mode }));
   }
+  public queueMove(pid:string, frm:number, to:number) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/queue/move`, { frm, to }));
+  }
+  public queueRemove(pid:string, index:number) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/queue/remove`, { index }));
+  }
+  public queueJump(pid:string, index:number) {
+    return(this.http.post.bind(this.http)(`${ApiService.apiUrl}/player/${pid}/queue/jump`, { index }));
+  }
 
   public queueAdd(pid: string, song: {song_id: string, title: string, artist: string, img_url: string}) {
     return this.http.post(`${ApiService.apiUrl}/player/${pid}/queue/add`, song);

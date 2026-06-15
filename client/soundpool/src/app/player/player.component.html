@@ -69,13 +69,22 @@
         <p>Nothing queued</p>
         <span>Add songs or a playlist below</span>
       </div>
-      <div *ngFor="let item of upNext" class="qp-row" [class.pending]="item.ready === false && !item.failed" [class.failed]="item.failed">
+      <div *ngFor="let item of upNext" class="qp-row"
+           [class.pending]="item.ready === false && !item.failed" [class.failed]="item.failed"
+           [class.dragover]="dragOverKey === item.key"
+           draggable="true"
+           (dragstart)="onDragStart(item)" (dragover)="onDragOver(item, $event)"
+           (drop)="onDrop(item, $event)" (dragend)="onDragEnd()"
+           (click)="jumpTo(item)" title="Play this song">
         <img class="qp-cover" [src]="item.cover || 'soundpool_sqrd.png'"/>
         <div class="qp-info">
           <span class="qp-row-title">{{ item.title }}</span>
           <span class="qp-row-artist">{{ item.failed ? 'Failed' : (item.ready === false ? 'Downloading…' : item.artist) }}</span>
         </div>
         <div *ngIf="item.ready === false && !item.failed" class="q-spinner"></div>
+        <button class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
       </div>
     </div>
 

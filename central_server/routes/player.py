@@ -213,6 +213,36 @@ async def repeat_handler(
     return JSONResponse(content={"message": "repeat set"})
 
 
+@router.post("/{player_id}/queue/move")
+async def queue_move_handler(
+    player_id: str, body: QueueMoveRequest,
+    db: SessionLocal = Depends(get_db), user: User = Depends(verify_token)  # type: ignore
+):
+    uc = _require_controllable_unit(player_id, db, user)
+    await uc.send(["queue_move", body.frm, body.to])
+    return JSONResponse(content={"message": "moved"})
+
+
+@router.post("/{player_id}/queue/remove")
+async def queue_remove_handler(
+    player_id: str, body: QueueIndexRequest,
+    db: SessionLocal = Depends(get_db), user: User = Depends(verify_token)  # type: ignore
+):
+    uc = _require_controllable_unit(player_id, db, user)
+    await uc.send(["queue_remove", body.index])
+    return JSONResponse(content={"message": "removed"})
+
+
+@router.post("/{player_id}/queue/jump")
+async def queue_jump_handler(
+    player_id: str, body: QueueIndexRequest,
+    db: SessionLocal = Depends(get_db), user: User = Depends(verify_token)  # type: ignore
+):
+    uc = _require_controllable_unit(player_id, db, user)
+    await uc.send(["queue_jump", body.index])
+    return JSONResponse(content={"message": "jumped"})
+
+
 @router.post("/{player_id}/queue/add")
 async def queue_add(
     player_id: str,

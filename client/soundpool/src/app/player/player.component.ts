@@ -314,6 +314,31 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (this.pid) this.api.setRepeat(this.pid, next).subscribe();
   }
 
+  // ── Queue management ──
+  dragKey: number | null = null;
+  dragOverKey: number | null = null;
+
+  jumpTo(item: QueueItem) {
+    if (!this.pid || item.failed) return;
+    this.api.queueJump(this.pid, item.key).subscribe();
+  }
+  removeItem(item: QueueItem, ev: Event) {
+    ev.stopPropagation();
+    if (!this.pid) return;
+    this.api.queueRemove(this.pid, item.key).subscribe();
+  }
+  onDragStart(item: QueueItem) { this.dragKey = item.key; }
+  onDragOver(item: QueueItem, ev: DragEvent) { ev.preventDefault(); this.dragOverKey = item.key; }
+  onDrop(item: QueueItem, ev: DragEvent) {
+    ev.preventDefault();
+    if (this.pid && this.dragKey !== null && this.dragKey !== item.key) {
+      this.api.queueMove(this.pid, this.dragKey, item.key).subscribe();
+    }
+    this.dragKey = null;
+    this.dragOverKey = null;
+  }
+  onDragEnd() { this.dragKey = null; this.dragOverKey = null; }
+
   // ── Queue browse ──
   toggleMode(mode: QueueMode) {
     this.queueMode = this.queueMode === mode ? 'none' : mode;

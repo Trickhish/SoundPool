@@ -208,6 +208,45 @@ def set_repeat(mode):
     emit_state()
 
 
+def queue_remove(index):
+    """Remove the song at `index` from the queue."""
+    global msid, current_index
+    if not (0 <= index < len(musics)):
+        return
+    del musics[index]
+    if index < msid:
+        msid -= 1
+    if index < current_index:
+        current_index -= 1
+    save_queue()
+    emit_state()
+
+
+def queue_move(frm, to):
+    """Move the song at `frm` to land at original position `to`."""
+    if not (0 <= frm < len(musics)):
+        return
+    item = musics.pop(frm)
+    if frm < to:
+        to -= 1  # account for the removed item shifting later indices down
+    to = max(0, min(to, len(musics)))
+    musics.insert(to, item)
+    save_queue()
+    emit_state()
+
+
+def queue_jump(index):
+    """Jump to and start playing the song at `index`."""
+    global msid, playing, _manual_skip
+    if not (0 <= index < len(musics)):
+        return
+    _manual_skip = True
+    msid = index
+    playing = True
+    mix.music.stop()  # playerManager will load musics[msid] next
+    emit_state()
+
+
 def sendcmd(cmd):
     global sws
 

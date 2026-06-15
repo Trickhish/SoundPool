@@ -40,3 +40,10 @@ class ShuffleRequest(BaseModel):
 
 class RepeatRequest(BaseModel):
     mode: str
+
+class QueueMoveRequest(BaseModel):
+    frm: int
+    to: int
+
+class QueueIndexRequest(BaseModel):
+    index: int

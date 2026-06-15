@@ -189,6 +189,15 @@ async def receiveHandler(ws, ro):
         mp.musics.append(song_obj)
         mp.emit_state()
         await download_queue.put((song_obj, song, url, key, autoplay))
+    elif r[0]=="queue_remove":
+        print(f"Removing queue item {r[1]}.")
+        mp.queue_remove(r[1])
+    elif r[0]=="queue_move":
+        print(f"Moving queue item {r[1]} -> {r[2]}.")
+        mp.queue_move(r[1], r[2])
+    elif r[0]=="queue_jump":
+        print(f"Jumping to queue item {r[1]}.")
+        mp.queue_jump(r[1])
     elif r[0]=="download":
         _,song,url,key = r
 
