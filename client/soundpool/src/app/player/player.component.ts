@@ -378,11 +378,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.lastReportedPos = (pct / 100) * this.durationMs;
     this.lastReportedAt = Date.now();
     (this.isRoom ? this.api.roomSeek(this.pid, pct) : this.api.seek(this.pid, pct)).subscribe();
+    if (this.browserOutput && this.audioEl) { try { this.audioEl.currentTime = this.lastReportedPos / 1000; } catch {} }
   }
 
   // ── Playback ──
-  play() { this.state.playing = true; (this.isRoom ? this.api.roomPlay(this.pid!) : this.api.play(this.player!.id)).subscribe(); }
-  pause() { this.state.playing = false; (this.isRoom ? this.api.roomPause(this.pid!) : this.api.pause(this.player!.id)).subscribe(); }
+  play() { this.state.playing = true; (this.isRoom ? this.api.roomPlay(this.pid!) : this.api.play(this.player!.id)).subscribe(); if (this.browserOutput) this.syncBrowser(); }
+  pause() { this.state.playing = false; (this.isRoom ? this.api.roomPause(this.pid!) : this.api.pause(this.player!.id)).subscribe(); if (this.browserOutput) this.syncBrowser(); }
   playpause() { this.playing ? this.pause() : this.play(); }
   prev() { (this.isRoom ? this.api.roomPrev(this.pid!) : this.api.prev(this.player!.id)).subscribe(); }
   next() { (this.isRoom ? this.api.roomNext(this.pid!) : this.api.next(this.player!.id)).subscribe(); }
@@ -527,29 +528,19 @@ export class PlayerComponent implements OnInit, OnDestroy {
     const a = this.audioEl;
     if (!a || !this.pid) return;
     this.browserSongId = songId;
-    const cached = this.blobCache.get(songId);
-    const start = (url: string) => {
-      if (this.browserSongId !== songId) return; // superseded
-      a.src = url;
-      const onReady = () => {
-        a.removeEventListener('loadedmetadata', onReady);
-        if (this.browserSongId !== songId) return;
-        a.volume = Math.max(0, Math.min(1, this.state.volume ?? 1));
-        a.currentTime = this.positionMs / 1000;
-        if (this.state.playing) this.tryPlay(a);
-      };
-      a.addEventListener('loadedmetadata', onReady);
-      a.load();
+    // Stream directly (Range-enabled) so playback starts fast and seeking is
+    // native. Token in the query since <audio> can't send headers.
+    const token = encodeURIComponent(localStorage.getItem('token') || '');
+    a.src = `${ApiService.apiUrl}/room/${this.pid}/song/${songId}?token=${token}`;
+    const onReady = () => {
+      a.removeEventListener('loadedmetadata', onReady);
+      if (this.browserSongId !== songId) return;
+      a.volume = Math.max(0, Math.min(1, this.state.volume ?? 1));
+      try { a.currentTime = this.positionMs / 1000; } catch {}
+      if (this.state.playing) this.tryPlay(a);
     };
-    if (cached) { start(cached); return; }
-    this.api.getRoomSong(this.pid, songId).subscribe({
-      next: (blob: any) => {
-        const url = URL.createObjectURL(blob);
-        this.blobCache.set(songId, url);
-        start(url);
-      },
-      error: () => { if (this.browserSongId === songId) this.browserSongId = null; this.toastr.error('Could not load audio for browser playback'); }
-    });
+    a.addEventListener('loadedmetadata', onReady);
+    a.load();
   }
   toggleOutput(unit: Unit) {
     if (!this.pid) return;

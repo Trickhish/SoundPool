@@ -1,16 +1,33 @@
 import asyncio
 import requests
-from io import BytesIO
-from fastapi import APIRouter, HTTPException, Depends
+from datetime import datetime, timedelta
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from db_models import *
 from req_models import *
 from database import *
 from routes.auth import verify_token
+from configuration import config
 import room_player
 import tracks_manager as tmg
 import deezer as dz
+
+
+def _user_from_token(tokval):
+    """Resolve a user from a raw token string (for <audio src> query auth)."""
+    if not tokval:
+        raise HTTPException(401, "Auth required")
+    dbs = SessionLocal()
+    try:
+        expiry = datetime.utcnow() - timedelta(hours=int(config["server"]["token_expiry_hours"]))
+        t = dbs.query(Token).filter(Token.value == tokval, Token.creation_date > expiry).first()
+        if not t:
+            raise HTTPException(403, "Unauthorized")
+        return dbs.query(User).filter(User.id == t.user_id).first()
+    finally:
+        dbs.close()
 
 router = APIRouter()
 
@@ -184,11 +201,15 @@ async def room_queue_clear(room_id: int,
 
 
 @router.get("/{room_id}/song/{song_id}")
-def room_song_stream(room_id: int, song_id: str,
-                     db: SessionLocal = Depends(get_db),  # type: ignore
-                     user: User = Depends(verify_token)):
-    """Decrypted MP3 of a track, for browser-output playback (downloaded
-    locally by the client). Uses the room owner's Deezer account."""
+def room_song_stream(room_id: int, song_id: str, request: Request,
+                     token: Optional[str] = None,
+                     x_token: Optional[str] = Header(None),
+                     db: SessionLocal = Depends(get_db)):  # type: ignore
+    """Decrypted MP3 of a track for browser-output playback. Streams with
+    HTTP Range support so the browser can start instantly and seek natively.
+    Uses the room owner's Deezer account. Auth via x-token header or ?token=
+    (so it works as an <audio src>)."""
+    user = _user_from_token(token or x_token)
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(404, "Room not found")
@@ -200,13 +221,32 @@ def room_song_stream(room_id: int, song_id: str,
     song = tmg.get_song_gw_data(song_id, owner.deezer_arl)
     song, url, _ext, key = tmg.getDownloadData(song, owner.deezer_arl)
 
+    # Total size (decrypt is 1:1) — from a 1-byte ranged probe.
+    probe = requests.get(url, headers={"Range": "bytes=0-0"})
+    total = None
+    if probe.status_code == 206 and "Content-Range" in probe.headers:
+        total = int(probe.headers["Content-Range"].split("/")[-1])
+    if not total:
+        total = int(probe.headers.get("Content-Length", 0)) or None
+
+    # Parse a Range request (open-ended start- form).
+    start = 0
+    rng = request.headers.get("range") or request.headers.get("Range")
+    if rng and rng.startswith("bytes="):
+        try:
+            start = int(rng.split("=", 1)[1].split("-", 1)[0] or 0)
+        except ValueError:
+            start = 0
+
+    block0 = start // 2048           # aligned block containing `start`
+    block_start = block0 * 2048
+    skip = start - block_start       # bytes to drop from the first block
+
     def gen():
-        # Stream-decrypt in aligned 2048-byte blocks (every 3rd is encrypted),
-        # so the browser can start playing before the whole file arrives.
-        with requests.get(url, stream=True) as resp:
-            resp.raise_for_status()
-            i = 0
+        with requests.get(url, headers={"Range": f"bytes={block_start}-"}, stream=True) as resp:
+            i = block0
             buf = b""
+            first = True
             for chunk in resp.iter_content(2048):
                 if not chunk:
                     continue
@@ -217,12 +257,23 @@ def room_song_stream(room_id: int, song_id: str,
                     if i % 3 == 0:
                         block = dz.blowfishDecrypt(block, key)
                     i += 1
+                    if first:
+                        first = False
+                        block = block[skip:]
                     yield block
             if buf:
+                if first:
+                    buf = buf[skip:]
                 yield buf
 
-    return StreamingResponse(gen(), media_type="audio/mpeg",
-                             headers={"Cache-Control": "no-store"})
+    headers = {"Accept-Ranges": "bytes", "Cache-Control": "no-store"}
+    if start > 0 and total:
+        headers["Content-Range"] = f"bytes {start}-{total-1}/{total}"
+        headers["Content-Length"] = str(total - start)
+        return StreamingResponse(gen(), status_code=206, media_type="audio/mpeg", headers=headers)
+    if total:
+        headers["Content-Length"] = str(total)
+    return StreamingResponse(gen(), media_type="audio/mpeg", headers=headers)
 
 
 @router.post("/{room_id}/output")
