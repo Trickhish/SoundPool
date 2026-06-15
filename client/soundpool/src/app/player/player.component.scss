@@ -668,19 +668,25 @@
 /* ── Full-screen library ── */
 .library-overlay {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* dvh so the overlay matches the visible viewport (excludes the mobile
+       browser's dynamic bottom bar) instead of overflowing behind it. */
+    height: 100dvh;
     background: rgba(0,0,0,0.6);
     backdrop-filter: blur(6px);
     z-index: 100;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3vh 2vw;
+    padding: 3dvh 2vw;
+    box-sizing: border-box;
     animation: fadeUp 0.25s ease both;
 }
 .library {
     width: min(760px, 100%);
-    height: min(82vh, 100%);
+    height: min(82dvh, 100%);
     background: var(--surface-1, #12121c);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 18px;
@@ -774,11 +780,11 @@
 /* ── Responsive ── */
 @media (max-width: 900px) {
     .player_layout { flex-direction: column; overflow: auto; }
-    .stage { padding: 1.5rem 1rem; }
+    .stage { padding: 1.5rem 1rem; height: auto; flex: none; }
     .queue-pane {
         width: 100%;
         height: auto;
-        max-height: 50vh;
+        max-height: 50dvh;
         border-left: none;
         border-top: 1px solid rgba(255,255,255,0.07);
     }
