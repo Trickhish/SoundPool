@@ -140,6 +140,10 @@ export class ApiService {
     return this.http.get<{playlists: {id: number, title: string, nb_tracks: number, picture: string}[]}>(`${ApiService.apiUrl}/deezer/playlists`);
   }
 
+  public deezerFavorites() {
+    return this.http.get<{tracks: {id: string, title: string, artist: string, img_url: string}[]}>(`${ApiService.apiUrl}/deezer/favorites`);
+  }
+
   public deezerPlaylistTracks(playlistId: number) {
     return this.http.get<{tracks: {id: string, title: string, artist: string, img_url: string}[]}>(`${ApiService.apiUrl}/deezer/playlist/${playlistId}/tracks`);
   }

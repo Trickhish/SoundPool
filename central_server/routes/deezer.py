@@ -61,6 +61,14 @@ async def deezer_playlists(user: User = Depends(verify_token)):
     return JSONResponse(content={"playlists": playlists})
 
 
+@router.get("/favorites")
+async def deezer_favorites(user: User = Depends(verify_token)):
+    if not user.deezer_arl:
+        raise HTTPException(403, "Deezer not connected")
+    tracks = await asyncio.to_thread(tmg.get_deezer_favorites, user.deezer_arl)
+    return JSONResponse(content={"tracks": tracks})
+
+
 @router.get("/playlist/{playlist_id}/tracks")
 async def deezer_playlist_tracks(playlist_id: int, user: User = Depends(verify_token)):
     if not user.deezer_arl:

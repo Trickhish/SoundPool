@@ -169,6 +169,35 @@ def get_deezer_playlists(arl: str):
     return result
 
 
+def get_deezer_favorites(arl: str, limit: int = 300):
+    """The user's liked/favorite tracks with full metadata (id/title/artist/cover)."""
+    _init_session(arl)
+    dz.session.cookies.set('arl', arl, domain='.deezer.com')
+
+    gw = 'https://www.deezer.com/ajax/gw-light.php'
+    resp = dz.session.post(gw, params={
+        'method': 'deezer.getUserData', 'input': '3', 'api_version': '1.0', 'api_token': '',
+    }, json={})
+    user_id = resp.json()['results']['USER']['USER_ID']
+
+    out = []
+    url = f'https://api.deezer.com/user/{user_id}/tracks'
+    params = {'limit': 100}
+    while url and len(out) < limit:
+        data = dz.session.get(url, params=params).json()
+        for t in data.get('data', []):
+            alb = t.get('album') or {}
+            out.append({
+                'id': str(t.get('id', '')),
+                'title': t.get('title', ''),
+                'artist': (t.get('artist') or {}).get('name', ''),
+                'img_url': alb.get('cover_medium', '') or alb.get('cover', ''),
+            })
+        url = data.get('next')
+        params = {}  # the 'next' URL already carries its params
+    return out[:limit]
+
+
 def getDownloadData(song, arl: str):
     _init_session(arl)
     song_quality = 3 if song.get("FILESIZE_MP3_320") and song.get("FILESIZE_MP3_320") != '0' else \

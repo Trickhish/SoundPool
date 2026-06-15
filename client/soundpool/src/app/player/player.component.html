@@ -89,54 +89,65 @@
     </div>
 
     <div class="queue-pane-foot">
-      <button class="q-btn" [class.active]="queueMode === 'search'" (click)="toggleMode('search')">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Add song
-      </button>
-      <button class="q-btn" [class.active]="queueMode === 'playlists'" (click)="toggleMode('playlists')">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Playlist
+      <button class="browse-lib-btn" (click)="openLibrary('songs')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Browse library
       </button>
     </div>
+  </aside>
 
-    <!-- Browse slide-over -->
-    <div class="browse" *ngIf="queueMode !== 'none'">
-      <div class="browse-head">
-        <span>{{ queueMode === 'search' ? 'Add a song' : 'Add a playlist' }}</span>
-        <button class="browse-close" (click)="toggleMode(queueMode)">✕</button>
+  <!-- ── Full-screen library ── -->
+  <div class="library-overlay" *ngIf="libraryOpen" (click)="closeLibrary()">
+    <div class="library" (click)="$event.stopPropagation()">
+      <div class="library-head">
+        <h2>Your Library</h2>
+        <button class="lib-close" (click)="closeLibrary()" title="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
       </div>
 
-      <input *ngIf="queueMode === 'search'" class="q-search-input" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search songs…" autofocus />
+      <div class="library-tabs">
+        <button class="lib-tab" [class.active]="libraryTab === 'songs'" (click)="setTab('songs')">Songs</button>
+        <button class="lib-tab" [class.active]="libraryTab === 'playlists'" (click)="setTab('playlists')">Playlists</button>
+        <input *ngIf="libraryTab === 'songs'" class="lib-search" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search all songs…" />
+      </div>
 
-      <div class="browse-scroll">
-        <ng-container *ngIf="queueMode === 'search'">
-          <div *ngIf="searchResults.length === 0 && searchQuery.length > 0" class="q-empty">No results</div>
-          <div *ngFor="let s of searchResults" class="q-result-item" (click)="addSong(s)" [class.disabled]="queueBusy">
-            <img *ngIf="s.img_url" [src]="s.img_url" class="q-result-cover" />
-            <div class="q-result-info">
-              <span class="q-result-title">{{ s.title }}</span>
-              <span class="q-result-artist">{{ s.artist }}</span>
+      <div class="library-body">
+        <!-- Songs tab -->
+        <ng-container *ngIf="libraryTab === 'songs'">
+          <ng-container *ngIf="searchQuery.trim().length">
+            <div *ngIf="searchResults.length === 0" class="q-empty">No results</div>
+            <div *ngFor="let s of searchResults" class="lib-row" (click)="addSong(s)">
+              <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
+              <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
+              <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </div>
-            <svg class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </div>
+          </ng-container>
+          <ng-container *ngIf="!searchQuery.trim().length">
+            <div *ngIf="!favoritesLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading your songs…</span></div>
+            <div *ngIf="favoritesLoaded && favorites.length === 0" class="q-empty">No liked songs on Deezer</div>
+            <div *ngFor="let s of favorites" class="lib-row" (click)="addSong(s)">
+              <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
+              <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
+              <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+          </ng-container>
         </ng-container>
 
-        <ng-container *ngIf="queueMode === 'playlists'">
-          <!-- Playlist list -->
+        <!-- Playlists tab -->
+        <ng-container *ngIf="libraryTab === 'playlists'">
           <ng-container *ngIf="!openedPlaylist">
             <div *ngIf="!playlistsLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading playlists…</span></div>
             <div *ngIf="playlistsLoaded && deezerPlaylists.length === 0" class="q-empty">No Deezer playlists found</div>
-            <div *ngFor="let pl of deezerPlaylists" class="q-result-item" (click)="openPlaylist(pl)">
-              <img *ngIf="pl.picture" [src]="pl.picture" class="q-result-cover" />
-              <div class="q-result-info">
-                <span class="q-result-title">{{ pl.title }}</span>
-                <span class="q-result-artist">{{ pl.nb_tracks }} tracks</span>
+            <div class="lib-pl-grid">
+              <div *ngFor="let pl of deezerPlaylists" class="lib-pl-card" (click)="openPlaylist(pl)">
+                <img class="lib-pl-cover" [src]="pl.picture || 'soundpool_sqrd.png'" />
+                <span class="lib-pl-title">{{ pl.title }}</span>
+                <span class="lib-pl-count">{{ pl.nb_tracks }} tracks</span>
               </div>
-              <svg class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
           </ng-container>
 
-          <!-- Drilled into a playlist: its tracks -->
           <ng-container *ngIf="openedPlaylist">
             <div class="browse-subhead">
               <button class="browse-back" (click)="backToPlaylists()" title="Back">
@@ -149,18 +160,15 @@
               </button>
             </div>
             <div *ngIf="playlistTracksLoading" class="q-loading"><div class="q-spinner"></div><span>Loading tracks…</span></div>
-            <div *ngFor="let t of playlistTracks" class="q-result-item" (click)="addSong(t)" [class.disabled]="queueBusy">
-              <img *ngIf="t.img_url" [src]="t.img_url" class="q-result-cover" />
-              <div class="q-result-info">
-                <span class="q-result-title">{{ t.title }}</span>
-                <span class="q-result-artist">{{ t.artist }}</span>
-              </div>
-              <svg class="q-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <div *ngFor="let t of playlistTracks" class="lib-row" (click)="addSong(t)">
+              <img class="lib-cover" [src]="t.img_url || 'soundpool_sqrd.png'" />
+              <div class="lib-info"><span class="lib-title">{{ t.title }}</span><span class="lib-artist">{{ t.artist }}</span></div>
+              <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </div>
           </ng-container>
         </ng-container>
       </div>
     </div>
-  </aside>
+  </div>
 
 </div>

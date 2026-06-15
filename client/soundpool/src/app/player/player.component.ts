@@ -13,6 +13,7 @@ import { Song } from '../song';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastrService } from 'ngx-toastr';
 
 export interface NowPlaying { id: string; title: string; artist: string; album: string; cover: string; duration: number; }
 export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; ready?: boolean; failed?: boolean; }
@@ -59,7 +60,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     private api: ApiService,
     private event: LivefbService,
     private zone: NgZone,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toastr: ToastrService
   ) {
     this.mouseMoveHandler = (e) => this.onMouseMove(e);
     this.mouseUpHandler = () => this.onMouseUp();
@@ -85,6 +87,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
   private ticker: any = null;
   private mouseMoveHandler: (e: MouseEvent) => void;
   private mouseUpHandler: () => void;
+
+  // Library overlay
+  libraryOpen = false;
+  libraryTab: 'songs' | 'playlists' = 'songs';
+  favorites: any[] = [];
+  favoritesLoaded = false;
 
   // Queue browse
   queueMode: QueueMode = 'none';
@@ -343,6 +351,35 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
   onDragEnd() { this.dragKey = null; this.dragOverKey = null; }
 
+  // ── Library overlay ──
+  openLibrary(tab: 'songs' | 'playlists' = 'songs') {
+    this.libraryOpen = true;
+    this.setTab(tab);
+  }
+  closeLibrary() {
+    this.libraryOpen = false;
+    this.openedPlaylist = null;
+    this.searchQuery = '';
+    this.searchResults = [];
+  }
+  setTab(tab: 'songs' | 'playlists') {
+    this.libraryTab = tab;
+    this.openedPlaylist = null;
+    if (tab === 'songs' && !this.favoritesLoaded) this.loadFavorites();
+    if (tab === 'playlists' && !this.playlistsLoaded) {
+      this.api.deezerPlaylists().subscribe({
+        next: (r) => { this.deezerPlaylists = r.playlists; this.playlistsLoaded = true; },
+        error: () => { this.playlistsLoaded = true; }
+      });
+    }
+  }
+  loadFavorites() {
+    this.api.deezerFavorites().subscribe({
+      next: (r) => { this.favorites = r.tracks; this.favoritesLoaded = true; },
+      error: () => { this.favoritesLoaded = true; }
+    });
+  }
+
   // ── Queue browse ──
   toggleMode(mode: QueueMode) {
     this.queueMode = this.queueMode === mode ? 'none' : mode;
@@ -385,13 +422,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   addSong(song: any) {
-    if (!this.pid || this.queueBusy) return;
-    this.queueBusy = true;
+    if (!this.pid) return;
     this.api.queueAdd(this.pid, {
       song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || ''
     }).subscribe({
-      next: () => { this.queueBusy = false; },
-      error: () => { this.queueBusy = false; }
+      next: () => this.toastr.success(song.title, 'Added to queue'),
+      error: () => this.toastr.error('Could not add song')
     });
   }
 
@@ -399,8 +435,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid || this.addingPlaylistId !== null) return;
     this.addingPlaylistId = pl.id;
     this.api.queuePlaylist(this.pid, pl.id).subscribe({
-      next: () => { this.addingPlaylistId = null; this.queueMode = 'none'; this.openedPlaylist = null; },
-      error: () => { this.addingPlaylistId = null; }
+      next: () => { this.addingPlaylistId = null; this.toastr.success(pl.title, 'Added playlist'); this.closeLibrary(); },
+      error: () => { this.addingPlaylistId = null; this.toastr.error('Could not add playlist'); }
     });
   }
 
