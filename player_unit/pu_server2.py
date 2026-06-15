@@ -387,9 +387,10 @@ async def main():
     task1 = asyncio.create_task(player.run())
     await player.ready_event.wait()
 
-    # let async audio events (e.g. BT scan completion) push fresh state
+    # let async audio events (e.g. BT scan completion, USB plug/unplug) push fresh state
     loop = asyncio.get_running_loop()
     ad.set_notify(lambda: asyncio.run_coroutine_threadsafe(emit_audio_state(), loop))
+    threading.Thread(target=ad.watch_sinks, daemon=True).start()
 
     workers = [asyncio.create_task(download_worker()) for _ in range(DOWNLOAD_WORKERS)]
     task2 = asyncio.create_task(mp.runPlayer(player))

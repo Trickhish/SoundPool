@@ -270,3 +270,21 @@ def _notify():
 
 def audio_state():
     return {"sinks": list_sinks(), "outputs": _current_outputs(), "bt": bt_state()}
+
+
+def watch_sinks():
+    """Blocking loop: notify whenever a sink is added/removed (USB DAC or
+    Bluetooth speaker plugged in/out) so the outputs list stays live."""
+    last = 0.0
+    while True:
+        try:
+            proc = subprocess.Popen(["pactl", "subscribe"], stdout=subprocess.PIPE, text=True)
+            for line in proc.stdout:
+                if "on sink #" in line and ("'new'" in line or "'remove'" in line):
+                    now = time.monotonic()
+                    if now - last > 0.8:   # debounce bursts
+                        last = now
+                        _notify()
+        except Exception as e:
+            print(f"[audio] sink watch error: {e}")
+        time.sleep(3)  # pactl died — reconnect
