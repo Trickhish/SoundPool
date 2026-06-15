@@ -248,6 +248,10 @@ class PlayerServer():
                 STATUS = Status.CONNECTED
                 print("🟢 Connected to CentralServer")
 
+                # Point the player at the live socket so state/progress sent
+                # from music_player survive reconnects (e.g. server restarts).
+                mp.sws = self.ws
+
                 self.ready_event.set()
                 
                 if (config["player_unit"]["uid"]):
