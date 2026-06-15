@@ -36,6 +36,7 @@ class RoomPlayer:
         self._last_render = None   # (song_id, playing) last pushed to outputs
         self.votes = set()         # user ids who voted to skip the current track
         self.vote_threshold = 0    # votes needed to skip (updated on each vote)
+        self._hb = 0               # heartbeat counter (conductor ticks)
 
     # ── timeline ──
     def position(self):
@@ -309,14 +310,19 @@ class RoomPlayer:
 
     async def tick(self):
         """Called ~1/s by the conductor loop."""
+        self._hb += 1
         if self.playing and self.cur():
             pos = self.position()
             dur = self.cur()["duration"]
             if pos >= dur - 50:
                 await self.advance(auto=True)
-            else:
-                await sse.triggerEvent(f"room_{self.room_id}",
-                                       {"type": "progress", "progress": pos, "duration": dur})
+                return
+            await sse.triggerEvent(f"room_{self.room_id}",
+                                   {"type": "progress", "progress": pos, "duration": dur})
+        # Periodic full-state heartbeat so any dropped state event (e.g. a
+        # skip that didn't render) self-heals without a page reload.
+        if self._hb % 5 == 0:
+            await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
 
 
 def get_player(room_id):
