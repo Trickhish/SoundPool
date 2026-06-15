@@ -215,8 +215,10 @@ class RoomPlayer:
     async def advance(self, auto=False):
         nxt = self._next_index(auto)
         if nxt < 0:
+            # Queue exhausted (repeat off): reset to the first song, loaded but
+            # paused, rather than going empty.
             self.playing = False
-            self.current_index = -1
+            self.current_index = 0 if self.queue else -1
             self.base_offset = 0.0
             self._t0 = None
             self.votes = set()
@@ -244,9 +246,16 @@ class RoomPlayer:
 
     async def add(self, track, autoplay=True):
         self.queue.append(track)
-        if autoplay and self.current_index < 0 and not self.playing:
-            self._start_track(len(self.queue) - 1)
-            self.playing = True
+        if self.current_index < 0:
+            # Load the first song (paused) so the room is never "empty" while
+            # it has a queue — playback starts only if autoplay is requested.
+            self.current_index = 0
+            self.base_offset = 0.0
+            self._t0 = None
+            self.votes = set()
+            if autoplay:
+                self.playing = True
+                self._t0 = time.monotonic()
         await self.broadcast()
 
     async def remove(self, idx):
@@ -336,6 +345,13 @@ def ensure_loaded(room_id):
                     .order_by(RoomTrack.order).all())
         rp.queue = [{"id": t.song_id, "title": t.title, "artist": t.artist,
                      "cover": t.cover, "duration": t.duration_ms} for t in tracks]
+        # Load the first (or persisted) song, paused — never start empty.
+        if rp.queue:
+            ci = room.current_index if room else 0
+            rp.current_index = ci if (0 <= ci < len(rp.queue)) else 0
+            rp.playing = False
+            rp.base_offset = 0.0
+            rp._t0 = None
     finally:
         db.close()
     _loaded.add(room_id)
