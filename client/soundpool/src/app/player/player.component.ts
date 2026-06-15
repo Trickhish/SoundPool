@@ -95,6 +95,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
   deezerPlaylists: DeezerPlaylist[] = [];
   playlistsLoaded = false;
   addingPlaylistId: number | null = null;
+  // Drill-in: viewing the tracks of a single playlist
+  openedPlaylist: DeezerPlaylist | null = null;
+  playlistTracks: any[] = [];
+  playlistTracksLoading = false;
 
   emptyState(): PlayerState {
     return { now_playing: null, position: 0, playing: false, current_index: -1,
@@ -352,7 +356,22 @@ export class PlayerComponent implements OnInit, OnDestroy {
       this.searchQuery = '';
       this.searchResults = [];
     }
+    if (this.queueMode !== 'playlists') {
+      this.openedPlaylist = null;
+      this.playlistTracks = [];
+    }
   }
+
+  openPlaylist(pl: DeezerPlaylist) {
+    this.openedPlaylist = pl;
+    this.playlistTracks = [];
+    this.playlistTracksLoading = true;
+    this.api.deezerPlaylistTracks(pl.id).subscribe({
+      next: (r) => { this.playlistTracks = r.tracks; this.playlistTracksLoading = false; },
+      error: () => { this.playlistTracksLoading = false; }
+    });
+  }
+  backToPlaylists() { this.openedPlaylist = null; this.playlistTracks = []; }
 
   onSearchInput() {
     clearTimeout(this.searchDebounce);
@@ -380,7 +399,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid || this.addingPlaylistId !== null) return;
     this.addingPlaylistId = pl.id;
     this.api.queuePlaylist(this.pid, pl.id).subscribe({
-      next: () => { this.addingPlaylistId = null; this.queueMode = 'none'; },
+      next: () => { this.addingPlaylistId = null; this.queueMode = 'none'; this.openedPlaylist = null; },
       error: () => { this.addingPlaylistId = null; }
     });
   }

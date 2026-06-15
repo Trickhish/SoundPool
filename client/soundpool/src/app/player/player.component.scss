@@ -521,6 +521,52 @@
 }
 .browse-scroll { flex: 1; overflow-y: auto; }
 
+.browse-subhead {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: var(--surface-1);
+    z-index: 1;
+
+    .browse-back {
+        background: transparent;
+        border: none;
+        color: var(--font-muted);
+        cursor: pointer;
+        display: flex;
+        padding: 3px;
+        border-radius: 6px;
+        &:hover { background: rgba(255,255,255,0.08); color: var(--font-color); }
+    }
+    .browse-sub-title {
+        flex: 1;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--font-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .add-all-btn {
+        background: rgba(255,43,109,0.12);
+        border: 1px solid rgba(255,43,109,0.3);
+        color: var(--accent);
+        border-radius: 8px;
+        padding: 0.35rem 0.7rem;
+        font-size: 0.75rem;
+        font-family: 'Syne', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        &:hover:not([disabled]) { background: rgba(255,43,109,0.2); }
+        &[disabled] { opacity: 0.6; cursor: default; }
+    }
+}
+
 .q-search-input {
     background: transparent;
     border: none;
