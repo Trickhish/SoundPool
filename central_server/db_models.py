@@ -79,3 +79,23 @@ room_rights = Table(
     Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
     Column("room_id", Integer, ForeignKey("rooms.id"), primary_key=True)
 )
+
+class PlayHistory(Base):
+    __tablename__ = "play_history"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    song_id = Column(String(64), nullable=True)
+    title = Column(String(512), nullable=True)
+    artist = Column(String(512), nullable=True)
+    cover = Column(String(1024), nullable=True)
+    played_at = Column(DateTime, default=datetime.utcnow)
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    song_id = Column(String(64), nullable=False)
+    title = Column(String(512), nullable=True)
+    artist = Column(String(512), nullable=True)
+    cover = Column(String(1024), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

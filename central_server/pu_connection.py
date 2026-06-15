@@ -31,6 +31,7 @@ class PlayerUnit():
         self.ownerId = None
         self.owner = None
         self.state = None   # latest authoritative snapshot reported by the unit
+        self._last_np_id = None  # last song id logged to history
     
     def sendTest(self):
         rr=tm.search("emmenez moi")
@@ -158,6 +159,21 @@ class PlayerUnit():
             # Full authoritative snapshot from the unit. Cache it (so fresh
             # page loads / new SSE subscribers can be seeded) and forward it.
             self.state = r[1]
+
+            # Log a play-history entry whenever the playing song changes.
+            np = r[1].get("now_playing")
+            if np and np.get("id") and np.get("id") != self._last_np_id:
+                self._last_np_id = np.get("id")
+                if self.ownerId:
+                    try:
+                        db.add(PlayHistory(
+                            user_id=self.ownerId, song_id=str(np.get("id")),
+                            title=np.get("title"), artist=np.get("artist"), cover=np.get("cover"),
+                        ))
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+
             evt = dict(r[1])
             evt["type"] = "state"
             await sse.triggerEvent(f"pu_{self.id}", evt)

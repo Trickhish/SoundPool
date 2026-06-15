@@ -90,9 +90,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   // Library overlay
   libraryOpen = false;
-  libraryTab: 'songs' | 'playlists' = 'songs';
-  favorites: any[] = [];
+  libraryTab: 'songs' | 'playlists' | 'favorites' | 'history' = 'songs';
+  favorites: any[] = [];              // Deezer liked tracks (Songs tab)
   favoritesLoaded = false;
+
+  // SoundPool favorites + history
+  favoriteIds = new Set<string>();    // song ids the user has favorited in-app
+  favoritesList: any[] = [];          // SoundPool favorites (Favorites tab)
+  historyList: any[] = [];
+  historyLoaded = false;
 
   // Queue browse
   queueMode: QueueMode = 'none';
@@ -157,6 +163,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       try { this.cdr.detectChanges(); } catch {}
     }));
 
+    this.loadFavoriteIds();
     this.ticker = setInterval(() => this.tick(), 250);
   }
 
@@ -362,7 +369,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.searchResults = [];
   }
-  setTab(tab: 'songs' | 'playlists') {
+  setTab(tab: 'songs' | 'playlists' | 'favorites' | 'history') {
     this.libraryTab = tab;
     this.openedPlaylist = null;
     if (tab === 'songs' && !this.favoritesLoaded) this.loadFavorites();
@@ -372,12 +379,45 @@ export class PlayerComponent implements OnInit, OnDestroy {
         error: () => { this.playlistsLoaded = true; }
       });
     }
+    if (tab === 'favorites') this.loadFavoriteIds();
+    if (tab === 'history' && !this.historyLoaded) this.loadHistory();
   }
   loadFavorites() {
     this.api.deezerFavorites().subscribe({
       next: (r) => { this.favorites = r.tracks; this.favoritesLoaded = true; },
       error: () => { this.favoritesLoaded = true; }
     });
+  }
+  loadHistory() {
+    this.api.getHistory().subscribe({
+      next: (r) => { this.historyList = r; this.historyLoaded = true; },
+      error: () => { this.historyLoaded = true; }
+    });
+  }
+  loadFavoriteIds() {
+    this.api.getFavorites().subscribe({
+      next: (r) => { this.favoritesList = r; this.favoriteIds = new Set(r.map((x: any) => x.id)); },
+      error: () => {}
+    });
+  }
+
+  // ── SoundPool favorites ──
+  isFavorite(): boolean {
+    const id = this.currentSong?.id;
+    return !!id && this.favoriteIds.has(id);
+  }
+  toggleFavorite() {
+    const s = this.currentSong;
+    if (!s || !s.id) return;
+    if (this.favoriteIds.has(s.id)) {
+      this.favoriteIds.delete(s.id);
+      this.api.removeFavorite(s.id).subscribe();
+    } else {
+      this.favoriteIds.add(s.id);
+      this.api.addFavorite({ song_id: s.id, title: s.title || '', artist: s.artist || '', img_url: s.img_url || '' }).subscribe(() => {
+        this.toastr.success(s.title || '', 'Added to favorites');
+      });
+    }
   }
 
   // ── Queue browse ──

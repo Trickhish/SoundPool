@@ -47,3 +47,9 @@ class QueueMoveRequest(BaseModel):
 
 class QueueIndexRequest(BaseModel):
     index: int
+
+class FavoriteRequest(BaseModel):
+    song_id: str
+    title: str = ""
+    artist: str = ""
+    img_url: str = ""

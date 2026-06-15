@@ -46,6 +46,7 @@ from routes.user import router as user_router
 from routes.song import router as song_router
 from routes.player import router as pl_router
 from routes.deezer import router as deezer_router
+from routes.library import router as library_router
 
 from pu_connection import router as pu_router
 import pu_connection as puc
@@ -178,6 +179,7 @@ app.include_router(user_router, prefix="/user", tags=["User"])
 app.include_router(song_router, prefix="/song", tags=["Song"])
 app.include_router(pl_router, prefix="/player", tags=["Player"])
 app.include_router(deezer_router, prefix="/deezer", tags=["Deezer"])
+app.include_router(library_router, prefix="/library", tags=["Library"])
 
 app.include_router(pu_router, prefix="/unit", tags=["Unit"])
 app.include_router(sse_router, prefix="/event", tags=["SSE"])

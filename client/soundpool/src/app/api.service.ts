@@ -140,6 +140,20 @@ export class ApiService {
     return this.http.get<{playlists: {id: number, title: string, nb_tracks: number, picture: string}[]}>(`${ApiService.apiUrl}/deezer/playlists`);
   }
 
+  // Library: history + SoundPool favorites
+  public getHistory() {
+    return this.http.get<{id:string,title:string,artist:string,img_url:string,played_at:string}[]>(`${ApiService.apiUrl}/library/history`);
+  }
+  public getFavorites() {
+    return this.http.get<{id:string,title:string,artist:string,img_url:string}[]>(`${ApiService.apiUrl}/library/favorites`);
+  }
+  public addFavorite(body: {song_id:string, title:string, artist:string, img_url:string}) {
+    return this.http.post(`${ApiService.apiUrl}/library/favorites`, body);
+  }
+  public removeFavorite(songId: string) {
+    return this.http.delete(`${ApiService.apiUrl}/library/favorites/${songId}`);
+  }
+
   public deezerFavorites() {
     return this.http.get<{tracks: {id: string, title: string, artist: string, img_url: string}[]}>(`${ApiService.apiUrl}/deezer/favorites`);
   }

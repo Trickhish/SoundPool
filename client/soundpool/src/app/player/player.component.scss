@@ -284,6 +284,8 @@
 
     &:hover { color: var(--font-color); background: rgba(255,255,255,0.06); }
     &.active { color: var(--accent); }
+    &[disabled] { opacity: 0.3; cursor: default; }
+    &[disabled]:hover { background: transparent; color: var(--font-muted); }
 
     .ec-badge {
         position: absolute;
