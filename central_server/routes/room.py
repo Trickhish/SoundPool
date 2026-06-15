@@ -292,6 +292,16 @@ async def room_seek(room_id: int, body: SeekRequest,
     return JSONResponse(content={"status": "ok"})
 
 
+@router.post("/{room_id}/volume")
+async def room_volume(room_id: int, body: VolumeRequest,
+                      db: SessionLocal = Depends(get_db),  # type: ignore
+                      user: User = Depends(verify_token)):
+    _, rp = _require(db, room_id, user, "can_playpause")
+    await rp.set_volume(body.level)
+    room_player.persist_queue(room_id)
+    return JSONResponse(content={"status": "ok"})
+
+
 @router.post("/{room_id}/shuffle")
 async def room_shuffle(room_id: int, body: ShuffleRequest,
                        db: SessionLocal = Depends(get_db),  # type: ignore

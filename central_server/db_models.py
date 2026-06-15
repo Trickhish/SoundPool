@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, FileResponse
 
-from sqlalchemy import DateTime, Table, create_engine, Column, Integer, String, Boolean, ForeignKey, select
+from sqlalchemy import DateTime, Table, create_engine, Column, Integer, String, Boolean, Float, ForeignKey, select
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
@@ -29,6 +29,7 @@ class Room(Base):
     current_index = Column(Integer, default=0)
     shuffle = Column(Boolean, default=False)
     repeat = Column(String(8), default="off")            # off | all | one
+    volume = Column(Float, default=1.0)                  # master volume (0..1)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class User(Base):

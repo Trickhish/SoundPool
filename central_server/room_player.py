@@ -27,6 +27,7 @@ class RoomPlayer:
         self.playing = False
         self.shuffle = False
         self.repeat = "off"        # off | all | one
+        self.volume = 1.0          # master volume (scales each output's stream)
         self.base_offset = 0.0     # ms into the current track at _t0
         self._t0 = None            # monotonic timestamp the offset was anchored
         self.outputs = set()       # attached output unit ids
@@ -61,7 +62,7 @@ class RoomPlayer:
             "playing": self.playing,
             "current_index": self.current_index,
             "msid": (self.current_index + 1) if self.current_index >= 0 else 0,
-            "volume": 1.0,
+            "volume": self.volume,
             "shuffle": self.shuffle,
             "repeat": self.repeat,
             "queue": [{"key": i, "id": t["id"], "title": t["title"], "artist": t["artist"],
@@ -129,7 +130,7 @@ class RoomPlayer:
         for uid in list(self.outputs):
             u = puc.getUnitById(uid)
             if u:
-                await u.send(["render", song, url, key, pos, self.playing])
+                await u.send(["render", song, url, key, pos, self.playing, self.volume])
         self._last_render = sig
 
     async def attach(self, unit_id):
@@ -148,7 +149,7 @@ class RoomPlayer:
             dl = await self._resolve_dl()
             if dl:
                 song, url, key = dl
-                await u.send(["render", song, url, key, self.position(), self.playing])
+                await u.send(["render", song, url, key, self.position(), self.playing, self.volume])
         await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
 
     async def detach(self, unit_id):
@@ -308,6 +309,10 @@ class RoomPlayer:
             self.repeat = mode
         await self.broadcast()
 
+    async def set_volume(self, level):
+        self.volume = max(0.0, min(1.0, float(level)))
+        await self.broadcast(force_render=True)  # push new stream volume to outputs
+
     async def tick(self):
         """Called ~1/s by the conductor loop."""
         self._hb += 1
@@ -344,6 +349,7 @@ def ensure_loaded(room_id):
         if room:
             rp.shuffle = bool(room.shuffle)
             rp.repeat = room.repeat or "off"
+            rp.volume = room.volume if room.volume is not None else 1.0
             owner = db.query(User).filter(User.id == room.owner_id).first()
             rp.arl = owner.deezer_arl if owner else None
         tracks = (db.query(RoomTrack)
@@ -378,6 +384,7 @@ def persist_queue(room_id):
             room.shuffle = rp.shuffle
             room.repeat = rp.repeat
             room.current_index = rp.current_index
+            room.volume = rp.volume
         db.commit()
     except Exception:
         db.rollback()

@@ -387,7 +387,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.state.volume = v;
     clearTimeout(this.volumeDebounce);
     this.volumeDebounce = setTimeout(() => {
-      if (this.pid && !this.isRoom) this.api.setVolume(this.pid, v).subscribe();
+      if (!this.pid) return;
+      (this.isRoom ? this.api.roomVolume(this.pid, v) : this.api.setVolume(this.pid, v)).subscribe();
     }, 120);
   }
   toggleShuffle() {
