@@ -75,16 +75,10 @@
     </div>
 
     <!-- ── Output selector (room mode) ── -->
-    <div class="output-bar" *ngIf="isRoom">
-      <span class="output-label">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
-        Output
-      </span>
-      <div class="output-chips">
-        <button *ngFor="let u of myUnits" class="output-chip" [class.active]="isOutput(u.id)" (click)="toggleOutput(u)">{{ u.name || 'Unit' }}</button>
-        <span *ngIf="myUnits.length === 0" class="output-none">No units — add one in Units</span>
-      </div>
-    </div>
+    <button class="output-btn" *ngIf="isRoom" (click)="openOutputs()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+      Output<span *ngIf="outputCount" class="out-count"> · {{ outputCount }}</span>
+    </button>
   </section>
 
   <!-- Queue panel backdrop -->
@@ -291,6 +285,31 @@
             <button class="right-chip admin-toggle" [class.on]="m.is_admin" (click)="toggleMemberRight(m, 'is_admin')">make admin</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Output picker (room mode) ── -->
+  <div class="library-overlay" *ngIf="outputModalOpen" (click)="closeOutputs()">
+    <div class="library out-modal" (click)="$event.stopPropagation()">
+      <div class="library-head">
+        <h2>Output</h2>
+        <button class="lib-close" (click)="closeOutputs()" title="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="library-body">
+        <div class="out-row" [class.on]="browserOutput" (click)="toggleBrowserOutput()">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span class="out-name">This browser</span>
+          <span class="out-check" [class.on]="browserOutput"></span>
+        </div>
+        <div *ngFor="let u of myUnits" class="out-row" [class.on]="isOutput(u.id)" (click)="toggleOutput(u)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><circle cx="12" cy="14" r="3.5"/><line x1="12" y1="6" x2="12" y2="6"/></svg>
+          <span class="out-name">{{ u.name || 'Unit' }}</span>
+          <span class="out-check" [class.on]="isOutput(u.id)"></span>
+        </div>
+        <div *ngIf="myUnits.length === 0" class="q-empty">No units — add one in the Units page</div>
       </div>
     </div>
   </div>

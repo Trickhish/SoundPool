@@ -111,6 +111,9 @@ export class ApiService {
   public roomQueueClear(id:string|number) { return this.http.delete(`${ApiService.apiUrl}/room/${id}/queue/clear`); }
   public roomQueuePlaylist(id:string|number, playlistId:number) { return this.rp(id, `queue/playlist/${playlistId}`); }
   public roomVoteSkip(id:string|number) { return this.rp(id, 'vote_skip'); }
+  public getRoomSong(id:string|number, songId:string) {
+    return this.http.get(`${ApiService.apiUrl}/room/${id}/song/${songId}`, { responseType: 'blob' });
+  }
   public roomSelectOutput(id:string|number, unitId:string) { return this.rp(id, 'output', { unit_id: unitId }); }
   public roomClearOutput(id:string|number, unitId:string) { return this.rp(id, 'output/clear', { unit_id: unitId }); }
 

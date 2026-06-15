@@ -1,6 +1,8 @@
 import asyncio
+import requests
+from io import BytesIO
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from db_models import *
 from req_models import *
@@ -8,6 +10,7 @@ from database import *
 from routes.auth import verify_token
 import room_player
 import tracks_manager as tmg
+import deezer as dz
 
 router = APIRouter()
 
@@ -178,6 +181,31 @@ async def room_queue_clear(room_id: int,
     await rp.clear()
     room_player.persist_queue(room_id)
     return JSONResponse(content={"status": "ok"})
+
+
+@router.get("/{room_id}/song/{song_id}")
+def room_song_stream(room_id: int, song_id: str,
+                     db: SessionLocal = Depends(get_db),  # type: ignore
+                     user: User = Depends(verify_token)):
+    """Decrypted MP3 of a track, for browser-output playback (downloaded
+    locally by the client). Uses the room owner's Deezer account."""
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Room not found")
+    if get_member(db, room_id, user.id) is None:
+        raise HTTPException(403, "Not a member of this room")
+    owner = db.query(User).filter(User.id == room.owner_id).first()
+    if not owner or not owner.deezer_arl:
+        raise HTTPException(403, "Room owner has no Deezer account connected")
+    song = tmg.get_song_gw_data(song_id, owner.deezer_arl)
+    song, url, _ext, key = tmg.getDownloadData(song, owner.deezer_arl)
+    out = BytesIO()
+    with requests.get(url, stream=True) as resp:
+        resp.raise_for_status()
+        dz.decryptfile(resp, key, out)
+    out.seek(0)
+    return StreamingResponse(out, media_type="audio/mpeg",
+                             headers={"Cache-Control": "no-store"})
 
 
 @router.post("/{room_id}/output")

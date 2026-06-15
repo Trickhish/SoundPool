@@ -148,18 +148,23 @@ def decryptfile(fh, key, fo):
     blockSize = 2048
     i = 0
 
-    for data in fh.iter_content(blockSize):
-        if not data:
-            break
-
-        isEncrypted = ((i % 3) == 0)
-        isWholeBlock = len(data) == blockSize
-
-        if isEncrypted and isWholeBlock:
-            data = blowfishDecrypt(data, key)
-
-        fo.write(data)
-        i += 1
+    # iter_content yields chunks of UP TO blockSize, so buffer into exact
+    # 2048-byte aligned blocks — otherwise encrypted blocks arriving in
+    # fragments stay un-decrypted and the i%3 counter desyncs (corrupt file).
+    buf = b""
+    for chunk in fh.iter_content(blockSize):
+        if not chunk:
+            continue
+        buf += chunk
+        while len(buf) >= blockSize:
+            data = buf[:blockSize]
+            buf = buf[blockSize:]
+            if (i % 3) == 0:
+                data = blowfishDecrypt(data, key)
+            fo.write(data)
+            i += 1
+    if buf:  # final partial block is never encrypted
+        fo.write(buf)
 
 
 def writeid3v1_1(fo, song):

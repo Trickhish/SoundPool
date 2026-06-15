@@ -78,6 +78,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
   rights: any = null;             // room rights for the current user (room mode)
   myUnits: Unit[] = [];           // the user's units (output choices, room mode)
   roomOutputs: string[] = [];     // unit ids currently attached to the room
+  outputModalOpen = false;
+  // Browser output: this client renders the room locally via <audio>.
+  browserOutput = false;
+  private audioEl: HTMLAudioElement | null = null;
+  private browserSongId: string | null = null;
+  private blobCache = new Map<string, string>();
   voteCount = 0;
   voteThreshold = 0;
   voted = false;                  // did I vote to skip the current track (local)
@@ -195,6 +201,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.loadFavoriteIds();
     if (this.isRoom) {
       this.api.getUnits().subscribe({ next: (u) => { this.myUnits = u || []; } });
+      this.audioEl = new Audio();
+      this.browserOutput = localStorage.getItem(`browserOut_${this.pid}`) === '1';
     }
     this.ticker = setInterval(() => this.tick(), 250);
   }
@@ -205,6 +213,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
     window.removeEventListener('touchmove', this.moveHandler);
     window.removeEventListener('touchend', this.upHandler);
     if (this.ticker) clearInterval(this.ticker);
+    if (this.audioEl) { this.audioEl.pause(); this.audioEl.src = ''; }
+    this.blobCache.forEach((url) => URL.revokeObjectURL(url));
+    this.blobCache.clear();
   }
 
   loadContent() {
@@ -278,6 +289,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       this.lastReportedAt = Date.now();
       this.refreshProgress();
     }
+    if (this.browserOutput) this.syncBrowser();
   }
 
   private onProgress(dt: any) {
@@ -448,7 +460,67 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   // ── Output (room mode) ──
+  openOutputs() { this.outputModalOpen = true; }
+  closeOutputs() { this.outputModalOpen = false; }
+  get outputCount(): number { return this.roomOutputs.length + (this.browserOutput ? 1 : 0); }
+
   isOutput(unitId: string): boolean { return this.roomOutputs.includes(unitId); }
+
+  toggleBrowserOutput() {
+    this.browserOutput = !this.browserOutput;
+    localStorage.setItem(`browserOut_${this.pid}`, this.browserOutput ? '1' : '0');
+    if (this.browserOutput) {
+      this.syncBrowser();
+    } else if (this.audioEl) {
+      this.audioEl.pause();
+      this.browserSongId = null;
+    }
+  }
+
+  /** Drive the local <audio> element from the room state (browser as renderer). */
+  private syncBrowser() {
+    const a = this.audioEl;
+    if (!a) return;
+    const np = this.state.now_playing;
+    if (!this.browserOutput || !np) { a.pause(); this.browserSongId = null; return; }
+    if (np.id !== this.browserSongId) {
+      this.loadBrowserSong(np.id);
+      return;
+    }
+    // same song already loaded
+    const targetSec = this.positionMs / 1000;
+    if (Math.abs(a.currentTime - targetSec) > 2) a.currentTime = targetSec;
+    if (this.state.playing && a.paused) a.play().catch(() => {});
+    if (!this.state.playing && !a.paused) a.pause();
+  }
+
+  private loadBrowserSong(songId: string) {
+    const a = this.audioEl;
+    if (!a || !this.pid) return;
+    this.browserSongId = songId;
+    const cached = this.blobCache.get(songId);
+    const start = (url: string) => {
+      if (this.browserSongId !== songId) return; // superseded
+      a.src = url;
+      const onReady = () => {
+        a.removeEventListener('loadedmetadata', onReady);
+        if (this.browserSongId !== songId) return;
+        a.currentTime = this.positionMs / 1000;
+        if (this.state.playing) a.play().catch(() => {});
+      };
+      a.addEventListener('loadedmetadata', onReady);
+      a.load();
+    };
+    if (cached) { start(cached); return; }
+    this.api.getRoomSong(this.pid, songId).subscribe({
+      next: (blob: any) => {
+        const url = URL.createObjectURL(blob);
+        this.blobCache.set(songId, url);
+        start(url);
+      },
+      error: () => { if (this.browserSongId === songId) this.browserSongId = null; }
+    });
+  }
   toggleOutput(unit: Unit) {
     if (!this.pid) return;
     const id = (unit as any).id;
