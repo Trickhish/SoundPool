@@ -145,29 +145,31 @@ def _btctl(*cmds, timeout=8):
         return ""
 
 
-def _bt_refresh_devices():
-    out = _run(["bluetoothctl", "devices"])
+def _parse_devices(out):
+    devs = {}
     for line in out.splitlines():
-        m = re.match(r"Device (\S+) (.+)", line.strip())
+        m = re.match(r"Device (\S+)\s+(.*)", line.strip())
         if m:
-            _bt_seen.setdefault(m.group(1), {})["name"] = m.group(2)
-    # enrich with the real advertised name (the devices list falls back to the
-    # MAC when unresolved) + paired/connected status from `info`.
-    for mac, d in _bt_seen.items():
-        info = _run(["bluetoothctl", "info", mac])
-        name = None
-        for ln in info.splitlines():
-            ln = ln.strip()
-            if ln.startswith("Name:"):
-                name = ln.split("Name:", 1)[1].strip()
-            elif ln.startswith("Alias:") and not name:
-                alias = ln.split("Alias:", 1)[1].strip()
-                if alias and alias.replace("-", ":").upper() != mac.upper():
-                    name = alias
-        if name:
-            d["name"] = name
-        d["paired"] = "Paired: yes" in info
-        d["connected"] = "Connected: yes" in info
+            devs[m.group(1)] = m.group(2).strip()
+    return devs
+
+
+def _bt_refresh_devices():
+    # Three bulk calls instead of one `info` per device (which was slow with
+    # many cached devices). `bluetoothctl devices` already gives the real name
+    # for known devices (MAC-form only when unresolved).
+    all_dev = _parse_devices(_run(["bluetoothctl", "devices"]))
+    paired = set(_parse_devices(_run(["bluetoothctl", "devices", "Paired"])))
+    connected = set(_parse_devices(_run(["bluetoothctl", "devices", "Connected"])))
+    for mac, name in all_dev.items():
+        d = _bt_seen.setdefault(mac, {})
+        d["name"] = name
+        d["paired"] = mac in paired
+        d["connected"] = mac in connected
+    for mac in paired | connected:  # connected device may not be in plain list
+        d = _bt_seen.setdefault(mac, {"name": mac})
+        d["paired"] = mac in paired
+        d["connected"] = mac in connected
 
 
 def bt_scan(seconds=8):
@@ -179,9 +181,25 @@ def bt_scan(seconds=8):
     def worker():
         global _bt_scanning
         _run(["bluetoothctl", "power", "on"])
-        # `--timeout N scan on` keeps a session alive scanning for N seconds,
-        # then exits (a piped session would stop scanning immediately).
-        _run(["bluetoothctl", "--timeout", str(seconds), "scan", "on"], timeout=seconds + 6)
+        # Scan in the background and surface results progressively so devices
+        # appear as they're found instead of all at the end.
+        try:
+            proc = subprocess.Popen(["bluetoothctl", "--timeout", str(seconds), "scan", "on"],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            print(f"[bt] scan start failed: {e}")
+            _bt_scanning = False
+            _notify()
+            return
+        end = time.time() + seconds
+        while time.time() < end:
+            time.sleep(2)
+            _bt_refresh_devices()
+            _notify()
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            proc.kill()
         _bt_refresh_devices()
         _bt_scanning = False
         _notify()
