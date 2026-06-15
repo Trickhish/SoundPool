@@ -72,9 +72,13 @@ export class UnitSettingsComponent implements OnInit {
   }
 
   // ── Bluetooth ──
+  private scanTimer: any = null;
   scan() {
     this.audio.bt.scanning = true;
     this.api.btScan(this.id, 8).subscribe({ error: () => this.audio.bt.scanning = false });
+    // Safety net: clear the spinner even if the completion event is missed.
+    clearTimeout(this.scanTimer);
+    this.scanTimer = setTimeout(() => { this.audio.bt.scanning = false; this.cdr.detectChanges(); }, 14000);
   }
   bt(action: 'pair' | 'connect' | 'disconnect' | 'remove', d: any) {
     this.api.btAction(this.id, action, d.mac).subscribe({

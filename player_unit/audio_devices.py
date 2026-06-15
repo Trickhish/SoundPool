@@ -180,29 +180,38 @@ def bt_scan(seconds=8):
 
     def worker():
         global _bt_scanning
-        _run(["bluetoothctl", "power", "on"])
-        # Scan in the background and surface results progressively so devices
-        # appear as they're found instead of all at the end.
+        proc = None
         try:
+            _run(["bluetoothctl", "power", "on"])
+            # Scan in the background and surface results progressively so devices
+            # appear as they're found instead of all at the end.
             proc = subprocess.Popen(["bluetoothctl", "--timeout", str(seconds), "scan", "on"],
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            end = time.time() + seconds
+            while time.time() < end:
+                time.sleep(2)
+                try:
+                    _bt_refresh_devices()
+                    _notify()
+                except Exception as e:
+                    print(f"[bt] refresh error: {e}")
+            try:
+                proc.wait(timeout=4)
+            except Exception:
+                pass
+            _bt_refresh_devices()
         except Exception as e:
-            print(f"[bt] scan start failed: {e}")
+            print(f"[bt] scan error: {e}")
+        finally:
+            # Always stop the scan and clear the flag, so it never gets stuck.
+            try:
+                if proc and proc.poll() is None:
+                    proc.kill()
+            except Exception:
+                pass
+            _run(["bluetoothctl", "scan", "off"])
             _bt_scanning = False
             _notify()
-            return
-        end = time.time() + seconds
-        while time.time() < end:
-            time.sleep(2)
-            _bt_refresh_devices()
-            _notify()
-        try:
-            proc.wait(timeout=5)
-        except Exception:
-            proc.kill()
-        _bt_refresh_devices()
-        _bt_scanning = False
-        _notify()
     threading.Thread(target=worker, daemon=True).start()
 
 
