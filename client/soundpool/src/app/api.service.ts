@@ -67,6 +67,32 @@ export class ApiService {
     return(this.http.get.bind(this.http)(`${ApiService.apiUrl}/player/${pid}`));
   }
 
+  // ── Rooms ──
+  public listRooms() {
+    return this.http.get<any[]>(`${ApiService.apiUrl}/room`);
+  }
+  public getRoom(id:number) {
+    return this.http.get<any>(`${ApiService.apiUrl}/room/${id}`);
+  }
+  public createRoom(name:string, password?:string) {
+    return this.http.post<any>(`${ApiService.apiUrl}/room`, { name, password: password || null });
+  }
+  public joinRoom(id:number, password?:string) {
+    return this.http.post<any>(`${ApiService.apiUrl}/room/${id}/join`, { password: password || null });
+  }
+  public leaveRoom(id:number) {
+    return this.http.post(`${ApiService.apiUrl}/room/${id}/leave`, null);
+  }
+  public deleteRoom(id:number) {
+    return this.http.delete(`${ApiService.apiUrl}/room/${id}`);
+  }
+  public roomMembers(id:number) {
+    return this.http.get<any[]>(`${ApiService.apiUrl}/room/${id}/members`);
+  }
+  public setRoomRights(id:number, body:any) {
+    return this.http.post<any>(`${ApiService.apiUrl}/room/${id}/rights`, body);
+  }
+
 
   // INTERACTION WITH THE PLAYER
   //

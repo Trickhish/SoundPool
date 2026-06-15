@@ -1,0 +1,138 @@
+.rooms-page {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.rooms-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.4rem;
+
+    h1 {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.6rem;
+        margin: 0;
+        color: var(--font-color);
+    }
+}
+
+.new-room-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, #FF2B6D, #c01856);
+    border: none;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin: 0;
+}
+
+.create-panel {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    background: var(--surface-1, #12121c);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 0.9rem;
+    margin-bottom: 1.4rem;
+
+    .room-input {
+        flex: 1;
+        min-width: 160px;
+        margin: 0;
+    }
+    .create-go {
+        margin: 0;
+        background: var(--accent, #FF2B6D);
+        border-radius: 10px;
+        font-weight: 600;
+        &[disabled] { opacity: 0.5; cursor: default; }
+    }
+}
+
+.rooms-loading, .rooms-empty {
+    color: var(--font-muted);
+    padding: 2rem 0;
+    text-align: center;
+}
+
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.room-card {
+    background: var(--surface-1, #12121c);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+
+    &:hover { transform: translateY(-2px); border-color: rgba(255,43,109,0.4); background: rgba(255,255,255,0.03); }
+}
+
+.room-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+
+    .room-name {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--font-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .room-lock { color: var(--font-muted); flex-shrink: 0; }
+}
+
+.room-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--font-muted);
+
+    .badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        font-family: 'Syne', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.1rem 0.45rem;
+        border-radius: 6px;
+        &.admin { background: rgba(255,43,109,0.15); color: var(--accent, #FF2B6D); }
+        &.member { background: rgba(255,255,255,0.08); color: var(--font-color); }
+    }
+}
+
+.room-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+
+    button { margin: 0; padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 9px; }
+    .enter-btn { background: rgba(255,43,109,0.15); color: var(--accent, #FF2B6D); border: 1px solid rgba(255,43,109,0.3); }
+    .enter-btn:hover { background: rgba(255,43,109,0.25); }
+    .leave-btn { background: transparent; color: var(--font-muted); border: 1px solid rgba(255,255,255,0.12); }
+    .leave-btn:hover { color: var(--font-color); }
+}

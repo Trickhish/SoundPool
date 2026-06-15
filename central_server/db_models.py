@@ -19,34 +19,23 @@ from database import Base
 def jsonObject(inst):
     return({column.name: getattr(inst, column.name) for column in inst.__table__.columns})
 
-class Track(Base):
-    __tablename__ = "tracks"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    artist = Column(String(255), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-
-    room = relationship("Room", back_populates="tracks", foreign_keys=[room_id])
-
 class Room(Base):
     __tablename__ = "rooms"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), unique=True, nullable=False)
-    password = Column(String(255), nullable=True)
-    admin_id = Column(Integer, nullable=False)
-    current_track_id = Column(Integer, ForeignKey("tracks.id", use_alter=True, name="fk_rooms_current_track"), nullable=True)
-    votes_to_skip = Column(Integer, default=0)
-    is_playing = Column(Boolean, default=False)
-    
-    tracks = relationship("Track", back_populates="room", foreign_keys=[Track.room_id])
-    current_track = relationship("Track", backref="current_room", foreign_keys=[current_track_id])
+    name = Column(String(255), nullable=False)
+    password = Column(String(255), nullable=True)        # optional; public if null
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Persisted playback bookkeeping (live timeline is in-memory in room_player)
+    current_index = Column(Integer, default=0)
+    shuffle = Column(Boolean, default=False)
+    repeat = Column(String(8), default="off")            # off | all | one
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(255), nullable=False)
     password = Column(String(255), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id", name="fk_tracks_room"), nullable=True)
     email = Column(String(255), unique=True, nullable=True)
     creation_date = Column(DateTime, default=datetime.utcnow)
     deezer_arl = Column(String(512), nullable=True)
@@ -73,12 +62,33 @@ class Unit(Base):
     # - "passthrough" -> Relaying external audio (no playback control)
     # - "idle"      -> Online but idle (not playing or paused)
 
-room_rights = Table(
-    "room_rights",
-    Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("room_id", Integer, ForeignKey("rooms.id"), primary_key=True)
-)
+class RoomTrack(Base):
+    __tablename__ = "room_tracks"
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("rooms.id"), index=True, nullable=False)
+    order = Column(Integer, default=0)          # position in the queue
+    song_id = Column(String(64), nullable=False)
+    title = Column(String(512), nullable=True)
+    artist = Column(String(512), nullable=True)
+    cover = Column(String(1024), nullable=True)
+    duration_ms = Column(Integer, default=0)    # for the server timeline
+    added_by = Column(Integer, nullable=True)
+
+class RoomMember(Base):
+    __tablename__ = "room_members"
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("rooms.id"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    is_admin = Column(Boolean, default=False)
+    # Granular rights (admin implies all). Default member: add + vote_skip.
+    can_add = Column(Boolean, default=True)
+    can_remove = Column(Boolean, default=False)
+    can_reorder = Column(Boolean, default=False)
+    can_playpause = Column(Boolean, default=False)
+    can_skip = Column(Boolean, default=False)
+    can_vote_skip = Column(Boolean, default=True)
+    can_seek = Column(Boolean, default=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
 
 class PlayHistory(Base):
     __tablename__ = "play_history"

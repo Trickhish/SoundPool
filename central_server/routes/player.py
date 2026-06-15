@@ -30,16 +30,9 @@ async def test_handler(
     u:Unit = db.query(Unit).filter(Unit.id==player_id).first()
     if (u==None):
         raise HTTPException(404, "Player not found")
-    
-    if (u.owner_id != user.id):
-        stmt = select(exists().where(
-            room_rights.c.user_id == user.id,
-            room_rights.c.room_id == player_id
-        ))
-        lnk = db.execute(stmt).scalar()
 
-        if not lnk:
-            raise HTTPException(401, "You're not allowed to view this player")
+    if (u.owner_id != user.id):
+        raise HTTPException(401, "You're not allowed to view this player")
 
     content = jsonObject(u)
     uc = puc.getUnitById(u.id)

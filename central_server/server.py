@@ -216,23 +216,6 @@ def handle_getsong(song_id: int):
     return(FileResponse(path=filename, filename=filename, media_type='text/mp3'))
 
 
-@app.get("/rooms", response_model=List[str])
-def list_public_rooms(db: SessionLocal = Depends(get_db)):
-    # Query rooms where the password is None (public rooms)
-    public_rooms = db.query(Room).filter(Room.password == None).all()
-    
-    if not public_rooms:
-        raise HTTPException(status_code=404, detail="No public rooms found.")
-    
-    return [room.name for room in public_rooms]
-
-
-@app.get("/tracks/search", response_model=List[TrackCreate])
-def search_tracks(query: str, db: SessionLocal = Depends(get_db)):
-    tracks = db.query(Track).filter(Track.name.contains(query) | Track.artist.contains(query)).all()
-    return [{"name": t.name, "artist": t.artist} for t in tracks]
-
-
 if (__name__=="__main__"):
     host = config["server"]["host"]
     port = int(config["server"]["port"])

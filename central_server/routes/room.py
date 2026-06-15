@@ -1,87 +1,159 @@
-import bcrypt
 from fastapi import APIRouter, HTTPException, Depends
-import jwt
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.responses import JSONResponse
 
 from db_models import *
 from req_models import *
 from database import *
+from routes.auth import verify_token
 
 router = APIRouter()
 
+RIGHTS_FIELDS = ["can_add", "can_remove", "can_reorder", "can_playpause",
+                 "can_skip", "can_vote_skip", "can_seek"]
 
-@router.post("/room/new", response_model=dict)
-def create_room(room: RoomCreate, db: SessionLocal = Depends(get_db)):
-    existing_room = db.query(Room).filter(Room.name == room.name).first()
-    if existing_room:
-        raise HTTPException(status_code=400, detail="Room name already exists.")
-    
-    new_room = Room(name=room.name, password=room.password, admin_id=room.admin_id)
-    db.add(new_room)
+
+def rights_dict(member):
+    if member is None:
+        return None
+    if member.is_admin:
+        d = {f: True for f in RIGHTS_FIELDS}
+        d["is_admin"] = True
+        return d
+    d = {f: bool(getattr(member, f)) for f in RIGHTS_FIELDS}
+    d["is_admin"] = False
+    return d
+
+
+def get_member(db, room_id, user_id):
+    return (db.query(RoomMember)
+              .filter(RoomMember.room_id == room_id, RoomMember.user_id == user_id)
+              .first())
+
+
+def room_dict(db, room, user):
+    member = get_member(db, room.id, user.id)
+    count = db.query(RoomMember).filter(RoomMember.room_id == room.id).count()
+    return {
+        "id": room.id,
+        "name": room.name,
+        "has_password": bool(room.password),
+        "owner_id": room.owner_id,
+        "member_count": count,
+        "is_member": member is not None,
+        "rights": rights_dict(member),
+        "shuffle": room.shuffle,
+        "repeat": room.repeat,
+    }
+
+
+@router.post("")
+def create_room(body: RoomCreate,
+                db: SessionLocal = Depends(get_db),  # type: ignore
+                user: User = Depends(verify_token)):
+    room = Room(name=body.name, password=body.password or None, owner_id=user.id)
+    db.add(room)
     db.commit()
-    db.refresh(new_room)
-    return {"message": "Room created successfully", "room_id": new_room.id}
+    db.refresh(room)
+    db.add(RoomMember(room_id=room.id, user_id=user.id, is_admin=True,
+                      can_add=True, can_remove=True, can_reorder=True,
+                      can_playpause=True, can_skip=True, can_vote_skip=True, can_seek=True))
+    db.commit()
+    return JSONResponse(content=room_dict(db, room, user))
 
-@router.post("/room/{room_id}/join")
-def join_room(room_id: int, username: str, password: Optional[str] = None, db: SessionLocal = Depends(get_db)):
+
+@router.get("")
+def list_rooms(db: SessionLocal = Depends(get_db),  # type: ignore
+               user: User = Depends(verify_token)):
+    rooms = db.query(Room).order_by(Room.created_at.desc()).all()
+    return JSONResponse(content=[room_dict(db, r, user) for r in rooms])
+
+
+@router.get("/{room_id}")
+def get_room(room_id: int,
+             db: SessionLocal = Depends(get_db),  # type: ignore
+             user: User = Depends(verify_token)):
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
-        raise HTTPException(status_code=404, detail="Room not found.")
-    if room.password and room.password != password:
-        raise HTTPException(status_code=403, detail="Incorrect password.")
-    
-    user = User(username=username, room_id=room_id)
-    db.add(user)
-    db.commit()
-    return {"message": f"{username} joined room {room.name}"}
+        raise HTTPException(404, "Room not found")
+    return JSONResponse(content=room_dict(db, room, user))
 
-@router.post("/room/{room_id}/leave")
-def leave_room(room_id: int, username: str, db: SessionLocal = Depends(get_db)):
-    user = db.query(User).filter(User.username == username, User.room_id == room_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not in this room.")
-    db.delete(user)
-    db.commit()
-    return {"message": f"{username} left the room."}
 
-@router.post("/room/{room_id}/tracks", response_model=dict)
-def add_track_to_room(room_id: int, track: TrackCreate, db: SessionLocal = Depends(get_db)):
+@router.post("/{room_id}/join")
+def join_room(room_id: int, body: RoomJoinRequest,
+              db: SessionLocal = Depends(get_db),  # type: ignore
+              user: User = Depends(verify_token)):
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
-        raise HTTPException(status_code=404, detail="Room not found.")
-    
-    new_track = Track(name=track.name, artist=track.artist, room_id=room_id)
-    db.add(new_track)
-    db.commit()
-    return {"message": "Track added to queue."}
-
-@router.get("/room/{room_id}/tracks", response_model=List[TrackCreate])
-def list_tracks_in_room(room_id: int, db: SessionLocal = Depends(get_db)):
-    tracks = db.query(Track).filter(Track.room_id == room_id).all()
-    return [{"name": t.name, "artist": t.artist} for t in tracks]
-
-@router.post("/room/{room_id}/skip")
-def vote_to_skip(room_id: int, username: str, is_admin: bool = False, db: SessionLocal = Depends(get_db)):
-    room = db.query(Room).filter(Room.id == room_id).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found.")
-    
-    current_track = db.query(Track).filter(Track.id == room.current_track).first()
-    if not current_track:
-        raise HTTPException(status_code=404, detail="No track is currently playing.")
-    
-    if is_admin:
-        db.delete(current_track)
+        raise HTTPException(404, "Room not found")
+    if room.password and room.password != (body.password or ""):
+        raise HTTPException(403, "Incorrect password")
+    if get_member(db, room_id, user.id) is None:
+        db.add(RoomMember(room_id=room_id, user_id=user.id))  # default: add + vote_skip
         db.commit()
-        return {"message": "Track skipped by admin."}
-    
-    current_track.votes_to_skip += 1
-    db.commit()
-    
-    if current_track.votes_to_skip >= 3:  # Example threshold for skipping
-        db.delete(current_track)
-        db.commit()
-        return {"message": "Track skipped by votes."}
-    
-    return {"message": f"Vote to skip recorded. Current votes: {current_track.votes_to_skip}"}
+    return JSONResponse(content=room_dict(db, room, user))
 
+
+@router.post("/{room_id}/leave")
+def leave_room(room_id: int,
+               db: SessionLocal = Depends(get_db),  # type: ignore
+               user: User = Depends(verify_token)):
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Room not found")
+    if room.owner_id == user.id:
+        raise HTTPException(400, "The owner cannot leave their own room")
+    db.query(RoomMember).filter(RoomMember.room_id == room_id, RoomMember.user_id == user.id).delete()
+    db.commit()
+    return JSONResponse(content={"status": "left"})
+
+
+@router.delete("/{room_id}")
+def delete_room(room_id: int,
+                db: SessionLocal = Depends(get_db),  # type: ignore
+                user: User = Depends(verify_token)):
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Room not found")
+    if room.owner_id != user.id:
+        raise HTTPException(403, "Only the owner can delete the room")
+    db.query(RoomTrack).filter(RoomTrack.room_id == room_id).delete()
+    db.query(RoomMember).filter(RoomMember.room_id == room_id).delete()
+    db.delete(room)
+    db.commit()
+    return JSONResponse(content={"status": "deleted"})
+
+
+@router.get("/{room_id}/members")
+def list_members(room_id: int,
+                 db: SessionLocal = Depends(get_db),  # type: ignore
+                 user: User = Depends(verify_token)):
+    if get_member(db, room_id, user.id) is None:
+        raise HTTPException(403, "Not a member of this room")
+    members = db.query(RoomMember).filter(RoomMember.room_id == room_id).all()
+    out = []
+    for m in members:
+        u = db.query(User).filter(User.id == m.user_id).first()
+        entry = {"user_id": m.user_id, "username": u.username if u else "?"}
+        entry.update(rights_dict(m))
+        out.append(entry)
+    return JSONResponse(content=out)
+
+
+@router.post("/{room_id}/rights")
+def set_rights(room_id: int, body: RoomRightsRequest,
+               db: SessionLocal = Depends(get_db),  # type: ignore
+               user: User = Depends(verify_token)):
+    actor = get_member(db, room_id, user.id)
+    if actor is None or not actor.is_admin:
+        raise HTTPException(403, "Only admins can change rights")
+    target = get_member(db, room_id, body.user_id)
+    if target is None:
+        raise HTTPException(404, "User is not a member of this room")
+    for f in RIGHTS_FIELDS + ["is_admin"]:
+        val = getattr(body, f, None)
+        if val is not None:
+            setattr(target, f, val)
+    db.commit()
+    out = {"status": "ok"}
+    out.update(rights_dict(target))
+    return JSONResponse(content=out)

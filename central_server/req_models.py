@@ -21,7 +21,20 @@ class TrackCreate(BaseModel):
 class RoomCreate(BaseModel):
     name: str
     password: Optional[str] = None
-    admin_id: int
+
+class RoomJoinRequest(BaseModel):
+    password: Optional[str] = None
+
+class RoomRightsRequest(BaseModel):
+    user_id: int
+    is_admin: Optional[bool] = None
+    can_add: Optional[bool] = None
+    can_remove: Optional[bool] = None
+    can_reorder: Optional[bool] = None
+    can_playpause: Optional[bool] = None
+    can_skip: Optional[bool] = None
+    can_vote_skip: Optional[bool] = None
+    can_seek: Optional[bool] = None
 
 class QueueAddRequest(BaseModel):
     song_id: str
