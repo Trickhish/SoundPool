@@ -1,6 +1,6 @@
 <div class="content">
     <div class="ctn">
-        <a [routerLink]="'/player/'+u.id" [class.online]="u.online" class="unit" *ngFor="let u of units">
+        <a [routerLink]="'/unit/'+u.id" [class.online]="u.online" class="unit" *ngFor="let u of units">
             <span class="status-dot"></span>
             <h2 class="title">{{u.name}}</h2>
         </a>

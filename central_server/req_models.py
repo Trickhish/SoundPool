@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 
 class LoginRequest(BaseModel):
@@ -63,6 +63,20 @@ class QueueIndexRequest(BaseModel):
 
 class OutputRequest(BaseModel):
     unit_id: str
+
+class UnitOutputsRequest(BaseModel):
+    sinks: List[str] = []
+
+class SinkVolumeRequest(BaseModel):
+    sink: str
+    level: float
+
+class UnitRenameRequest(BaseModel):
+    name: str
+
+class BtRequest(BaseModel):
+    mac: Optional[str] = None
+    seconds: Optional[int] = None
 
 class FavoriteRequest(BaseModel):
     song_id: str

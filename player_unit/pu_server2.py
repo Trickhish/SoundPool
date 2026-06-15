@@ -10,6 +10,7 @@ from enum import Enum
 import configuration as cfg
 import deezer2 as dz
 import music_player as mp
+import audio_devices as ad
 
 import logging
 
@@ -37,9 +38,42 @@ msgl = []
 download_queue = asyncio.Queue()
 DOWNLOAD_WORKERS = 3
 
-async def do_render(song, url, key, pos_ms, playing):
+async def emit_audio_state():
+    try:
+        state = await asyncio.to_thread(ad.audio_state)
+        if mp.sws is not None:
+            await sendcmd(mp.sws, ["audio_state", state])
+    except Exception as ex:
+        print(f"[audio] emit failed: {ex}")
+
+
+async def handle_audio(r):
+    cmd = r[1]
+    try:
+        if cmd == "set_outputs":
+            await asyncio.to_thread(ad.set_outputs, r[2])
+        elif cmd == "set_volume":
+            await asyncio.to_thread(ad.set_sink_volume, r[2], r[3])
+        elif cmd == "bt_scan":
+            ad.bt_scan(int(r[2]) if len(r) > 2 else 8)  # async; notifies when done
+        elif cmd == "bt_pair":
+            await asyncio.to_thread(ad.bt_pair, r[2])
+        elif cmd == "bt_connect":
+            await asyncio.to_thread(ad.bt_connect, r[2])
+        elif cmd == "bt_disconnect":
+            await asyncio.to_thread(ad.bt_disconnect, r[2])
+        elif cmd == "bt_remove":
+            await asyncio.to_thread(ad.bt_remove, r[2])
+    except Exception as ex:
+        print(f"[audio] command {cmd} failed: {ex}")
+    await emit_audio_state()
+
+
+async def do_render(song, url, key, pos_ms, playing, vol=None):
     """Act as a room output: play exactly what the server's room conductor
-    dictates (track + position + playing), downloading on demand."""
+    dictates (track + position + playing + master volume), downloading on demand."""
+    if vol is not None:
+        mp.volume = max(0.0, min(1.0, float(vol)))
     mp.render_mode = True
     mp.render_seq += 1
     myseq = mp.render_seq
@@ -242,11 +276,14 @@ async def receiveHandler(ws, ro):
         mp.emit_state()
         await download_queue.put((song_obj, song, url, key, autoplay))
     elif r[0]=="render":
-        _,song,url,key,pos_ms,playing = r
-        asyncio.create_task(do_render(song, url, key, pos_ms, playing))
+        _,song,url,key,pos_ms,playing,*rest = r
+        vol = rest[0] if rest else None
+        asyncio.create_task(do_render(song, url, key, pos_ms, playing, vol))
     elif r[0]=="stop":
         print("⏹ Detached from room — stopping.")
         mp.render_stop()
+    elif r[0]=="audio":
+        asyncio.create_task(handle_audio(r))
     elif r[0]=="queue_remove":
         print(f"Removing queue item {r[1]}.")
         mp.queue_remove(r[1])
@@ -316,6 +353,8 @@ class PlayerServer():
                     await self.send(["id", config["player_unit"]["uid"], config["player_unit"]["name"], config["player_unit"]["owner_mail"]])
                 else:
                     await self.send(["ask_id", config["player_unit"]["name"], config["player_unit"]["owner_mail"]])
+
+                asyncio.create_task(emit_audio_state())  # report audio devices on connect
                 
                 while True:
                     try:
@@ -347,6 +386,10 @@ player = PlayerServer()
 async def main():
     task1 = asyncio.create_task(player.run())
     await player.ready_event.wait()
+
+    # let async audio events (e.g. BT scan completion) push fresh state
+    loop = asyncio.get_running_loop()
+    ad.set_notify(lambda: asyncio.run_coroutine_threadsafe(emit_audio_state(), loop))
 
     workers = [asyncio.create_task(download_worker()) for _ in range(DOWNLOAD_WORKERS)]
     task2 = asyncio.create_task(mp.runPlayer(player))

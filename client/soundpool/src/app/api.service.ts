@@ -67,6 +67,26 @@ export class ApiService {
     return(this.http.get.bind(this.http)(`${ApiService.apiUrl}/player/${pid}`));
   }
 
+  // ── Unit settings / audio devices ──
+  public getUnitAudio(id:string) {
+    return this.http.get<{online:boolean, audio:any}>(`${ApiService.apiUrl}/unit/${id}/audio`);
+  }
+  public setUnitOutputs(id:string, sinks:string[]) {
+    return this.http.post(`${ApiService.apiUrl}/unit/${id}/outputs`, { sinks });
+  }
+  public setSinkVolume(id:string, sink:string, level:number) {
+    return this.http.post(`${ApiService.apiUrl}/unit/${id}/sink_volume`, { sink, level });
+  }
+  public renameUnit(id:string, name:string) {
+    return this.http.patch(`${ApiService.apiUrl}/unit/${id}`, { name });
+  }
+  public btScan(id:string, seconds:number=8) {
+    return this.http.post(`${ApiService.apiUrl}/unit/${id}/bt/scan`, { seconds });
+  }
+  public btAction(id:string, action:'pair'|'connect'|'disconnect'|'remove', mac:string) {
+    return this.http.post(`${ApiService.apiUrl}/unit/${id}/bt/${action}`, { mac });
+  }
+
   // ── Rooms ──
   public listRooms() {
     return this.http.get<any[]>(`${ApiService.apiUrl}/room`);

@@ -32,6 +32,7 @@ class PlayerUnit():
         self.owner = None
         self.state = None   # latest authoritative snapshot reported by the unit
         self._last_np_id = None  # last song id logged to history
+        self.audio = None   # latest audio-device state (sinks/outputs/bluetooth)
     
     def sendTest(self):
         rr=tm.search("emmenez moi")
@@ -183,6 +184,11 @@ class PlayerUnit():
 
             await sse.triggerEvent(f"pu_{self.id}", {"type":"progress", "progress":pos, "duration":dur})
 
+        elif r[0]=="audio_state":
+            self.audio = r[1]
+            evt = {"type": "audio_state", "audio": r[1]}
+            await sse.triggerEvent(f"pu_{self.id}", evt)
+
         #await websocket.send_text(f"Command received: {data}")
 
     async def send(self, dt):
@@ -242,3 +248,79 @@ async def send_command(command: str):
     for u in units:
         await u.send_text(command)
     return {"message": "Command sent to all players"}
+
+
+# ── Unit settings / audio-device management (owner-gated) ──
+from routes.auth import verify_token
+
+
+def _owned_unit(unit_id, user, dbs):
+    u: Unit = dbs.query(Unit).filter(Unit.id == unit_id).first()
+    if not u:
+        raise HTTPException(404, "Unit not found")
+    if u.owner_id != user.id:
+        raise HTTPException(403, "Not your unit")
+    return u
+
+
+@router.get("/{unit_id}/audio")
+async def unit_audio(unit_id: str,
+                     dbs: SessionLocal = Depends(get_db),  # type: ignore
+                     user: User = Depends(verify_token)):
+    u = _owned_unit(unit_id, user, dbs)
+    uc = getUnitById(unit_id)
+    return JSONResponse(content={"id": u.id, "name": u.name, "status": u.status,
+                                 "online": uc is not None,
+                                 "audio": uc.audio if uc else None})
+
+
+async def _send_audio(unit_id, user, dbs, *cmd):
+    _owned_unit(unit_id, user, dbs)
+    uc = getUnitById(unit_id)
+    if uc is None:
+        raise HTTPException(503, "Unit is offline")
+    await uc.send(["audio", *cmd])
+
+
+@router.post("/{unit_id}/outputs")
+async def unit_outputs(unit_id: str, body: UnitOutputsRequest,
+                       dbs: SessionLocal = Depends(get_db),  # type: ignore
+                       user: User = Depends(verify_token)):
+    await _send_audio(unit_id, user, dbs, "set_outputs", body.sinks)
+    return JSONResponse(content={"status": "ok"})
+
+
+@router.post("/{unit_id}/sink_volume")
+async def unit_sink_volume(unit_id: str, body: SinkVolumeRequest,
+                           dbs: SessionLocal = Depends(get_db),  # type: ignore
+                           user: User = Depends(verify_token)):
+    await _send_audio(unit_id, user, dbs, "set_volume", body.sink, body.level)
+    return JSONResponse(content={"status": "ok"})
+
+
+@router.post("/{unit_id}/bt/{action}")
+async def unit_bt(unit_id: str, action: str, body: BtRequest,
+                  dbs: SessionLocal = Depends(get_db),  # type: ignore
+                  user: User = Depends(verify_token)):
+    if action not in ("scan", "pair", "connect", "disconnect", "remove"):
+        raise HTTPException(400, "Unknown bluetooth action")
+    if action == "scan":
+        await _send_audio(unit_id, user, dbs, "bt_scan", body.seconds or 8)
+    else:
+        if not body.mac:
+            raise HTTPException(400, "mac required")
+        await _send_audio(unit_id, user, dbs, "bt_" + action, body.mac)
+    return JSONResponse(content={"status": "ok"})
+
+
+@router.patch("/{unit_id}")
+async def unit_rename(unit_id: str, body: UnitRenameRequest,
+                      dbs: SessionLocal = Depends(get_db),  # type: ignore
+                      user: User = Depends(verify_token)):
+    u = _owned_unit(unit_id, user, dbs)
+    u.name = body.name
+    dbs.commit()
+    uc = getUnitById(unit_id)
+    if uc:
+        uc.name = body.name
+    return JSONResponse(content={"status": "ok", "name": body.name})

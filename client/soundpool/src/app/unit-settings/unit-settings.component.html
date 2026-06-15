@@ -1,0 +1,58 @@
+<div class="settings-page">
+  <header class="settings-head">
+    <h1>{{ name || 'Unit' }}</h1>
+    <span class="status-dot" [class.online]="online">{{ online ? 'Online' : 'Offline' }}</span>
+  </header>
+
+  <!-- General -->
+  <section class="card">
+    <h2>General</h2>
+    <div class="field-row">
+      <label>Name</label>
+      <input class="set-input" [(ngModel)]="name" (keyup.enter)="saveName()" placeholder="Unit name" />
+      <button class="set-btn" (click)="saveName()">Save</button>
+    </div>
+  </section>
+
+  <!-- Outputs -->
+  <section class="card">
+    <h2>Audio outputs</h2>
+    <p class="hint">Play to one or several at once. Selected outputs play together.</p>
+    <div *ngIf="!online" class="offline-note">Unit is offline — connect it to manage audio.</div>
+    <div *ngFor="let s of audio.sinks" class="out-row" [class.on]="isOutput(s.name)">
+      <button class="out-toggle" (click)="toggleOutput(s)">
+        <span class="out-check" [class.on]="isOutput(s.name)"></span>
+        <span class="out-name">{{ s.description || s.name }}</span>
+      </button>
+      <input class="vol" type="range" min="0" max="1" step="0.01" [value]="(s.volume || 100) / 100"
+             (input)="onVolume(s, +$any($event.target).value)" [disabled]="!isOutput(s.name)" />
+      <span class="vol-pct">{{ s.volume }}%</span>
+    </div>
+    <div *ngIf="online && audio.sinks.length === 0" class="hint">No outputs detected.</div>
+  </section>
+
+  <!-- Bluetooth -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Bluetooth</h2>
+      <button class="set-btn" (click)="scan()" [disabled]="!online || audio.bt.scanning">
+        {{ audio.bt.scanning ? 'Scanning…' : 'Scan' }}
+      </button>
+    </div>
+    <div *ngIf="audio.bt && !audio.bt.powered" class="hint">Bluetooth adapter is off — Scan powers it on.</div>
+    <div *ngFor="let d of audio.bt.devices" class="bt-row">
+      <div class="bt-info">
+        <span class="bt-name">{{ d.name }}</span>
+        <span class="bt-state" *ngIf="d.connected">connected</span>
+        <span class="bt-state paired" *ngIf="d.paired && !d.connected">paired</span>
+      </div>
+      <div class="bt-actions">
+        <button *ngIf="!d.paired" class="bt-btn" (click)="bt('pair', d)">Pair</button>
+        <button *ngIf="d.paired && !d.connected" class="bt-btn primary" (click)="bt('connect', d)">Connect</button>
+        <button *ngIf="d.connected" class="bt-btn" (click)="bt('disconnect', d)">Disconnect</button>
+        <button *ngIf="d.paired" class="bt-btn ghost" (click)="bt('remove', d)">Forget</button>
+      </div>
+    </div>
+    <div *ngIf="audio.bt.devices.length === 0" class="hint">No devices yet — tap Scan.</div>
+  </section>
+</div>

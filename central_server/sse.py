@@ -123,6 +123,9 @@ async def sse_sub(event_name: str, user: User = Depends(verify_token)):
             snapshot["type"] = "state"
             for cl in cll:
                 await cl.send(event_name, snapshot)
+        if uc is not None and uc.audio is not None:
+            for cl in cll:
+                await cl.send(event_name, {"type": "audio_state", "audio": uc.audio})
     elif event_name.startswith("room_"):
         import room_player
         try:

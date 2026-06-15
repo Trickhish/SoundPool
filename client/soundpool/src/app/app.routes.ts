@@ -9,6 +9,7 @@ import { RoomsComponent } from './rooms/rooms.component';
 import { PlaylistsComponent } from './playlists/playlists.component';
 import { PlayerunitsComponent } from './playerunits/playerunits.component';
 import { PlayerComponent } from './player/player.component';
+import { UnitSettingsComponent } from './unit-settings/unit-settings.component';
 
 export const routes: Routes = [
     {
@@ -20,8 +21,8 @@ export const routes: Routes = [
             {path:'profile', component: ProfileComponent, canActivate: [authGuard]},
             {path:'playlists', component: PlaylistsComponent, canActivate: [authGuard]},
             {path:'units', component: PlayerunitsComponent, canActivate: [authGuard]},
-            {path:'player/:player_id', component: PlayerComponent, canActivate: [authGuard]},
-            {path:'room/:player_id', component: PlayerComponent, canActivate: [authGuard], data: {room: true}}
+            {path:'room/:player_id', component: PlayerComponent, canActivate: [authGuard], data: {room: true}},
+            {path:'unit/:id', component: UnitSettingsComponent, canActivate: [authGuard]}
         ]
     },
     {path:'login', component:LoginComponent},
