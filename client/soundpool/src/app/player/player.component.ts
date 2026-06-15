@@ -139,11 +139,20 @@ export class PlayerComponent implements OnInit, OnDestroy {
   get thumbX(): number { const t = (this.musicProgress / 100) * 2 * Math.PI; return 50 + 50 * Math.sin(t); }
   get thumbY(): number { const t = (this.musicProgress / 100) * 2 * Math.PI; return 50 - 50 * Math.cos(t); }
 
+  /** Already-played songs (everything before the current one). */
+  get prevSongs(): QueueItem[] {
+    const end = this.state.current_index >= 0 ? this.state.current_index : this.state.msid;
+    return this.state.queue.slice(0, end);
+  }
+  /** The currently playing/loaded song, if any. */
+  get nowItem(): QueueItem | null {
+    return this.state.current_index >= 0 ? (this.state.queue[this.state.current_index] || null) : null;
+  }
   /** Upcoming songs. `msid` is the unit's cursor = index of the next song to
-   *  play, so this matches the unit exactly (empty once the queue is done,
-   *  rather than re-showing already-played songs). */
+   *  play, so this matches the unit exactly. */
   get upNext(): QueueItem[] {
-    return this.state.queue.slice(this.state.msid);
+    const start = this.state.current_index >= 0 ? this.state.current_index + 1 : this.state.msid;
+    return this.state.queue.slice(start);
   }
 
   get songProgress(): string {
