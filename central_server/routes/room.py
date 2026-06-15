@@ -180,6 +180,35 @@ async def room_queue_clear(room_id: int,
     return JSONResponse(content={"status": "ok"})
 
 
+@router.post("/{room_id}/output")
+async def room_select_output(room_id: int, body: OutputRequest,
+                             db: SessionLocal = Depends(get_db),  # type: ignore
+                             user: User = Depends(verify_token)):
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Room not found")
+    if get_member(db, room_id, user.id) is None:
+        raise HTTPException(403, "Not a member of this room")
+    unit = db.query(Unit).filter(Unit.id == body.unit_id).first()
+    if not unit or unit.owner_id != user.id:
+        raise HTTPException(403, "Not your unit")
+    rp = room_player.ensure_loaded(room_id)
+    await rp.attach(body.unit_id)
+    return JSONResponse(content={"status": "attached"})
+
+
+@router.post("/{room_id}/output/clear")
+async def room_clear_output(room_id: int, body: OutputRequest,
+                            db: SessionLocal = Depends(get_db),  # type: ignore
+                            user: User = Depends(verify_token)):
+    unit = db.query(Unit).filter(Unit.id == body.unit_id).first()
+    if not unit or unit.owner_id != user.id:
+        raise HTTPException(403, "Not your unit")
+    rp = room_player.ensure_loaded(room_id)
+    await rp.detach(body.unit_id)
+    return JSONResponse(content={"status": "detached"})
+
+
 @router.post("/{room_id}/play")
 async def room_play(room_id: int,
                     db: SessionLocal = Depends(get_db),  # type: ignore

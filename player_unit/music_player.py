@@ -33,6 +33,12 @@ shuffle = False
 repeat = "off"           # off | all | one
 _manual_skip = False     # set by prev/next so repeat-one doesn't replay instead
 
+# Render mode: the unit is acting as a room output, playing whatever the
+# server's room conductor dictates (its own queue/advance is suspended).
+render_mode = False
+render_current = None    # song_id currently rendered
+render_seq = 0           # guards against out-of-order render downloads
+
 class Song():
     def __init__(self, name, file, id, img_url, artist="", album="", ready=True):
         self.name = name
@@ -208,6 +214,18 @@ def set_repeat(mode):
     emit_state()
 
 
+def render_stop():
+    """Detach from a room: stop rendering and go idle."""
+    global render_mode, render_current, playing
+    render_mode = False
+    render_current = None
+    playing = False
+    try:
+        mix.music.stop()
+    except Exception:
+        pass
+
+
 def queue_remove(index):
     """Remove the song at `index` from the queue."""
     global msid, current_index
@@ -263,6 +281,10 @@ async def playerManager(ws):
     global playing, msid, currentSong, current_index, play_offset_ms, _manual_skip
 
     while True:
+        if render_mode:
+            # Acting as a room output — the server drives playback.
+            await asyncio.sleep(0.2)
+            continue
         if (not playing) or isPlaying():
             await asyncio.sleep(0.1)
             continue

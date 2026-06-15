@@ -383,6 +383,49 @@
     }
 }
 
+/* ── Output selector (room mode) ── */
+.output-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 460px;
+
+    .output-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: 'Syne', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--font-muted);
+    }
+    .output-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; }
+    .output-none { font-size: 0.8rem; color: var(--font-muted); }
+}
+.output-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--font-muted);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+    &:hover { color: var(--font-color); }
+    &.active {
+        background: rgba(255,43,109,0.18);
+        border-color: rgba(255,43,109,0.5);
+        color: var(--accent);
+    }
+}
+
 /* ── Queue panel (slide-in off-canvas) ── */
 .queue-backdrop {
     position: fixed;

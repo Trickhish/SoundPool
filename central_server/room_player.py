@@ -10,11 +10,13 @@ import time
 import random
 
 import sse
+import tracks_manager as tmg
 from database import SessionLocal
-from db_models import RoomTrack, Room
+from db_models import RoomTrack, Room, User
 
 _rooms = {}          # room_id -> RoomPlayer
 _loaded = set()      # room_ids whose queue has been loaded from the DB
+_unit_room = {}      # unit_id -> room_id (a unit renders at most one room)
 
 
 class RoomPlayer:
@@ -27,7 +29,11 @@ class RoomPlayer:
         self.repeat = "off"        # off | all | one
         self.base_offset = 0.0     # ms into the current track at _t0
         self._t0 = None            # monotonic timestamp the offset was anchored
-        self.outputs = set()       # attached output unit ids (Phase 3)
+        self.outputs = set()       # attached output unit ids
+        self.arl = None            # room owner's Deezer ARL (for download data)
+        self._dl_index = -1        # which queue index _dl was resolved for
+        self._dl = None            # cached (song, url, key) for the current track
+        self._last_render = None   # (song_id, playing) last pushed to outputs
 
     # ── timeline ──
     def position(self):
@@ -58,17 +64,87 @@ class RoomPlayer:
             "queue": [{"key": i, "id": t["id"], "title": t["title"], "artist": t["artist"],
                        "cover": t["cover"], "duration": t["duration"], "ready": True, "failed": False}
                       for i, t in enumerate(self.queue)],
+            "outputs": sorted(self.outputs),
         }
 
-    async def broadcast(self):
+    async def broadcast(self, force_render=False):
         evt = dict(self.state())
         evt["type"] = "state"
         await sse.triggerEvent(f"room_{self.room_id}", evt)
-        await self._render_outputs()
+        await self._render_outputs(force=force_render)
 
-    async def _render_outputs(self):
-        # Phase 3 fills this in (push render commands to attached output units).
-        pass
+    async def _resolve_dl(self):
+        """Resolve (and cache) the current track's Deezer download data."""
+        if self._dl_index == self.current_index and self._dl is not None:
+            return self._dl
+        cur = self.cur()
+        if cur is None or not self.arl:
+            return None
+        try:
+            song = await asyncio.to_thread(tmg.get_song_gw_data, cur["id"], self.arl)
+            song, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, song, self.arl)
+        except Exception as e:
+            print(f"[room_player] download-data resolve failed: {e}")
+            return None
+        self._dl = (song, url, key)
+        self._dl_index = self.current_index
+        return self._dl
+
+    async def _render_outputs(self, force=False):
+        if not self.outputs:
+            return
+        import pu_connection as puc
+        cur = self.cur()
+        if cur is None:
+            if self._last_render is not None:
+                for uid in list(self.outputs):
+                    u = puc.getUnitById(uid)
+                    if u:
+                        await u.send(["stop"])
+                self._last_render = None
+            return
+        sig = (cur["id"], self.playing)
+        if not force and sig == self._last_render:
+            return
+        dl = await self._resolve_dl()
+        if dl is None:
+            return
+        song, url, key = dl
+        pos = self.position()
+        for uid in list(self.outputs):
+            u = puc.getUnitById(uid)
+            if u:
+                await u.send(["render", song, url, key, pos, self.playing])
+        self._last_render = sig
+
+    async def attach(self, unit_id):
+        # a unit renders at most one room
+        prev = _unit_room.get(unit_id)
+        if prev is not None and prev != self.room_id:
+            other = _rooms.get(prev)
+            if other:
+                await other.detach(unit_id)
+        _unit_room[unit_id] = self.room_id
+        self.outputs.add(unit_id)
+        import pu_connection as puc
+        u = puc.getUnitById(unit_id)
+        cur = self.cur()
+        if u and cur:
+            dl = await self._resolve_dl()
+            if dl:
+                song, url, key = dl
+                await u.send(["render", song, url, key, self.position(), self.playing])
+        await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
+
+    async def detach(self, unit_id):
+        self.outputs.discard(unit_id)
+        if _unit_room.get(unit_id) == self.room_id:
+            _unit_room.pop(unit_id, None)
+        import pu_connection as puc
+        u = puc.getUnitById(unit_id)
+        if u:
+            await u.send(["stop"])
+        await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
 
     # ── controls ──
     def _start_track(self, idx):
@@ -102,7 +178,7 @@ class RoomPlayer:
         self.base_offset = max(0.0, min(100.0, float(pct))) / 100.0 * c["duration"]
         self._t0 = time.monotonic()
         self.playing = True
-        await self.broadcast()
+        await self.broadcast(force_render=True)
 
     def _next_index(self, auto):
         if self.repeat == "one" and auto and self.current_index >= 0:
@@ -237,6 +313,8 @@ def ensure_loaded(room_id):
         if room:
             rp.shuffle = bool(room.shuffle)
             rp.repeat = room.repeat or "off"
+            owner = db.query(User).filter(User.id == room.owner_id).first()
+            rp.arl = owner.deezer_arl if owner else None
         tracks = (db.query(RoomTrack)
                     .filter(RoomTrack.room_id == room_id)
                     .order_by(RoomTrack.order).all())

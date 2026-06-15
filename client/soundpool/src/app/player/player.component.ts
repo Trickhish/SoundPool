@@ -76,6 +76,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
   player: Unit | null = null;
   isRoom = false;                 // bound to a room (radio) vs a single unit
   rights: any = null;             // room rights for the current user (room mode)
+  myUnits: Unit[] = [];           // the user's units (output choices, room mode)
+  roomOutputs: string[] = [];     // unit ids currently attached to the room
 
   // Authoritative player state (mirrors the unit snapshot)
   state: PlayerState = this.emptyState();
@@ -186,6 +188,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
     }));
 
     this.loadFavoriteIds();
+    if (this.isRoom) {
+      this.api.getUnits().subscribe({ next: (u) => { this.myUnits = u || []; } });
+    }
     this.ticker = setInterval(() => this.tick(), 250);
   }
 
@@ -257,6 +262,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       repeat: s.repeat ?? 'off',
       queue: s.queue ?? [],
     };
+    if (s.outputs !== undefined) this.roomOutputs = s.outputs;
     if (!this.isScrubbing()) {
       this.lastReportedPos = this.state.position;
       this.lastReportedAt = Date.now();
@@ -398,6 +404,22 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.dragOverKey = null;
   }
   onDragEnd() { this.dragKey = null; this.dragOverKey = null; }
+
+  // ── Output (room mode) ──
+  isOutput(unitId: string): boolean { return this.roomOutputs.includes(unitId); }
+  toggleOutput(unit: Unit) {
+    if (!this.pid) return;
+    const id = (unit as any).id;
+    if (this.isOutput(id)) {
+      this.roomOutputs = this.roomOutputs.filter(x => x !== id);
+      this.api.roomClearOutput(this.pid, id).subscribe();
+    } else {
+      this.roomOutputs = [...this.roomOutputs, id];
+      this.api.roomSelectOutput(this.pid, id).subscribe({
+        error: () => { this.roomOutputs = this.roomOutputs.filter(x => x !== id); this.toastr.error('Could not set output'); }
+      });
+    }
+  }
 
   // ── Queue panel ──
   toggleQueue() { this.queueOpen = !this.queueOpen; }

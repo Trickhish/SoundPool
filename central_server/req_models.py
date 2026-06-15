@@ -61,6 +61,9 @@ class QueueMoveRequest(BaseModel):
 class QueueIndexRequest(BaseModel):
     index: int
 
+class OutputRequest(BaseModel):
+    unit_id: str
+
 class FavoriteRequest(BaseModel):
     song_id: str
     title: str = ""

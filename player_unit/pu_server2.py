@@ -37,6 +37,56 @@ msgl = []
 download_queue = asyncio.Queue()
 DOWNLOAD_WORKERS = 3
 
+async def do_render(song, url, key, pos_ms, playing):
+    """Act as a room output: play exactly what the server's room conductor
+    dictates (track + position + playing), downloading on demand."""
+    mp.render_mode = True
+    mp.render_seq += 1
+    myseq = mp.render_seq
+
+    song_name = song["SNG_TITLE"]
+    artist = song["ART_NAME"]
+    song_id = song.get("SNG_ID", "")
+    path = os.path.join(config["download_dirs"]["songs"], artist + " - " + song_name + ".mp3")
+    t_recv = time.monotonic()
+
+    if song_id != mp.render_current or not os.path.exists(path):
+        if not os.path.exists(path):
+            print(f"💿 Rendering (downloading): {song_name}...")
+            try:
+                await dz.downloadSong(song, url, key, path,
+                            config["player_unit"]["download_covers"].lower() == "true",
+                            config["player_unit"]["cover_size"])
+            except Exception as ex:
+                print(f"    ✖ Render download failed: {ex}")
+                return
+        if myseq != mp.render_seq:
+            return  # a newer render arrived while downloading
+        # compensate for download time to stay near the room timeline
+        start = (pos_ms + (time.monotonic() - t_recv) * 1000.0) / 1000.0 if playing else pos_ms / 1000.0
+        mp.render_current = song_id
+        try:
+            mp.mix.music.load(path)
+            mp.mix.music.play(start=max(0.0, start))
+            mp.mix.music.set_volume(mp.volume)
+            if not playing:
+                mp.mix.music.pause()
+        except Exception as ex:
+            print(f"    ✖ Render play failed: {ex}")
+            return
+        print(f"🔊 Rendering: {song_name} @ {int(max(0.0, start)*1000)}ms playing={playing}")
+    else:
+        # same track already loaded — just resume/seek/pause
+        try:
+            if playing:
+                mp.mix.music.play(start=pos_ms / 1000.0)
+                mp.mix.music.set_volume(mp.volume)
+            else:
+                mp.mix.music.pause()
+        except Exception as ex:
+            print(f"    ✖ Render update failed: {ex}")
+
+
 async def download_worker():
     while True:
         song_obj, song, url, key, autoplay = await download_queue.get()
@@ -191,6 +241,12 @@ async def receiveHandler(ws, ro):
         mp.musics.append(song_obj)
         mp.emit_state()
         await download_queue.put((song_obj, song, url, key, autoplay))
+    elif r[0]=="render":
+        _,song,url,key,pos_ms,playing = r
+        asyncio.create_task(do_render(song, url, key, pos_ms, playing))
+    elif r[0]=="stop":
+        print("⏹ Detached from room — stopping.")
+        mp.render_stop()
     elif r[0]=="queue_remove":
         print(f"Removing queue item {r[1]}.")
         mp.queue_remove(r[1])
