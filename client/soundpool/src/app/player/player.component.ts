@@ -63,10 +63,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private toastr: ToastrService
   ) {
-    this.mouseMoveHandler = (e) => this.onMouseMove(e);
-    this.mouseUpHandler = () => this.onMouseUp();
-    window.addEventListener('mousemove', this.mouseMoveHandler);
-    window.addEventListener('mouseup', this.mouseUpHandler);
+    this.moveHandler = (e: any) => this.onPointerMove(e);
+    this.upHandler = () => this.onPointerUp();
+    window.addEventListener('mousemove', this.moveHandler);
+    window.addEventListener('mouseup', this.upHandler);
+    window.addEventListener('touchmove', this.moveHandler, { passive: false });
+    window.addEventListener('touchend', this.upHandler);
     library.addIcons(faPlay, faPlayCircle);
   }
 
@@ -85,8 +87,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
   movingProgress = false;
   private seekSuppressUntil = 0; // ignore incoming progress right after a seek
   private ticker: any = null;
-  private mouseMoveHandler: (e: MouseEvent) => void;
-  private mouseUpHandler: () => void;
+  private moveHandler: (e: any) => void;
+  private upHandler: () => void;
 
   // Library overlay
   libraryOpen = false;
@@ -133,6 +135,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
   get cover(): string { return this.state.now_playing?.cover || FALLBACK_COVER; }
   get durationMs(): number { return this.state.now_playing?.duration || 0; }
 
+  /** Thumb position on the ring (% of the disc box), top = 0%, clockwise. */
+  get thumbX(): number { const t = (this.musicProgress / 100) * 2 * Math.PI; return 50 + 50 * Math.sin(t); }
+  get thumbY(): number { const t = (this.musicProgress / 100) * 2 * Math.PI; return 50 - 50 * Math.cos(t); }
+
   /** Upcoming songs. `msid` is the unit's cursor = index of the next song to
    *  play, so this matches the unit exactly (empty once the queue is done,
    *  rather than re-showing already-played songs). */
@@ -171,8 +177,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    window.removeEventListener('mousemove', this.mouseMoveHandler);
-    window.removeEventListener('mouseup', this.mouseUpHandler);
+    window.removeEventListener('mousemove', this.moveHandler);
+    window.removeEventListener('mouseup', this.upHandler);
+    window.removeEventListener('touchmove', this.moveHandler);
+    window.removeEventListener('touchend', this.upHandler);
     if (this.ticker) clearInterval(this.ticker);
   }
 
@@ -262,38 +270,43 @@ export class PlayerComponent implements OnInit, OnDestroy {
       : 0;
   }
 
-  // ── Progress bar / scrubbing ──
-  private pctFromEvent(ev: MouseEvent): number {
+  // ── Progress bar / scrubbing (mouse + touch) ──
+  private eventXY(ev: MouseEvent | TouchEvent): { x: number, y: number } {
+    const t = (ev as TouchEvent).touches?.[0] || (ev as TouchEvent).changedTouches?.[0];
+    if (t) return { x: t.clientX, y: t.clientY };
+    return { x: (ev as MouseEvent).clientX, y: (ev as MouseEvent).clientY };
+  }
+  private pctFromXY(x: number, y: number): number {
     const svg = document.querySelector('#music_svg');
-    const rect = svg!.getBoundingClientRect();
-    const dx = ev.clientX - rect.left - rect.width / 2;
-    const dy = ev.clientY - rect.top - rect.height / 2;
+    if (!svg) return this.musicProgress;
+    const rect = svg.getBoundingClientRect();
+    const dx = x - rect.left - rect.width / 2;
+    const dy = y - rect.top - rect.height / 2;
     let angle = ((Math.atan2(dy, dx) / Math.PI) * 50) + 25;
     if (angle < 0) angle = 100 + angle;
     return angle;
   }
-
-  setPct(ev: MouseEvent) {
-    const pct = this.pctFromEvent(ev);
-    this.musicProgress = pct;
-    this.positionMs = (pct / 100) * this.durationMs;
-    this.commitSeek(pct);
-  }
-
-  followMouse(ev: MouseEvent) { this.movingProgress = true; this.setPctVisual(ev); }
-
-  private setPctVisual(ev: MouseEvent) {
-    const pct = this.pctFromEvent(ev);
+  private applyScrub(pct: number) {
     this.musicProgress = pct;
     this.positionMs = (pct / 100) * this.durationMs;
   }
 
-  onMouseMove(ev: MouseEvent) {
+  startDrag(ev: MouseEvent | TouchEvent) {
+    if (ev.type === 'touchstart') ev.preventDefault(); // avoid scroll + synthetic click
+    this.movingProgress = true;
+    const { x, y } = this.eventXY(ev);
+    this.applyScrub(this.pctFromXY(x, y));
+  }
+
+  onPointerMove(ev: MouseEvent | TouchEvent) {
+    if (!this.movingProgress) return;
+    if (ev.type === 'touchmove') ev.preventDefault(); // stop the page scrolling while scrubbing
     this.mouseMoving = true;
-    if (this.movingProgress) this.setPctVisual(ev);
+    const { x, y } = this.eventXY(ev);
+    this.applyScrub(this.pctFromXY(x, y));
   }
 
-  onMouseUp() {
+  onPointerUp() {
     if (this.movingProgress) this.commitSeek(this.musicProgress);
     this.movingProgress = false;
     this.mouseMoving = false;

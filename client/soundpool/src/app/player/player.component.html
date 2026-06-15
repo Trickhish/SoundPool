@@ -4,15 +4,17 @@
   <section class="stage">
     <h1 class="player_title">{{this.player?.name}}</h1>
 
-    <div [class.moving]="mouseMoving" [style.--percent]="musicProgress" class="music_ctn prog_ctn" id="music_ctn">
+    <div [class.moving]="movingProgress" [style.--percent]="musicProgress" class="music_ctn prog_ctn" id="music_ctn">
         <div id="disc_ctn">
             <svg id="music_svg" class="prog_svg">
-                <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle_bg" cx="50%" cy="50%" r="50%"></circle>
-                <circle (mousedown)="followMouse($event)" (click)="setPct($event)" class="prog_circle" cx="50%" cy="50%" r="50%"></circle>
+                <circle class="prog_circle_bg" cx="50%" cy="50%" r="50%"></circle>
+                <circle class="prog_circle" cx="50%" cy="50%" r="50%"></circle>
                 <circle class="prog_circle_mask" cx="50%" cy="50%" r="48%"></circle>
+                <circle class="prog_hit" (mousedown)="startDrag($event)" (touchstart)="startDrag($event)" cx="50%" cy="50%" r="50%"></circle>
             </svg>
             <img id="cover_bg" [src]="cover"/>
             <img id="cover" [src]="cover"/>
+            <div class="prog_thumb" [style.left.%]="thumbX" [style.top.%]="thumbY"></div>
         </div>
 
         <div (click)="playpause()" class="music_pp_ctn" [class.play]="!playing">

@@ -98,6 +98,7 @@
         border-radius: 50%;
         object-fit: cover;
         box-shadow: 0 0 0 2px rgba(255,43,109,0.25), 0 8px 40px rgba(0,0,0,0.7);
+        pointer-events: none;
     }
 }
 
@@ -126,10 +127,11 @@
         stroke: var(--bar-bg);
         stroke-width: var(--bar-width);
         stroke-linecap: round;
-        cursor: pointer;
+        pointer-events: none;
     }
     .prog_circle_mask {
         fill: #07070f;
+        pointer-events: none;
     }
     .prog_circle {
         fill: none;
@@ -139,9 +141,33 @@
         stroke-dasharray: var(--circ_nbr);
         stroke-dashoffset: calc(var(--circ_nbr) - (var(--circ_nbr) * var(--percent)) / 100);
         transition: stroke-dashoffset var(--prog_trans) ease-out;
-        cursor: pointer;
+        pointer-events: none;
         filter: drop-shadow(0 0 4px var(--controls_color));
     }
+    /* Wide invisible band that's easy to grab/drag (esp. on touch). */
+    .prog_hit {
+        fill: none;
+        stroke: transparent;
+        stroke-width: 36px;
+        pointer-events: stroke;
+        cursor: pointer;
+        touch-action: none;
+    }
+}
+
+/* Draggable thumb sitting on the ring at the current position. */
+.prog_thumb {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--controls_color);
+    box-shadow: 0 0 10px rgba(255,43,109,0.7);
+    transform: translate(-50%, -50%);
+    transition: left var(--prog_trans) ease-out, top var(--prog_trans) ease-out;
+    pointer-events: none;
+    z-index: 6;
 }
 
 /* ── Controls ── */
