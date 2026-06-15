@@ -25,7 +25,7 @@
 
     --accent:         #FF2B6D;
     --controls_color: #FF2B6D;
-    --lc_nav-dist:    3.8rem;
+    --lc_nav-dist:    4.6rem;
     animation: fadeUp 0.4s ease both;
 }
 
@@ -55,7 +55,7 @@
 .music_ctn {
     position: relative;
     /* explicit size so absolute children (pp/nav buttons) centre correctly */
-    --lc_size: 260px;
+    --lc_size: 340px;
     width: var(--lc_size);
     height: var(--lc_size);
 
@@ -65,7 +65,7 @@
        so perimeter = π · lc_size. Computed from the size so the fill stays
        correct across the responsive breakpoints. */
     --circ_nbr: calc(3.14159265 * var(--lc_size));
-    --bar-width: 10px;
+    --bar-width: 12px;
     --bar-bg: rgba(255,255,255,0.06);
 
     &.moving { --prog_trans: 0s; }
@@ -150,8 +150,8 @@
     top: 50%;
     left: 50%;
     translate: -50% -50%;
-    height: 52px;
-    width: 52px;
+    height: 66px;
+    width: 66px;
     border-radius: 50%;
     background: linear-gradient(135deg, #FF2B6D, #c01856);
     box-shadow: 0 4px 20px rgba(255,43,109,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset;
@@ -184,8 +184,8 @@
 .music_nav_ctn {
     position: absolute;
     top: 50%;
-    height: 36px;
-    width: 36px;
+    height: 44px;
+    width: 44px;
     color: var(--controls_color);
     fill: var(--controls_color);
     cursor: pointer;
@@ -241,21 +241,21 @@
 /* ── Song info ── */
 .music_title {
     font-family: 'Syne', sans-serif;
-    font-size: 1.4rem;
+    font-size: 1.75rem;
     font-weight: 700;
     margin: 0;
     color: var(--font-color);
     text-align: center;
-    max-width: 340px;
+    max-width: 440px;
 }
 .music_artist {
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     margin: 0;
     color: var(--font-muted);
     text-align: center;
 }
 .music_elt {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: var(--font-muted);
     margin: 0;
     font-variant-numeric: tabular-nums;
@@ -280,9 +280,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px;
+    padding: 8px;
     border-radius: 8px;
     transition: color 0.15s, background 0.15s;
+
+    svg { width: 21px; height: 21px; }
 
     &:hover { color: var(--font-color); background: rgba(255,255,255,0.06); }
     &.active { color: var(--accent); }
@@ -328,7 +330,7 @@
 .vol-slider {
     -webkit-appearance: none;
     appearance: none;
-    width: 90px;
+    width: 120px;
     height: 4px;
     border-radius: 4px;
     background: rgba(255,255,255,0.12);
@@ -837,11 +839,12 @@
     }
 }
 @media (max-width: 650px) {
-    .player_layout { --lc_nav-dist: 2.8rem; }
-    .music_ctn { --lc_size: 220px; }
+    .player_layout { --lc_nav-dist: 3.4rem; }
+    .music_ctn { --lc_size: 290px; }
+    .music_title { font-size: 1.5rem; }
 }
 @media (max-width: 420px) {
-    .music_ctn { --lc_size: 190px; }
+    .music_ctn { --lc_size: 240px; }
     .music_nav_ctn {
         height: 28px;
         width: 28px;
