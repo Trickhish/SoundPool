@@ -137,12 +137,14 @@ async def receiveHandler(ws, ro):
         elif r[1]=="prev":
             print("Loading previous song.")
             mp._manual_skip = True
+            mp.playing = True   # load & play even if currently paused/idle
             mp.msid-=2
             mp.mix.music.stop()
             await sendcmd(ws, ["status", "loading"])
         elif r[1]=="next":
             print("Loading next song.")
             mp._manual_skip = True
+            mp.playing = True   # load & play even if currently paused/idle
             mp.mix.music.stop()
             await sendcmd(ws, ["status", "loading"])
         elif r[1]=="seek":
