@@ -199,12 +199,29 @@ def room_song_stream(room_id: int, song_id: str,
         raise HTTPException(403, "Room owner has no Deezer account connected")
     song = tmg.get_song_gw_data(song_id, owner.deezer_arl)
     song, url, _ext, key = tmg.getDownloadData(song, owner.deezer_arl)
-    out = BytesIO()
-    with requests.get(url, stream=True) as resp:
-        resp.raise_for_status()
-        dz.decryptfile(resp, key, out)
-    out.seek(0)
-    return StreamingResponse(out, media_type="audio/mpeg",
+
+    def gen():
+        # Stream-decrypt in aligned 2048-byte blocks (every 3rd is encrypted),
+        # so the browser can start playing before the whole file arrives.
+        with requests.get(url, stream=True) as resp:
+            resp.raise_for_status()
+            i = 0
+            buf = b""
+            for chunk in resp.iter_content(2048):
+                if not chunk:
+                    continue
+                buf += chunk
+                while len(buf) >= 2048:
+                    block = buf[:2048]
+                    buf = buf[2048:]
+                    if i % 3 == 0:
+                        block = dz.blowfishDecrypt(block, key)
+                    i += 1
+                    yield block
+            if buf:
+                yield buf
+
+    return StreamingResponse(gen(), media_type="audio/mpeg",
                              headers={"Cache-Control": "no-store"})
 
 

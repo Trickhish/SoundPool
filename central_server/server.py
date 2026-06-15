@@ -126,7 +126,11 @@ async def lifespan(app: FastAPI):
 
 class RequestLoggerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if (not "text/event-stream" in request.headers.get("Accept", "")):
+        # Never buffer streaming responses (SSE, or the decrypted audio stream)
+        # — buffering them would block playback and waste memory.
+        _passthrough = ("text/event-stream" in request.headers.get("Accept", "")
+                        or "/song/" in request.url.path)
+        if (not _passthrough):
             mtcl = {"GET": Colors.NONE, "POST":Colors.MAGENTA, "PUT":Colors.LIGHT_GREEN, "OPTIONS":Colors.LIGHT_CYAN}
             print(f"{mtcl[request.method] if request.method in mtcl.keys() else Colors.NONE}[{request.method}]{Colors.NONE}", end='')
             

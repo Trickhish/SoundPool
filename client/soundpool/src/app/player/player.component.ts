@@ -84,6 +84,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   private audioEl: HTMLAudioElement | null = null;
   private browserSongId: string | null = null;
   private blobCache = new Map<string, string>();
+  private destroying = false;
   voteCount = 0;
   voteThreshold = 0;
   voted = false;                  // did I vote to skip the current track (local)
@@ -203,7 +204,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
       this.api.getUnits().subscribe({ next: (u) => { this.myUnits = u || []; } });
       this.audioEl = new Audio();
       this.audioEl.addEventListener('error', () => {
-        if (this.browserOutput) this.zone.run(() => this.toastr.error('Browser playback error'));
+        if (this.browserOutput && !this.destroying && this.audioEl?.src)
+          this.zone.run(() => this.toastr.error('Browser playback error'));
       });
       this.browserOutput = localStorage.getItem(`browserOut_${this.pid}`) === '1';
     }
@@ -216,7 +218,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     window.removeEventListener('touchmove', this.moveHandler);
     window.removeEventListener('touchend', this.upHandler);
     if (this.ticker) clearInterval(this.ticker);
-    if (this.audioEl) { this.audioEl.pause(); this.audioEl.src = ''; }
+    this.destroying = true;
+    if (this.audioEl) { this.audioEl.pause(); this.audioEl.removeAttribute('src'); this.audioEl.load(); }
     this.blobCache.forEach((url) => URL.revokeObjectURL(url));
     this.blobCache.clear();
   }
