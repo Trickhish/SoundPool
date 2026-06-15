@@ -54,7 +54,7 @@
         <span *ngIf="state.repeat === 'one'" class="ec-badge">1</span>
       </button>
 
-      <div class="volume">
+      <div class="volume" *ngIf="!isRoom">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path *ngIf="state.volume > 0.05" d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
         <input #vol type="range" min="0" max="1" step="0.01" [value]="state.volume" (input)="onVolumeInput(+vol.value)" class="vol-slider" />
       </div>

@@ -74,6 +74,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   pid: string | null = null;
   player: Unit | null = null;
+  isRoom = false;                 // bound to a room (radio) vs a single unit
+  rights: any = null;             // room rights for the current user (room mode)
 
   // Authoritative player state (mirrors the unit snapshot)
   state: PlayerState = this.emptyState();
@@ -170,13 +172,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.pid = this.aroute.snapshot.paramMap.get('player_id');
     if (!this.pid) return;
+    this.isRoom = !!this.aroute.snapshot.data['room'];
     this.loadContent();
 
     // SSE callbacks come from the `eventsource` package's custom fetch, which
     // runs OUTSIDE Angular's zone — so mutations here would not trigger change
     // detection. Re-enter the zone AND force a detection pass so live events
     // (queue updates, now-playing, status) always render immediately.
-    this.event.subscribe(`pu_${this.pid}`, (dt: any) => this.zone.run(() => {
+    const channel = (this.isRoom ? 'room_' : 'pu_') + this.pid;
+    this.event.subscribe(channel, (dt: any) => this.zone.run(() => {
       this.onEvent(dt);
       try { this.cdr.detectChanges(); } catch {}
     }));
@@ -194,6 +198,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   loadContent() {
+    if (this.isRoom) {
+      this.api.getRoom(+this.pid!).subscribe({ next: (r: any) => this.applyRoom(r) });
+      return;
+    }
     this.cache.fetchData(`player_${this.pid!}`, () => this.api.getPlayer(this.pid!)).subscribe({
       next: (r: any) => {
         if (r.currentData != null) this.applyPlayer(r.currentData);
@@ -206,6 +214,13 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!p) return;
     this.player = p;
     if (p.state) this.applyState(p.state);
+  }
+
+  private applyRoom(r: any) {
+    if (!r) return;
+    this.rights = r.rights;
+    this.player = { id: String(r.id), name: r.name, online: true } as any;
+    if (r.state) this.applyState(r.state);
   }
 
   // ── Live events ──
@@ -323,19 +338,19 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   private commitSeek(pct: number) {
     if (!this.pid || !this.state.now_playing) return;
-    this.state.playing = true; // seeking resumes playback on the unit
+    this.state.playing = true; // seeking resumes playback
     this.seekSuppressUntil = Date.now() + 1500;
     this.lastReportedPos = (pct / 100) * this.durationMs;
     this.lastReportedAt = Date.now();
-    this.api.seek(this.pid, pct).subscribe();
+    (this.isRoom ? this.api.roomSeek(this.pid, pct) : this.api.seek(this.pid, pct)).subscribe();
   }
 
   // ── Playback ──
-  play() { this.state.playing = true; this.api.play(this.player!.id).subscribe(); }
-  pause() { this.state.playing = false; this.api.pause(this.player!.id).subscribe(); }
+  play() { this.state.playing = true; (this.isRoom ? this.api.roomPlay(this.pid!) : this.api.play(this.player!.id)).subscribe(); }
+  pause() { this.state.playing = false; (this.isRoom ? this.api.roomPause(this.pid!) : this.api.pause(this.player!.id)).subscribe(); }
   playpause() { this.playing ? this.pause() : this.play(); }
-  prev() { this.api.prev(this.player!.id).subscribe(); }
-  next() { this.api.next(this.player!.id).subscribe(); }
+  prev() { (this.isRoom ? this.api.roomPrev(this.pid!) : this.api.prev(this.player!.id)).subscribe(); }
+  next() { (this.isRoom ? this.api.roomNext(this.pid!) : this.api.next(this.player!.id)).subscribe(); }
 
   // ── Volume / shuffle / repeat ──
   private volumeDebounce: any = null;
@@ -343,19 +358,19 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.state.volume = v;
     clearTimeout(this.volumeDebounce);
     this.volumeDebounce = setTimeout(() => {
-      if (this.pid) this.api.setVolume(this.pid, v).subscribe();
+      if (this.pid && !this.isRoom) this.api.setVolume(this.pid, v).subscribe();
     }, 120);
   }
   toggleShuffle() {
     const on = !this.state.shuffle;
     this.state.shuffle = on;
-    if (this.pid) this.api.setShuffle(this.pid, on).subscribe();
+    if (this.pid) (this.isRoom ? this.api.roomShuffle(this.pid, on) : this.api.setShuffle(this.pid, on)).subscribe();
   }
   cycleRepeat() {
     const order: ('off' | 'all' | 'one')[] = ['off', 'all', 'one'];
     const next = order[(order.indexOf(this.state.repeat) + 1) % 3];
     this.state.repeat = next;
-    if (this.pid) this.api.setRepeat(this.pid, next).subscribe();
+    if (this.pid) (this.isRoom ? this.api.roomRepeat(this.pid, next) : this.api.setRepeat(this.pid, next)).subscribe();
   }
 
   // ── Queue management ──
@@ -364,19 +379,20 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   jumpTo(item: QueueItem) {
     if (!this.pid || item.failed) return;
-    this.api.queueJump(this.pid, item.key).subscribe();
+    (this.isRoom ? this.api.roomQueueJump(this.pid, item.key) : this.api.queueJump(this.pid, item.key)).subscribe();
   }
   removeItem(item: QueueItem, ev: Event) {
     ev.stopPropagation();
     if (!this.pid) return;
-    this.api.queueRemove(this.pid, item.key).subscribe();
+    (this.isRoom ? this.api.roomQueueRemove(this.pid, item.key) : this.api.queueRemove(this.pid, item.key)).subscribe();
   }
   onDragStart(item: QueueItem) { this.dragKey = item.key; }
   onDragOver(item: QueueItem, ev: DragEvent) { ev.preventDefault(); this.dragOverKey = item.key; }
   onDrop(item: QueueItem, ev: DragEvent) {
     ev.preventDefault();
     if (this.pid && this.dragKey !== null && this.dragKey !== item.key) {
-      this.api.queueMove(this.pid, this.dragKey, item.key).subscribe();
+      (this.isRoom ? this.api.roomQueueMove(this.pid, this.dragKey, item.key)
+                   : this.api.queueMove(this.pid, this.dragKey, item.key)).subscribe();
     }
     this.dragKey = null;
     this.dragOverKey = null;
@@ -492,9 +508,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   addSong(song: any) {
     if (!this.pid) return;
-    this.api.queueAdd(this.pid, {
-      song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || ''
-    }).subscribe({
+    const body = { song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || '' };
+    (this.isRoom ? this.api.roomQueueAdd(this.pid, body) : this.api.queueAdd(this.pid, body)).subscribe({
       next: () => this.toastr.success(song.title, 'Added to queue'),
       error: () => this.toastr.error('Could not add song')
     });
@@ -503,7 +518,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   addPlaylist(pl: DeezerPlaylist) {
     if (!this.pid || this.addingPlaylistId !== null) return;
     this.addingPlaylistId = pl.id;
-    this.api.queuePlaylist(this.pid, pl.id).subscribe({
+    (this.isRoom ? this.api.roomQueuePlaylist(this.pid, pl.id) : this.api.queuePlaylist(this.pid, pl.id)).subscribe({
       next: () => { this.addingPlaylistId = null; this.toastr.success(pl.title, 'Added playlist'); this.closeLibrary(); },
       error: () => { this.addingPlaylistId = null; this.toastr.error('Could not add playlist'); }
     });
@@ -511,6 +526,6 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   clearQueue() {
     if (!this.pid) return;
-    this.api.queueClear(this.pid).subscribe();
+    (this.isRoom ? this.api.roomQueueClear(this.pid) : this.api.queueClear(this.pid)).subscribe();
   }
 }

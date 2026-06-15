@@ -123,6 +123,16 @@ async def sse_sub(event_name: str, user: User = Depends(verify_token)):
             snapshot["type"] = "state"
             for cl in cll:
                 await cl.send(event_name, snapshot)
+    elif event_name.startswith("room_"):
+        import room_player
+        try:
+            rp = room_player.ensure_loaded(int(event_name[5:]))
+            snapshot = dict(rp.state())
+            snapshot["type"] = "state"
+            for cl in cll:
+                await cl.send(event_name, snapshot)
+        except Exception:
+            pass
 
     
 

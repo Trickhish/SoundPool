@@ -20,7 +20,8 @@ export const routes: Routes = [
             {path:'profile', component: ProfileComponent, canActivate: [authGuard]},
             {path:'playlists', component: PlaylistsComponent, canActivate: [authGuard]},
             {path:'units', component: PlayerunitsComponent, canActivate: [authGuard]},
-            {path:'player/:player_id', component: PlayerComponent, canActivate: [authGuard]}
+            {path:'player/:player_id', component: PlayerComponent, canActivate: [authGuard]},
+            {path:'room/:player_id', component: PlayerComponent, canActivate: [authGuard], data: {room: true}}
         ]
     },
     {path:'login', component:LoginComponent},

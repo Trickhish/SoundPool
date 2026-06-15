@@ -91,6 +91,9 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(test_events())
 
+    import room_player
+    asyncio.create_task(room_player.conductor())
+
     Base.metadata.reflect(bind=engine)
     Base.metadata.create_all(bind=engine)
 
