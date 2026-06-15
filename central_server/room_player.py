@@ -34,6 +34,8 @@ class RoomPlayer:
         self._dl_index = -1        # which queue index _dl was resolved for
         self._dl = None            # cached (song, url, key) for the current track
         self._last_render = None   # (song_id, playing) last pushed to outputs
+        self.votes = set()         # user ids who voted to skip the current track
+        self.vote_threshold = 0    # votes needed to skip (updated on each vote)
 
     # ── timeline ──
     def position(self):
@@ -65,7 +67,19 @@ class RoomPlayer:
                        "cover": t["cover"], "duration": t["duration"], "ready": True, "failed": False}
                       for i, t in enumerate(self.queue)],
             "outputs": sorted(self.outputs),
+            "vote_count": len(self.votes),
+            "vote_threshold": self.vote_threshold,
         }
+
+    async def vote_skip(self, user_id, member_count):
+        if self.cur() is None:
+            return
+        self.vote_threshold = max(1, (member_count + 1) // 2)  # simple majority
+        self.votes.add(user_id)
+        if len(self.votes) >= self.vote_threshold:
+            await self.advance()  # _start_track clears votes
+        else:
+            await self.broadcast()
 
     async def broadcast(self, force_render=False):
         evt = dict(self.state())
@@ -151,6 +165,7 @@ class RoomPlayer:
         self.current_index = idx
         self.base_offset = 0.0
         self._t0 = time.monotonic()
+        self.votes = set()  # skip-votes are per-track
 
     async def play(self):
         if self.current_index < 0:
@@ -204,6 +219,7 @@ class RoomPlayer:
             self.current_index = -1
             self.base_offset = 0.0
             self._t0 = None
+            self.votes = set()
         else:
             self._start_track(nxt)
             self.playing = True

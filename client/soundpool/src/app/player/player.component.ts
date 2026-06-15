@@ -78,6 +78,11 @@ export class PlayerComponent implements OnInit, OnDestroy {
   rights: any = null;             // room rights for the current user (room mode)
   myUnits: Unit[] = [];           // the user's units (output choices, room mode)
   roomOutputs: string[] = [];     // unit ids currently attached to the room
+  voteCount = 0;
+  voteThreshold = 0;
+  voted = false;                  // did I vote to skip the current track (local)
+  manageOpen = false;             // admin members/rights panel
+  members: any[] = [];
 
   // Authoritative player state (mirrors the unit snapshot)
   state: PlayerState = this.emptyState();
@@ -263,6 +268,11 @@ export class PlayerComponent implements OnInit, OnDestroy {
       queue: s.queue ?? [],
     };
     if (s.outputs !== undefined) this.roomOutputs = s.outputs;
+    if (s.vote_count !== undefined) {
+      if (s.vote_count === 0) this.voted = false; // reset on new track / cleared votes
+      this.voteCount = s.vote_count;
+      this.voteThreshold = s.vote_threshold ?? 0;
+    }
     if (!this.isScrubbing()) {
       this.lastReportedPos = this.state.position;
       this.lastReportedAt = Date.now();
@@ -322,6 +332,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   startDrag(ev: MouseEvent | TouchEvent) {
+    if (!this.can('can_seek')) return;
     if (ev.type === 'touchstart') ev.preventDefault(); // avoid scroll + synthetic click
     this.movingProgress = true;
     const { x, y } = this.eventXY(ev);
@@ -384,7 +395,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   dragOverKey: number | null = null;
 
   jumpTo(item: QueueItem) {
-    if (!this.pid || item.failed) return;
+    if (!this.pid || item.failed || !this.can('can_skip')) return;
     (this.isRoom ? this.api.roomQueueJump(this.pid, item.key) : this.api.queueJump(this.pid, item.key)).subscribe();
   }
   removeItem(item: QueueItem, ev: Event) {
@@ -392,7 +403,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid) return;
     (this.isRoom ? this.api.roomQueueRemove(this.pid, item.key) : this.api.queueRemove(this.pid, item.key)).subscribe();
   }
-  onDragStart(item: QueueItem) { this.dragKey = item.key; }
+  onDragStart(item: QueueItem) { if (!this.can('can_reorder')) return; this.dragKey = item.key; }
   onDragOver(item: QueueItem, ev: DragEvent) { ev.preventDefault(); this.dragOverKey = item.key; }
   onDrop(item: QueueItem, ev: DragEvent) {
     ev.preventDefault();
@@ -404,6 +415,37 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.dragOverKey = null;
   }
   onDragEnd() { this.dragKey = null; this.dragOverKey = null; }
+
+  // ── Rights gating ──
+  can(right: string): boolean {
+    if (!this.isRoom) return true;            // unit-direct player: owner has full control
+    if (!this.rights) return false;
+    return !!this.rights.is_admin || !!this.rights[right];
+  }
+  get isAdmin(): boolean { return this.isRoom && !!this.rights?.is_admin; }
+  get showVoteSkip(): boolean { return this.isRoom && !this.can('can_skip') && this.can('can_vote_skip'); }
+
+  voteSkip() {
+    if (!this.pid || this.voted) return;
+    this.voted = true;
+    this.api.roomVoteSkip(this.pid).subscribe({ error: () => { this.voted = false; } });
+  }
+
+  // ── Members / rights management (admin) ──
+  openManage() {
+    if (!this.pid) return;
+    this.manageOpen = true;
+    this.api.roomMembers(+this.pid).subscribe({ next: (m) => this.members = m });
+  }
+  closeManage() { this.manageOpen = false; }
+  toggleMemberRight(m: any, field: string) {
+    if (!this.pid) return;
+    const val = !m[field];
+    m[field] = val;
+    this.api.setRoomRights(+this.pid, { user_id: m.user_id, [field]: val }).subscribe({
+      error: () => { m[field] = !val; this.toastr.error('Could not update rights'); }
+    });
+  }
 
   // ── Output (room mode) ──
   isOutput(unitId: string): boolean { return this.roomOutputs.includes(unitId); }
@@ -529,7 +571,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   addSong(song: any) {
-    if (!this.pid) return;
+    if (!this.pid || !this.can('can_add')) return;
     const body = { song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || '' };
     (this.isRoom ? this.api.roomQueueAdd(this.pid, body) : this.api.queueAdd(this.pid, body)).subscribe({
       next: () => this.toastr.success(song.title, 'Added to queue'),

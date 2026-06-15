@@ -17,15 +17,15 @@
             <div class="prog_thumb" [style.left.%]="thumbX" [style.top.%]="thumbY"></div>
         </div>
 
-        <div (click)="playpause()" class="music_pp_ctn" [class.play]="!playing">
+        <div *ngIf="can('can_playpause')" (click)="playpause()" class="music_pp_ctn" [class.play]="!playing">
             <svg class="music_pp_bt play" role="img" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path></svg>
             <svg class="music_pp_bt pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>
         </div>
 
-        <div (click)="prev()" class="music_nav_ctn music_prev_ctn">
+        <div *ngIf="can('can_skip')" (click)="prev()" class="music_nav_ctn music_prev_ctn">
             <svg class="music_nav_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
         </div>
-        <div (click)="next()" class="music_nav_ctn music_next_ctn">
+        <div *ngIf="can('can_skip')" (click)="next()" class="music_nav_ctn music_next_ctn">
             <svg class="music_nav_bt" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
         </div>
 
@@ -45,13 +45,22 @@
         <svg viewBox="0 0 24 24" width="18" height="18" [attr.fill]="isFavorite() ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       </button>
 
-      <button class="ec-btn" [class.active]="state.shuffle" (click)="toggleShuffle()" title="Shuffle">
+      <button *ngIf="can('can_playpause')" class="ec-btn" [class.active]="state.shuffle" (click)="toggleShuffle()" title="Shuffle">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
       </button>
 
-      <button class="ec-btn repeat" [class.active]="state.repeat !== 'off'" (click)="cycleRepeat()" [title]="'Repeat: ' + state.repeat">
+      <button *ngIf="can('can_playpause')" class="ec-btn repeat" [class.active]="state.repeat !== 'off'" (click)="cycleRepeat()" [title]="'Repeat: ' + state.repeat">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
         <span *ngIf="state.repeat === 'one'" class="ec-badge">1</span>
+      </button>
+
+      <button *ngIf="showVoteSkip" class="ec-btn vote" [class.active]="voted" (click)="voteSkip()" [title]="'Vote to skip (' + voteCount + (voteThreshold ? '/' + voteThreshold : '') + ')'">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        <span *ngIf="voteCount" class="ec-badge count">{{ voteCount }}{{ voteThreshold ? '/' + voteThreshold : '' }}</span>
+      </button>
+
+      <button *ngIf="isAdmin" class="ec-btn" (click)="openManage()" title="Manage members">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
       </button>
 
       <div class="volume" *ngIf="!isRoom">
@@ -88,7 +97,7 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <span class="qp-title">Queue <em *ngIf="upNext.length">({{ upNext.length }})</em></span>
-      <button class="qp-clear" (click)="clearQueue()" title="Clear queue">
+      <button *ngIf="can('can_remove')" class="qp-clear" (click)="clearQueue()" title="Clear queue">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
       </button>
     </div>
@@ -108,7 +117,7 @@
             <span class="qp-row-title">{{ item.title }}</span>
             <span class="qp-row-artist">{{ item.artist }}</span>
           </div>
-          <button class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
+          <button *ngIf="can('can_remove')" class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
           </button>
         </div>
@@ -133,7 +142,7 @@
         <div *ngFor="let item of upNext" class="qp-row"
              [class.pending]="item.ready === false && !item.failed" [class.failed]="item.failed"
              [class.dragover]="dragOverKey === item.key"
-             draggable="true"
+             [draggable]="can('can_reorder')"
              (dragstart)="onDragStart(item)" (dragover)="onDragOver(item, $event)"
              (drop)="onDrop(item, $event)" (dragend)="onDragEnd()"
              (click)="jumpTo(item)" title="Play this song">
@@ -143,7 +152,7 @@
             <span class="qp-row-artist">{{ item.failed ? 'Failed' : (item.ready === false ? 'Downloading…' : item.artist) }}</span>
           </div>
           <div *ngIf="item.ready === false && !item.failed" class="q-spinner"></div>
-          <button class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
+          <button *ngIf="can('can_remove')" class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
           </button>
         </div>
@@ -151,7 +160,7 @@
     </div>
 
     <div class="queue-pane-foot">
-      <button class="browse-lib-btn" (click)="openLibrary('songs')">
+      <button *ngIf="can('can_add')" class="browse-lib-btn" (click)="openLibrary('songs')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Browse library
       </button>
@@ -252,6 +261,36 @@
             <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
         </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Manage members (admin) ── -->
+  <div class="library-overlay" *ngIf="manageOpen" (click)="closeManage()">
+    <div class="library" (click)="$event.stopPropagation()">
+      <div class="library-head">
+        <h2>Members &amp; rights</h2>
+        <button class="lib-close" (click)="closeManage()" title="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="library-body">
+        <div *ngFor="let m of members" class="member-row">
+          <div class="member-head">
+            <span class="member-name">{{ m.username }}</span>
+            <span *ngIf="m.is_admin" class="badge admin">Admin</span>
+          </div>
+          <div class="rights-chips" *ngIf="!m.is_admin">
+            <button class="right-chip" [class.on]="m.can_add" (click)="toggleMemberRight(m, 'can_add')">add</button>
+            <button class="right-chip" [class.on]="m.can_remove" (click)="toggleMemberRight(m, 'can_remove')">remove</button>
+            <button class="right-chip" [class.on]="m.can_reorder" (click)="toggleMemberRight(m, 'can_reorder')">reorder</button>
+            <button class="right-chip" [class.on]="m.can_playpause" (click)="toggleMemberRight(m, 'can_playpause')">play/pause</button>
+            <button class="right-chip" [class.on]="m.can_skip" (click)="toggleMemberRight(m, 'can_skip')">skip</button>
+            <button class="right-chip" [class.on]="m.can_seek" (click)="toggleMemberRight(m, 'can_seek')">seek</button>
+            <button class="right-chip" [class.on]="m.can_vote_skip" (click)="toggleMemberRight(m, 'can_vote_skip')">vote-skip</button>
+            <button class="right-chip admin-toggle" [class.on]="m.is_admin" (click)="toggleMemberRight(m, 'is_admin')">make admin</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

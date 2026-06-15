@@ -245,6 +245,16 @@ async def room_prev(room_id: int,
     return JSONResponse(content={"status": "ok"})
 
 
+@router.post("/{room_id}/vote_skip")
+async def room_vote_skip(room_id: int,
+                         db: SessionLocal = Depends(get_db),  # type: ignore
+                         user: User = Depends(verify_token)):
+    _, rp = _require(db, room_id, user, "can_vote_skip")
+    member_count = db.query(RoomMember).filter(RoomMember.room_id == room_id).count()
+    await rp.vote_skip(user.id, member_count)
+    return JSONResponse(content={"status": "ok", "votes": len(rp.votes), "threshold": rp.vote_threshold})
+
+
 @router.post("/{room_id}/seek")
 async def room_seek(room_id: int, body: SeekRequest,
                     db: SessionLocal = Depends(get_db),  # type: ignore
