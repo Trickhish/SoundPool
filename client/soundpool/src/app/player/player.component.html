@@ -56,12 +56,23 @@
         <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path *ngIf="state.volume > 0.05" d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
         <input #vol type="range" min="0" max="1" step="0.01" [value]="state.volume" (input)="onVolumeInput(+vol.value)" class="vol-slider" />
       </div>
+
+      <button class="ec-btn queue-toggle" [class.active]="queueOpen" (click)="toggleQueue()" title="Queue">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span *ngIf="upNext.length" class="ec-badge count">{{ upNext.length }}</span>
+      </button>
     </div>
   </section>
 
-  <!-- ── Queue sidebar ── -->
-  <aside class="queue-pane">
+  <!-- Queue panel backdrop -->
+  <div class="queue-backdrop" *ngIf="queueOpen" (click)="closeQueue()"></div>
+
+  <!-- ── Queue panel (slide-in) ── -->
+  <aside class="queue-pane" [class.open]="queueOpen">
     <div class="queue-pane-head">
+      <button class="qp-close" (click)="closeQueue()" title="Close queue">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
       <span class="qp-title">Up Next <em *ngIf="upNext.length">({{ upNext.length }})</em></span>
       <button class="qp-clear" (click)="clearQueue()" title="Clear queue">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>

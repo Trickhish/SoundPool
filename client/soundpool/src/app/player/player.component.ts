@@ -100,6 +100,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
   historyList: any[] = [];
   historyLoaded = false;
 
+  // Queue panel (hidden by default, toggled like Deezer)
+  queueOpen = false;
+
   // Queue browse
   queueMode: QueueMode = 'none';
   queueBusy = false;
@@ -357,6 +360,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.dragOverKey = null;
   }
   onDragEnd() { this.dragKey = null; this.dragOverKey = null; }
+
+  // ── Queue panel ──
+  toggleQueue() { this.queueOpen = !this.queueOpen; }
+  closeQueue() { this.queueOpen = false; }
 
   // ── Library overlay ──
   openLibrary(tab: 'songs' | 'playlists' = 'songs') {
