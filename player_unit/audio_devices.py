@@ -150,12 +150,22 @@ def _bt_refresh_devices():
     for line in out.splitlines():
         m = re.match(r"Device (\S+) (.+)", line.strip())
         if m:
-            mac, name = m.group(1), m.group(2)
-            d = _bt_seen.setdefault(mac, {})
-            d["name"] = name
-    # enrich paired/connected
+            _bt_seen.setdefault(m.group(1), {})["name"] = m.group(2)
+    # enrich with the real advertised name (the devices list falls back to the
+    # MAC when unresolved) + paired/connected status from `info`.
     for mac, d in _bt_seen.items():
         info = _run(["bluetoothctl", "info", mac])
+        name = None
+        for ln in info.splitlines():
+            ln = ln.strip()
+            if ln.startswith("Name:"):
+                name = ln.split("Name:", 1)[1].strip()
+            elif ln.startswith("Alias:") and not name:
+                alias = ln.split("Alias:", 1)[1].strip()
+                if alias and alias.replace("-", ":").upper() != mac.upper():
+                    name = alias
+        if name:
+            d["name"] = name
         d["paired"] = "Paired: yes" in info
         d["connected"] = "Connected: yes" in info
 
@@ -201,12 +211,20 @@ def bt_remove(mac):
 
 def bt_state():
     info = _run(["bluetoothctl", "show"])
+    devices = []
+    for m, d in _bt_seen.items():
+        name = d.get("name", m)
+        has_real_name = name.replace("-", ":").upper() != m.upper()
+        # Hide the ephemeral, nameless BLE advertisers (phones/wearables with
+        # random addresses) — only show named or paired/connected devices.
+        if has_real_name or d.get("paired") or d.get("connected"):
+            devices.append({"mac": m, "name": name,
+                            "paired": d.get("paired", False),
+                            "connected": d.get("connected", False)})
     return {
         "powered": "Powered: yes" in info,
         "scanning": _bt_scanning,
-        "devices": [{"mac": m, "name": d.get("name", m),
-                     "paired": d.get("paired", False), "connected": d.get("connected", False)}
-                    for m, d in _bt_seen.items()],
+        "devices": devices,
     }
 
 
