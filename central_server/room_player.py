@@ -331,6 +331,7 @@ class RoomPlayer:
 
 
 def get_player(room_id):
+    room_id = int(room_id)  # one instance per room regardless of caller's type
     rp = _rooms.get(room_id)
     if rp is None:
         rp = RoomPlayer(room_id)
@@ -340,6 +341,7 @@ def get_player(room_id):
 
 def ensure_loaded(room_id):
     """Lazily load a room's persisted queue + flags from the DB once."""
+    room_id = int(room_id)
     if room_id in _loaded:
         return get_player(room_id)
     rp = get_player(room_id)
@@ -372,6 +374,7 @@ def ensure_loaded(room_id):
 
 def persist_queue(room_id):
     """Write the in-memory queue + flags back to the DB."""
+    room_id = int(room_id)
     rp = get_player(room_id)
     db = SessionLocal()
     try:
@@ -392,8 +395,15 @@ def persist_queue(room_id):
         db.close()
 
 
+_conductor_started = False
+
+
 async def conductor():
     """Single background loop that ticks every active room."""
+    global _conductor_started
+    if _conductor_started:
+        return
+    _conductor_started = True
     while True:
         for rp in list(_rooms.values()):
             try:
