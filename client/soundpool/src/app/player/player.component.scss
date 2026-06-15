@@ -779,12 +779,15 @@
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-    .player_layout { flex-direction: column; overflow: auto; }
-    .stage { padding: 1.5rem 1rem; height: auto; flex: none; }
+    /* Fixed-viewport, Deezer-style: the layout never scrolls as a whole;
+       the stage sits on top and the queue fills the rest with internal scroll. */
+    .player_layout { flex-direction: column; overflow: hidden; }
+    .stage { padding: 1.2rem 1rem; height: auto; flex: 0 1 auto; max-height: 62dvh; gap: 0.9rem; overflow-y: auto; }
     .queue-pane {
         width: 100%;
-        height: auto;
-        max-height: 50dvh;
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
         border-left: none;
         border-top: 1px solid rgba(255,255,255,0.07);
     }
