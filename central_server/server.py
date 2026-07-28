@@ -191,14 +191,15 @@ app.include_router(library_router, prefix="/library", tags=["Library"])
 app.include_router(pu_router, prefix="/unit", tags=["Unit"])
 app.include_router(sse_router, prefix="/event", tags=["SSE"])
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 if (config and config["server"]["debug"]=="true"):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # Allows all origins (any host)
-        allow_credentials=True,
-        allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-        allow_headers=["*"],  # Allows all headers
-    )
     app.add_middleware(RequestLoggerMiddleware)
 
 # Endpoints
@@ -246,7 +247,6 @@ if (__name__=="__main__"):
 
         for ll in [
             f"The number of workers was reduced to {Colors.LIGHT_RED}{workersnb}{Colors.NONE}",
-            f"The CORS wildcard is activated.",
             f"The DEBUG middleware is activated.",
             f"The server will reload on changes in {Colors.UNDERLINE}{wdir}{Colors.NONE}"
         ]:
