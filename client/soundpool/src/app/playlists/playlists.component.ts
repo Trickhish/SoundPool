@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
+import { faChevronLeft, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { ApiService } from '../api.service';
 import { PlaybackService } from '../playback.service';
 
@@ -16,7 +18,7 @@ interface PlaylistTrack { id: string; title: string; artist: string; img_url: st
 
 @Component({
   selector: 'app-playlists',
-  imports: [CommonModule],
+  imports: [CommonModule, FontAwesomeModule],
   templateUrl: './playlists.component.html',
   styleUrl: './playlists.component.scss'
 })
@@ -34,8 +36,11 @@ export class PlaylistsComponent implements OnInit {
     public api: ApiService,
     public playback: PlaybackService,
     private toastr: ToastrService,
-    private router: Router
-  ) {}
+    private router: Router,
+    library: FaIconLibrary
+  ) {
+    library.addIcons(faChevronLeft, faPlus);
+  }
 
   ngOnInit() {
     this.api.deezerPlaylists().subscribe({

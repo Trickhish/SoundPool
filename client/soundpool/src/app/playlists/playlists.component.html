@@ -43,7 +43,7 @@
       <div *ngIf="opened" class="pl-detail">
         <div class="detail-head">
           <button class="back-btn" (click)="back()" title="Back">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <fa-icon [icon]="['fas','chevron-left']"></fa-icon>
           </button>
           <span class="detail-title">{{ opened.title }}</span>
           <button class="add-all" (click)="addAll()" [disabled]="addingAll || tracksLoading">
@@ -60,7 +60,7 @@
             <span class="track-title">{{ t.title }}</span>
             <span class="track-artist">{{ t.artist }}</span>
           </div>
-          <svg class="track-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <fa-icon class="track-add" [icon]="['fas','plus']"></fa-icon>
         </div>
       </div>
     </section>
