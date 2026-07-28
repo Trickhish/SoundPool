@@ -227,7 +227,10 @@ class RoomPlayer:
         else:
             self._start_track(nxt)
             self.playing = True
-        await self.broadcast()
+        # Force the render: on repeat-one the track id is unchanged, so the
+        # render signature would match and outputs would never be re-triggered
+        # (timeline loops but nothing plays).
+        await self.broadcast(force_render=True)
 
     async def prev(self):
         if self.shuffle:
