@@ -1,96 +1,59 @@
-import { Component, OnInit } from '@angular/core';
-import { TranslateService,TranslateModule } from '@ngx-translate/core';
-import { ApiService } from '../api.service';
-import { AuthService } from '../auth.service';
-import { Router, RouterLink } from '@angular/router';
-import { DisplayService } from '../display.service';
-import { FormsModule,FormControl } from '@angular/forms';
-
-import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
-import {  } from '@fortawesome/free-regular-svg-icons';
-import { faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { Component } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
+
+import { ApiService } from '../api.service';
+import { PlaybackService } from '../playback.service';
 import { Song } from '../song';
 
 @Component({
   selector: 'app-home',
-  imports: [TranslateModule, FontAwesomeModule, CommonModule, RouterLink, FormsModule],
+  imports: [TranslateModule, CommonModule, FormsModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
 export class HomeComponent {
   constructor(
-      private library: FaIconLibrary,
-      private translate: TranslateService,
-      private api: ApiService,
-      private auth: AuthService,
-      private disp: DisplayService,
-      private router: Router
-  ) {
-    library.addIcons(faGlobe);
+    private api: ApiService,
+    public playback: PlaybackService,
+    private toastr: ToastrService,
+    private router: Router
+  ) {}
+
+  squery = '';
+  results: Song[] = [];
+  searching = false;
+  searched = false;
+  private debounce: any = null;
+
+  onSearchInput() {
+    clearTimeout(this.debounce);
+    const q = this.squery.trim();
+    if (!q) { this.results = []; this.searched = false; return; }
+    this.debounce = setTimeout(() => this.runSearch(q), 300);
   }
 
-  squery: string = '';
-  
-  langImg(lg=this.translate.currentLang) {
-    if (['us','en','uk','eng'].includes(lg)) {
-      lg="us";
-    }
-    return(`/assets/flags/${lg}.svg`);
-  }
-
-  langs() {
-    return(['en', 'fr']);
-    //return(this.translate.langs);
-  }
-
-  selectLang() {
-    document.querySelector(".lang_ctn")?.classList.add('active');
-    document.querySelector("#langbtn")?.classList.remove('active');
-  }
-
-  setLang(lg: string) {
-    localStorage.setItem("lang", lg);
-    document.querySelector(".lang_ctn")?.classList.remove('active');
-    document.querySelector("#langbtn")?.classList.add('active');
-    
-    this.translate.use(lg);
-  }
-
-  goto(p: string) {
-    document.querySelector(".burger_ctn")?.classList.remove('active');
-    document.querySelector(".navbar")?.classList.remove('active');
-  }
-
-  burger(ev: Event) {
-    var tg = ev.target as HTMLElement;
-
-    if (tg.classList.contains('active')) {
-      tg.classList.remove('active');
-      document.querySelector(".navbar")?.classList.remove('active');
-    } else {
-      tg.classList.add('active');
-      document.querySelector(".navbar")?.classList.add('active');
-    }
-    
-  }
-
-  async search() {
-    console.log(this.squery);
-
-    this.api.search(this.squery).subscribe({
-      next: (r: Song[])=> {
-        for (var s of r) {
-          console.log(s.title, s.artist);
-        }
-      },
-      error: (err)=> {
-        console.log(err);
-      }
+  private runSearch(q: string) {
+    this.searching = true;
+    this.api.search(q).subscribe({
+      next: (r: Song[]) => { this.results = r || []; this.searching = false; this.searched = true; },
+      error: () => { this.searching = false; this.searched = true; this.toastr.error('Search failed'); }
     });
   }
 
-  ngOnInit() {
-
+  addSong(s: Song) {
+    if (this.playback.activeRoomId == null) {
+      this.toastr.info('Open a room first to add songs');
+      this.router.navigate(['/rooms']);
+      return;
+    }
+    const body = { song_id: s.id || '', title: s.title || '', artist: s.artist || '', img_url: s.img_url || '' };
+    this.api.roomQueueAdd(this.playback.activeRoomId, body).subscribe({
+      next: () => this.toastr.success(s.title || '', `Added to ${this.playback.roomName || 'room'}`),
+      error: () => this.toastr.error('Could not add song')
+    });
   }
 }

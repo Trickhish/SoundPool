@@ -45,3 +45,40 @@ app-home { width: 100%; }
 @media (max-width: 1000px) { .searchbar { width: 52%; &:focus { width: 62%; } } }
 @media (max-width: 800px)  { .searchbar { width: 70%; height: 46px; font-size: 0.95rem; &:focus { width: 80%; } } }
 @media (max-width: 500px)  { .searchbar { width: 88%; &:focus { width: 92%; } } }
+
+/* ── Search target + results ── */
+.home { width: 100%; display: flex; flex-direction: column; min-height: 0; flex: 1; }
+
+.target {
+    font-size: 0.82rem;
+    color: var(--font-muted);
+    strong { color: var(--accent); }
+    &.hint { font-style: italic; }
+}
+
+.results {
+    width: 100%;
+    max-width: 720px;
+    margin: 1.2rem auto 0;
+    padding: 0 1rem;
+    overflow-y: auto;
+}
+.msg { text-align: center; color: var(--font-muted); padding: 1.5rem 0; }
+
+.result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.55rem 0.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+    &:hover { background: rgba(255,255,255,0.05); }
+
+    .cover { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .title { font-weight: 600; color: var(--font-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .artist { font-size: 0.82rem; color: var(--font-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .add { color: var(--font-muted); flex-shrink: 0; }
+    &:hover .add { color: var(--accent); }
+}

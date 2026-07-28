@@ -1,4 +1,23 @@
-<div class="search-wrap">
-    <span class="search-label">{{ 'search_for_songs' | translate }}</span>
-    <input (keyup)="search()" [(ngModel)]="squery" class="searchbar" type="text" [placeholder]="'search_for_songs' | translate" />
+<div class="home">
+  <div class="search-wrap">
+    <input (input)="onSearchInput()" [(ngModel)]="squery" class="searchbar" type="text"
+           [placeholder]="'search_for_songs' | translate" />
+    <span class="target" *ngIf="playback.roomName">Adding to <strong>{{ playback.roomName }}</strong></span>
+    <span class="target hint" *ngIf="!playback.activeRoomId">Open a room to add songs</span>
+  </div>
+
+  <div class="results">
+    <div *ngIf="searching" class="msg">Searching…</div>
+    <div *ngIf="!searching && searched && results.length === 0" class="msg">No results</div>
+
+    <div *ngFor="let s of results" class="result-row" (click)="addSong(s)">
+      <img class="cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
+      <div class="info">
+        <span class="title">{{ s.title }}</span>
+        <span class="artist">{{ s.artist }}</span>
+      </div>
+      <svg class="add" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </div>
+  </div>
 </div>
