@@ -109,8 +109,16 @@ class PlayerUnit():
 
             db.commit()
             db.refresh(pu)
-           
+
             print(f"🚀 PU_{self.id[:4]} is online ({pun})")
+
+            # Reconcile with the conductor: resync if still an output, else stop
+            # (a reconnected unit shouldn't keep playing a stale, uncontrolled track).
+            import room_player
+            try:
+                await room_player.on_unit_online(self.id)
+            except Exception as e:
+                print(f"[pu] reconcile failed: {e}")
         elif r[0]=='ask_id':
             self.id = str(uuid4())
             pun = r[1]

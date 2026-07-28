@@ -333,6 +333,26 @@ class RoomPlayer:
             await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
 
 
+async def on_unit_online(unit_id):
+    """Reconcile a (re)connected unit with the conductor. If it's still an output
+    of a live room, re-render so it resyncs; otherwise it's orphaned (e.g. the
+    server restarted and lost the in-memory attachment) — tell it to stop instead
+    of letting it keep playing a stale track the UI no longer controls."""
+    import pu_connection as puc
+    u = puc.getUnitById(unit_id)
+    if u is None:
+        return
+    rid = _unit_room.get(unit_id)
+    rp = _rooms.get(rid) if rid is not None else None
+    if rp is not None and unit_id in rp.outputs and rp.cur() is not None:
+        dl = await rp._resolve_dl()
+        if dl:
+            song, url, key = dl
+            await u.send(["render", song, url, key, rp.position(), rp.playing, rp.volume])
+            return
+    await u.send(["stop"])
+
+
 def get_player(room_id):
     room_id = int(room_id)  # one instance per room regardless of caller's type
     rp = _rooms.get(room_id)
