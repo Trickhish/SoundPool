@@ -1,4 +1,12 @@
 import asyncio
+# Python 3.8 lacks asyncio.to_thread (added in 3.9); back-port it so the unit
+# runs on stock Ubuntu 20.04 Python. No-op on 3.9+.
+if not hasattr(asyncio, "to_thread"):
+    import functools as _functools
+    async def _to_thread(func, *args, **kwargs):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _functools.partial(func, *args, **kwargs))
+    asyncio.to_thread = _to_thread
 import threading
 import websockets
 import random
@@ -398,7 +406,12 @@ async def main():
     await asyncio.gather(task1, task2, *workers)
 
 if __name__ == "__main__":
+    # Reuse the default event loop rather than asyncio.run(), which spins up a
+    # fresh loop. Module-level asyncio primitives (the queues/events created at
+    # import time) bind to the default loop, so a new loop breaks them on
+    # Python 3.8 ("attached to a different loop"). This path works on 3.8–3.11.
+    loop = asyncio.get_event_loop()
     try:
-        asyncio.run(main())
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         quit()
