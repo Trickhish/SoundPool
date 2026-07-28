@@ -54,7 +54,8 @@ export class PlaybackService {
     ms.setActionHandler('previoustrack', () => this.zone.run(() => this.prev()));
     ms.setActionHandler('nexttrack', () => this.zone.run(() => this.next()));
 
-    const arm = () => { this.keeperPlay(); window.removeEventListener('pointerdown', arm); window.removeEventListener('keydown', arm); };
+    // Start the keeper once (unlocks autoplay), then sync it to the room state.
+    const arm = () => { this.keeperPlay(); this.reflect(); window.removeEventListener('pointerdown', arm); window.removeEventListener('keydown', arm); };
     window.addEventListener('pointerdown', arm);
     window.addEventListener('keydown', arm);
   }
@@ -136,7 +137,17 @@ export class PlaybackService {
   private applyState(s: any) {
     this.nowPlaying = s.now_playing ?? null;
     this.playing = !!s.playing;
+    this.reflect();
+  }
+
+  /** Keep the OS media session (and its silent keeper) in sync with the room, so
+   *  the play/pause key toggles correctly instead of only ever pausing. */
+  private reflect() {
     this.updateMediaSession();
+    if (this.keeper) {
+      if (this.playing) this.keeper.play().catch(() => {});
+      else this.keeper.pause();
+    }
   }
 
   private can(right: string): boolean {
@@ -149,6 +160,7 @@ export class PlaybackService {
     if (this.activeRoomId == null || !this.canPlayPause) return;
     const wasPlaying = this.playing;
     this.playing = !wasPlaying;   // optimistic; SSE will confirm
+    this.reflect();
     (wasPlaying ? this.api.roomPause(this.activeRoomId) : this.api.roomPlay(this.activeRoomId)).subscribe();
   }
   next() { if (this.activeRoomId != null && this.canSkip) this.api.roomNext(this.activeRoomId).subscribe(); }
