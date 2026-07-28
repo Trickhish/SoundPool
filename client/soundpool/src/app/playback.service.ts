@@ -19,6 +19,81 @@ export class PlaybackService {
   constructor(private api: ApiService, private event: LivefbService, private zone: NgZone) {
     const saved = localStorage.getItem('activeRoom');
     if (saved) this.setActiveRoom(+saved, localStorage.getItem('activeRoomName') || '');
+    this.setupKeyboard();
+    this.setupMediaSession();
+  }
+
+  // ── Keyboard: Space toggles play/pause (unless you're typing) ──
+  private setupKeyboard() {
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !this.isTyping(e)) {
+        e.preventDefault();
+        this.zone.run(() => this.toggle());
+      }
+    });
+  }
+
+  private isTyping(e: KeyboardEvent): boolean {
+    const t = e.target as HTMLElement | null;
+    if (!t) return false;
+    const tag = t.tagName?.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || !!t.isContentEditable;
+  }
+
+  // ── Hardware media keys (Media Session API) ──
+  // The OS only routes media keys to a tab that is actually playing audio, but
+  // the room usually plays on a unit. Hold a silent looping audio to claim the
+  // media session so play/pause/next keys reach us. Autoplay needs a gesture.
+  private keeper: HTMLAudioElement | null = null;
+
+  private setupMediaSession() {
+    const ms: any = (navigator as any).mediaSession;
+    if (!ms) return;
+    ms.setActionHandler('play', () => this.zone.run(() => { this.keeperPlay(); if (!this.playing) this.toggle(); }));
+    ms.setActionHandler('pause', () => this.zone.run(() => { if (this.playing) this.toggle(); }));
+    ms.setActionHandler('previoustrack', () => this.zone.run(() => this.prev()));
+    ms.setActionHandler('nexttrack', () => this.zone.run(() => this.next()));
+
+    const arm = () => { this.keeperPlay(); window.removeEventListener('pointerdown', arm); window.removeEventListener('keydown', arm); };
+    window.addEventListener('pointerdown', arm);
+    window.addEventListener('keydown', arm);
+  }
+
+  private keeperPlay() {
+    if (!this.keeper) {
+      this.keeper = new Audio(this.silentWav());
+      this.keeper.loop = true;
+    }
+    this.keeper.play().catch(() => {});
+  }
+
+  /** A 1s silent WAV data URI — silent content at normal volume still counts as
+   *  "playing audio", which is what grants the media session. */
+  private silentWav(): string {
+    const sr = 8000, n = sr; // 1 second, mono, 16-bit
+    const buf = new ArrayBuffer(44 + n * 2);
+    const dv = new DataView(buf);
+    const wr = (o: number, s: string) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+    wr(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); wr(8, 'WAVE'); wr(12, 'fmt ');
+    dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+    dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+    wr(36, 'data'); dv.setUint32(40, n * 2, true);
+    let bin = ''; const u8 = new Uint8Array(buf);
+    for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+    return 'data:audio/wav;base64,' + btoa(bin);
+  }
+
+  private updateMediaSession() {
+    const nav: any = navigator;
+    if (!nav.mediaSession) return;
+    const np = this.nowPlaying;
+    if (np && (window as any).MediaMetadata) {
+      nav.mediaSession.metadata = new (window as any).MediaMetadata({
+        title: np.title || '', artist: np.artist || '', album: this.roomName || '',
+        artwork: np.cover ? [{ src: np.cover, sizes: '250x250', type: 'image/jpeg' }] : []
+      });
+    }
+    nav.mediaSession.playbackState = this.playing ? 'playing' : 'paused';
   }
 
   /** Point the controller at a room and start mirroring its state. */
@@ -61,6 +136,7 @@ export class PlaybackService {
   private applyState(s: any) {
     this.nowPlaying = s.now_playing ?? null;
     this.playing = !!s.playing;
+    this.updateMediaSession();
   }
 
   private can(right: string): boolean {
