@@ -31,6 +31,14 @@
             <div *ngIf="!pl.picture" class="pl-cover-placeholder">
               <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
             </div>
+            <div class="pl-actions">
+              <button class="pl-play" (click)="playPlaylist(pl, false, $event)" [disabled]="starting !== null" title="Play">
+                <fa-icon [icon]="['fas','play']"></fa-icon>
+              </button>
+              <button class="pl-play shuffle" (click)="playPlaylist(pl, true, $event)" [disabled]="starting !== null" title="Shuffle play">
+                <fa-icon [icon]="['fas','shuffle']"></fa-icon>
+              </button>
+            </div>
           </div>
           <div class="pl-info">
             <span class="pl-title">{{ pl.title }}</span>
@@ -46,6 +54,12 @@
             <fa-icon [icon]="['fas','chevron-left']"></fa-icon>
           </button>
           <span class="detail-title">{{ opened.title }}</span>
+          <button class="detail-play" (click)="playPlaylist(opened, false)" [disabled]="starting !== null || tracksLoading" title="Play">
+            <fa-icon [icon]="['fas','play']"></fa-icon>
+          </button>
+          <button class="detail-play shuffle" (click)="playPlaylist(opened, true)" [disabled]="starting !== null || tracksLoading" title="Shuffle play">
+            <fa-icon [icon]="['fas','shuffle']"></fa-icon>
+          </button>
           <button class="add-all" (click)="addAll()" [disabled]="addingAll || tracksLoading">
             {{ addingAll ? 'Adding…' : 'Add all' }}
           </button>

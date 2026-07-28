@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
-import { faChevronLeft, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faPlus, faPlay, faShuffle } from '@fortawesome/free-solid-svg-icons';
 import { ApiService } from '../api.service';
 import { PlaybackService } from '../playback.service';
 
@@ -39,8 +39,10 @@ export class PlaylistsComponent implements OnInit {
     private router: Router,
     library: FaIconLibrary
   ) {
-    library.addIcons(faChevronLeft, faPlus);
+    library.addIcons(faChevronLeft, faPlus, faPlay, faShuffle);
   }
+
+  starting: number | null = null;   // playlist id currently being started
 
   ngOnInit() {
     this.api.deezerPlaylists().subscribe({
@@ -82,6 +84,37 @@ export class PlaylistsComponent implements OnInit {
     this.api.roomQueueAdd(room, { song_id: t.id, title: t.title, artist: t.artist, img_url: t.img_url || '' }).subscribe({
       next: () => this.toastr.success(t.title, `Added to ${this.playback.roomName || 'room'}`),
       error: () => this.toastr.error('Could not add song')
+    });
+  }
+
+  /** Replace the room's queue with this playlist and start playing. Shuffle
+   *  turns on shuffle mode and starts on a random track. */
+  playPlaylist(pl: DeezerPlaylist, shuffle: boolean, ev?: Event) {
+    ev?.stopPropagation();
+    const room = this.ensureRoom();
+    if (room == null || this.starting != null) return;
+    this.starting = pl.id;
+    const done = (msg: string) => { this.starting = null; this.toastr.success(pl.title, msg); };
+    const fail = () => { this.starting = null; this.toastr.error('Could not start playlist'); };
+
+    this.api.roomQueueClear(room).subscribe({
+      next: () => this.api.roomQueuePlaylist(room, pl.id).subscribe({
+        next: (r: any) => this.api.roomShuffle(room, shuffle).subscribe({
+          next: () => {
+            const total = r?.total || 0;
+            const start = (shuffle && total > 0)
+              ? this.api.roomQueueJump(room, Math.floor(Math.random() * total))
+              : this.api.roomPlay(room);
+            start.subscribe({
+              next: () => done(`${shuffle ? 'Shuffling' : 'Playing'} in ${this.playback.roomName || 'room'}`),
+              error: fail
+            });
+          },
+          error: fail
+        }),
+        error: fail
+      }),
+      error: fail
     });
   }
 

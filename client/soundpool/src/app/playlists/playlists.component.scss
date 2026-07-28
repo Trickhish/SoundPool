@@ -128,6 +128,7 @@
 }
 
 .pl-cover {
+    position: relative;
     aspect-ratio: 1;
     border-radius: 10px;
     overflow: hidden;
@@ -141,6 +142,44 @@
         display: block;
         transition: transform 0.25s ease;
     }
+}
+
+/* Play / shuffle overlay, revealed on card hover */
+.pl-actions {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: rgba(0,0,0,0.35);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.pl-card:hover .pl-actions { opacity: 1; }
+
+.pl-play {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; margin: 0; padding: 0;
+    border: none; border-radius: 50%;
+    background: var(--accent); color: #fff; cursor: pointer;
+    font-size: 1rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: transform 0.12s, filter 0.12s;
+    &:hover { transform: scale(1.08); filter: brightness(1.08); }
+    &:disabled { opacity: 0.5; cursor: default; transform: none; }
+    &.shuffle { background: var(--surface-1); color: var(--font-color); border: 1px solid rgba(255,255,255,0.18); }
+}
+
+.detail-play {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; margin: 0; padding: 0; flex-shrink: 0;
+    border: none; border-radius: 50%;
+    background: var(--accent); color: #fff; cursor: pointer;
+    transition: filter 0.12s;
+    &:hover { filter: brightness(1.08); }
+    &:disabled { opacity: 0.5; cursor: default; }
+    &.shuffle { background: var(--surface-1); color: var(--font-color); border: 1px solid var(--inp-bd); }
 }
 
 .pl-cover-placeholder {
