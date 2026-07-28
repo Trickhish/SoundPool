@@ -135,6 +135,7 @@ class PlayerUnit():
                     self.ownerId=owner.id
                     self.owner=owner
                     npu.owner_id = owner.id
+                    npu.owner_mail = owm
 
                     #scl = sse.getSseClients(owner.id)
                     #for sc in scl:

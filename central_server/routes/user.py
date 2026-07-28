@@ -2,6 +2,7 @@ import bcrypt
 from fastapi import APIRouter, HTTPException, Depends
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_
 
 from fastapi.responses import JSONResponse
 
@@ -32,7 +33,7 @@ async def test_handler(
     ):
     
     unl = db.query(Unit).filter(
-        Unit.owner_id==user.id or Unit.owner_mail==user.email
+        or_(Unit.owner_id == user.id, Unit.owner_mail == user.email)
     ).all()
 
     return JSONResponse(content=[jsonObject(e) for e in unl])
