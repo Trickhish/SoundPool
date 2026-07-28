@@ -32,7 +32,37 @@ def _user_from_token(tokval):
 router = APIRouter()
 
 RIGHTS_FIELDS = ["can_add", "can_remove", "can_reorder", "can_playpause",
-                 "can_skip", "can_vote_skip", "can_seek"]
+                 "can_skip", "can_vote_skip", "can_seek",
+                 "can_change_volume", "can_manage_speakers", "can_manage_party"]
+
+# Fixed role presets → flag values. Members can override individual flags on top.
+# owner/admin are treated as all-true in rights_dict (is_admin short-circuit).
+ROLE_PRESETS = {
+    "owner":  {f: True for f in RIGHTS_FIELDS},
+    "admin":  {f: True for f in RIGHTS_FIELDS},
+    "member": {"can_add": True, "can_remove": True, "can_reorder": True,
+               "can_playpause": True, "can_skip": True, "can_vote_skip": True,
+               "can_seek": True, "can_change_volume": True,
+               "can_manage_speakers": True, "can_manage_party": False},
+    "guest":  {"can_add": True, "can_remove": False, "can_reorder": False,
+               "can_playpause": False, "can_skip": False, "can_vote_skip": True,
+               "can_seek": False, "can_change_volume": False,
+               "can_manage_speakers": False, "can_manage_party": False},
+}
+# Roles whose holders can manage members / rights.
+ADMIN_ROLES = ("owner", "admin")
+
+
+def apply_role(member, role):
+    """Stamp a role's preset flags onto a member row (source of truth = flags)."""
+    preset = ROLE_PRESETS.get(role)
+    if preset is None:
+        return False
+    member.role = role
+    member.is_admin = role in ADMIN_ROLES
+    for f, v in preset.items():
+        setattr(member, f, v)
+    return True
 
 
 def rights_dict(member):
@@ -41,9 +71,11 @@ def rights_dict(member):
     if member.is_admin:
         d = {f: True for f in RIGHTS_FIELDS}
         d["is_admin"] = True
+        d["role"] = member.role or "admin"
         return d
     d = {f: bool(getattr(member, f)) for f in RIGHTS_FIELDS}
     d["is_admin"] = False
+    d["role"] = member.role or "guest"
     return d
 
 
@@ -77,9 +109,9 @@ def create_room(body: RoomCreate,
     db.add(room)
     db.commit()
     db.refresh(room)
-    db.add(RoomMember(room_id=room.id, user_id=user.id, is_admin=True,
-                      can_add=True, can_remove=True, can_reorder=True,
-                      can_playpause=True, can_skip=True, can_vote_skip=True, can_seek=True))
+    owner_member = RoomMember(room_id=room.id, user_id=user.id)
+    apply_role(owner_member, "owner")
+    db.add(owner_member)
     db.commit()
     return JSONResponse(content=room_dict(db, room, user))
 
@@ -280,15 +312,10 @@ def room_song_stream(room_id: int, song_id: str, request: Request,
 async def room_select_output(room_id: int, body: OutputRequest,
                              db: SessionLocal = Depends(get_db),  # type: ignore
                              user: User = Depends(verify_token)):
-    room = db.query(Room).filter(Room.id == room_id).first()
-    if not room:
-        raise HTTPException(404, "Room not found")
-    if get_member(db, room_id, user.id) is None:
-        raise HTTPException(403, "Not a member of this room")
+    _, rp = _require(db, room_id, user, "can_manage_speakers")
     unit = db.query(Unit).filter(Unit.id == body.unit_id).first()
     if not unit or unit.owner_id != user.id:
         raise HTTPException(403, "Not your unit")
-    rp = room_player.ensure_loaded(room_id)
     await rp.attach(body.unit_id)
     return JSONResponse(content={"status": "attached"})
 
@@ -297,10 +324,10 @@ async def room_select_output(room_id: int, body: OutputRequest,
 async def room_clear_output(room_id: int, body: OutputRequest,
                             db: SessionLocal = Depends(get_db),  # type: ignore
                             user: User = Depends(verify_token)):
+    _, rp = _require(db, room_id, user, "can_manage_speakers")
     unit = db.query(Unit).filter(Unit.id == body.unit_id).first()
     if not unit or unit.owner_id != user.id:
         raise HTTPException(403, "Not your unit")
-    rp = room_player.ensure_loaded(room_id)
     await rp.detach(body.unit_id)
     return JSONResponse(content={"status": "detached"})
 
@@ -364,7 +391,7 @@ async def room_seek(room_id: int, body: SeekRequest,
 async def room_volume(room_id: int, body: VolumeRequest,
                       db: SessionLocal = Depends(get_db),  # type: ignore
                       user: User = Depends(verify_token)):
-    _, rp = _require(db, room_id, user, "can_playpause")
+    _, rp = _require(db, room_id, user, "can_change_volume")
     await rp.set_volume(body.level)
     room_player.persist_queue(room_id)
     return JSONResponse(content={"status": "ok"})
@@ -400,7 +427,9 @@ def join_room(room_id: int, body: RoomJoinRequest,
     if room.password and room.password != (body.password or ""):
         raise HTTPException(403, "Incorrect password")
     if get_member(db, room_id, user.id) is None:
-        db.add(RoomMember(room_id=room_id, user_id=user.id))  # default: add + vote_skip
+        m = RoomMember(room_id=room_id, user_id=user.id)
+        apply_role(m, "guest")  # default: add + vote_skip
+        db.add(m)
         db.commit()
     return JSONResponse(content=room_dict(db, room, user))
 
@@ -461,6 +490,17 @@ def set_rights(room_id: int, body: RoomRightsRequest,
     target = get_member(db, room_id, body.user_id)
     if target is None:
         raise HTTPException(404, "User is not a member of this room")
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if target.user_id == room.owner_id:
+        raise HTTPException(403, "The room owner's rights cannot be changed")
+
+    # 1) Apply a role preset first (if given). "owner" is not assignable here.
+    if body.role is not None:
+        if body.role == "owner" or body.role not in ROLE_PRESETS:
+            raise HTTPException(400, f"Invalid role: {body.role}")
+        apply_role(target, body.role)
+
+    # 2) Per-person overrides layered on top of the preset.
     for f in RIGHTS_FIELDS + ["is_admin"]:
         val = getattr(body, f, None)
         if val is not None:

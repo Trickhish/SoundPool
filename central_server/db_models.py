@@ -81,7 +81,10 @@ class RoomMember(Base):
     room_id = Column(Integer, ForeignKey("rooms.id"), index=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     is_admin = Column(Boolean, default=False)
-    # Granular rights (admin implies all). Default member: add + vote_skip.
+    # Fixed-preset role (owner|admin|member|guest); flags below are the source of
+    # truth and may be overridden per-person on top of the role's preset.
+    role = Column(String(16), default="guest")
+    # Granular rights (admin implies all). Default (guest): add + vote_skip.
     can_add = Column(Boolean, default=True)
     can_remove = Column(Boolean, default=False)
     can_reorder = Column(Boolean, default=False)
@@ -89,6 +92,9 @@ class RoomMember(Base):
     can_skip = Column(Boolean, default=False)
     can_vote_skip = Column(Boolean, default=True)
     can_seek = Column(Boolean, default=False)
+    can_change_volume = Column(Boolean, default=False)
+    can_manage_speakers = Column(Boolean, default=False)
+    can_manage_party = Column(Boolean, default=False)
     joined_at = Column(DateTime, default=datetime.utcnow)
 
 class PlayHistory(Base):

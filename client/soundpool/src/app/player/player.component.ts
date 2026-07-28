@@ -463,7 +463,19 @@ export class PlayerComponent implements OnInit, OnDestroy {
     const val = !m[field];
     m[field] = val;
     this.api.setRoomRights(+this.pid, { user_id: m.user_id, [field]: val }).subscribe({
+      next: (r) => Object.assign(m, r),   // role may become 'custom'-ish; sync flags
       error: () => { m[field] = !val; this.toastr.error('Could not update rights'); }
+    });
+  }
+
+  // Fixed role presets a member can be assigned (owner is not assignable).
+  roleOptions = ['admin', 'member', 'guest'];
+  setMemberRole(m: any, role: string) {
+    if (!this.pid || m.role === role) return;
+    const prev = { ...m };
+    this.api.setRoomRights(+this.pid, { user_id: m.user_id, role }).subscribe({
+      next: (r) => Object.assign(m, r),   // server returns the stamped preset flags
+      error: () => { Object.assign(m, prev); this.toastr.error('Could not change role'); }
     });
   }
 

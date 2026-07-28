@@ -401,6 +401,29 @@
         background: rgba(255,43,109,0.15); color: var(--accent);
     }
 }
+.role-picker {
+    display: inline-flex;
+    gap: 0.3rem;
+    margin-bottom: 0.55rem;
+    padding: 0.2rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+}
+.role-btn {
+    background: transparent;
+    border: none;
+    color: var(--font-muted);
+    border-radius: 999px;
+    padding: 0.28rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    cursor: pointer;
+    margin: 0;
+    transition: background 0.12s, color 0.12s;
+    &.on { background: rgba(63,117,202,0.28); color: #7fb0ff; }
+}
 .rights-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .right-chip {
     background: rgba(255,255,255,0.05);

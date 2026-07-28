@@ -272,9 +272,17 @@
         <div *ngFor="let m of members" class="member-row">
           <div class="member-head">
             <span class="member-name">{{ m.username }}</span>
-            <span *ngIf="m.is_admin" class="badge admin">Admin</span>
+            <span *ngIf="m.role === 'owner'" class="badge admin">Owner</span>
           </div>
-          <div class="rights-chips" *ngIf="!m.is_admin">
+
+          <!-- Role preset selector (owner cannot be reassigned) -->
+          <div class="role-picker" *ngIf="m.role !== 'owner'">
+            <button *ngFor="let r of roleOptions" class="role-btn"
+                    [class.on]="m.role === r" (click)="setMemberRole(m, r)">{{ r }}</button>
+          </div>
+
+          <!-- Per-person flag overrides (hidden for owner = all rights) -->
+          <div class="rights-chips" *ngIf="m.role !== 'owner'">
             <button class="right-chip" [class.on]="m.can_add" (click)="toggleMemberRight(m, 'can_add')">add</button>
             <button class="right-chip" [class.on]="m.can_remove" (click)="toggleMemberRight(m, 'can_remove')">remove</button>
             <button class="right-chip" [class.on]="m.can_reorder" (click)="toggleMemberRight(m, 'can_reorder')">reorder</button>
@@ -282,7 +290,9 @@
             <button class="right-chip" [class.on]="m.can_skip" (click)="toggleMemberRight(m, 'can_skip')">skip</button>
             <button class="right-chip" [class.on]="m.can_seek" (click)="toggleMemberRight(m, 'can_seek')">seek</button>
             <button class="right-chip" [class.on]="m.can_vote_skip" (click)="toggleMemberRight(m, 'can_vote_skip')">vote-skip</button>
-            <button class="right-chip admin-toggle" [class.on]="m.is_admin" (click)="toggleMemberRight(m, 'is_admin')">make admin</button>
+            <button class="right-chip" [class.on]="m.can_change_volume" (click)="toggleMemberRight(m, 'can_change_volume')">volume</button>
+            <button class="right-chip" [class.on]="m.can_manage_speakers" (click)="toggleMemberRight(m, 'can_manage_speakers')">speakers</button>
+            <button class="right-chip" [class.on]="m.can_manage_party" (click)="toggleMemberRight(m, 'can_manage_party')">party</button>
           </div>
         </div>
       </div>

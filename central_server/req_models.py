@@ -27,6 +27,8 @@ class RoomJoinRequest(BaseModel):
 
 class RoomRightsRequest(BaseModel):
     user_id: int
+    # Optional role preset to stamp first (owner is not assignable via this API).
+    role: Optional[str] = None
     is_admin: Optional[bool] = None
     can_add: Optional[bool] = None
     can_remove: Optional[bool] = None
@@ -35,6 +37,9 @@ class RoomRightsRequest(BaseModel):
     can_skip: Optional[bool] = None
     can_vote_skip: Optional[bool] = None
     can_seek: Optional[bool] = None
+    can_change_volume: Optional[bool] = None
+    can_manage_speakers: Optional[bool] = None
+    can_manage_party: Optional[bool] = None
 
 class QueueAddRequest(BaseModel):
     song_id: str
