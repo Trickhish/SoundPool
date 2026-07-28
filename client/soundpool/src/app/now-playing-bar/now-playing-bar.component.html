@@ -1,4 +1,6 @@
 <div class="np-bar" *ngIf="!onActiveRoomPage && playback.nowPlaying as np">
+  <div class="np-progress"><div class="np-progress-fill" [style.width.%]="playback.progress"></div></div>
+
   <div class="np-info" (click)="openRoom()" title="Open room">
     <img class="np-cover" [src]="np.cover || 'soundpool_sqrd.png'" />
     <div class="np-text">

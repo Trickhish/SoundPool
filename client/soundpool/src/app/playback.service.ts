@@ -16,11 +16,33 @@ export class PlaybackService {
   rights: any = null;
   rightsLoaded = false;        // false until getRoom resolves (don't pre-disable)
 
+  progress = 0;                // 0..100 for the progress bar
+  private positionMs = 0;      // last reported position
+  private durationMs = 0;
+  private posAt = 0;           // timestamp positionMs was reported (for interpolation)
+
   constructor(private api: ApiService, private event: LivefbService, private zone: NgZone) {
     const saved = localStorage.getItem('activeRoom');
     if (saved) this.setActiveRoom(+saved, localStorage.getItem('activeRoomName') || '');
     this.setupKeyboard();
     this.setupMediaSession();
+    // Smoothly advance the progress bar between position reports (~1/s over SSE).
+    setInterval(() => {
+      if (this.playing && this.durationMs) this.zone.run(() => { this.progress = this.computeProgress(); });
+    }, 250);
+  }
+
+  private computeProgress(): number {
+    if (!this.durationMs) return 0;
+    const pos = this.positionMs + (this.playing ? Date.now() - this.posAt : 0);
+    return Math.max(0, Math.min(100, (pos / this.durationMs) * 100));
+  }
+
+  private setPosition(ms: number, dur?: number) {
+    this.positionMs = ms;
+    this.posAt = Date.now();
+    if (dur) this.durationMs = dur;
+    this.progress = this.computeProgress();
   }
 
   // ── Keyboard: Space toggles play/pause (unless you're typing) ──
@@ -128,6 +150,7 @@ export class PlaybackService {
   private onEvent(dt: any) {
     if (!dt) return;
     if (dt.type === 'state') this.applyState(dt);
+    else if (dt.type === 'progress') this.setPosition(dt.progress ?? 0, dt.duration);
     else if (dt.type === 'status') {
       if (dt.status === 'paused') this.playing = false;
       else if (dt.status === 'playing') this.playing = true;
@@ -137,6 +160,7 @@ export class PlaybackService {
   private applyState(s: any) {
     this.nowPlaying = s.now_playing ?? null;
     this.playing = !!s.playing;
+    this.setPosition(s.position ?? 0, this.nowPlaying?.duration ?? 0);
     this.reflect();
   }
 
