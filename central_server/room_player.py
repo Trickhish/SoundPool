@@ -166,8 +166,18 @@ class RoomPlayer:
     def _start_track(self, idx):
         self.current_index = idx
         self.base_offset = 0.0
-        self._t0 = time.monotonic()
+        self._t0 = None      # clock stays at 0 until _dispatch_start anchors it
         self.votes = set()  # skip-votes are per-track
+
+    async def _dispatch_start(self):
+        """Render the freshly-started track, THEN start the clock. _start_track
+        leaves _t0 unset so position() stays at 0 while the (possibly slow)
+        download resolve + render is dispatched — otherwise the progress clock
+        runs ahead of the audio and you get an 'advancing but silent' gap after
+        jumping to an un-cached song."""
+        await self.broadcast(force_render=True)
+        if self.playing:
+            self._t0 = time.monotonic()
 
     async def play(self):
         if self.current_index < 0:
@@ -224,30 +234,28 @@ class RoomPlayer:
             self.base_offset = 0.0
             self._t0 = None
             self.votes = set()
-        else:
-            self._start_track(nxt)
-            self.playing = True
-        # Force the render: on repeat-one the track id is unchanged, so the
-        # render signature would match and outputs would never be re-triggered
-        # (timeline loops but nothing plays).
-        await self.broadcast(force_render=True)
+            await self.broadcast(force_render=True)
+            return
+        self._start_track(nxt)
+        self.playing = True
+        # _dispatch_start renders (incl. repeat-one, where the track id is
+        # unchanged) then anchors the clock once audio is actually dispatched.
+        await self._dispatch_start()
 
     async def prev(self):
         if self.shuffle:
             return await self.advance()
-        if self.current_index <= 0:
-            self.base_offset = 0.0
-            self._t0 = time.monotonic()
-        else:
-            self._start_track(self.current_index - 1)
+        if not self.queue:
+            return
+        self._start_track(0 if self.current_index <= 0 else self.current_index - 1)
         self.playing = True
-        await self.broadcast()
+        await self._dispatch_start()
 
     async def jump(self, idx):
         if 0 <= idx < len(self.queue):
             self._start_track(idx)
             self.playing = True
-            await self.broadcast()
+            await self._dispatch_start()
 
     async def add(self, track, autoplay=True):
         self.queue.append(track)
