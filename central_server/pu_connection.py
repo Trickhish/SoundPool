@@ -124,7 +124,7 @@ class PlayerUnit():
             #await self.ws.send_text(json.dumps(["id_assign", self.id]))
             await self.send(["id_assign", self.id])
 
-            await sse.triggerEvent(f"pu_{self.id}", {"type":"status", "id":self.id, "status":pu.status, "name":self.name})
+            await sse.triggerEvent(f"pu_{self.id}", {"type":"status", "id":self.id, "status":npu.status, "name":self.name})
 
             if (owm):
                 owner:User = db.query(User).filter(
@@ -140,7 +140,7 @@ class PlayerUnit():
                     #for sc in scl:
                     #    if sc!=None:
                     #        await sc.trigger("mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
-                    await sse.clientsTrigger(owner.id, "mypu", {"type": "status", "id": pu.id, "status": True, "name": pu.name})
+                    await sse.clientsTrigger(owner.id, "mypu", {"type": "status", "id": npu.id, "status": npu.status, "name": npu.name})
             db.add(npu)
             db.commit()
             db.refresh(npu)
