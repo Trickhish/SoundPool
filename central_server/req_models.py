@@ -25,6 +25,9 @@ class RoomCreate(BaseModel):
 class RoomJoinRequest(BaseModel):
     password: Optional[str] = None
 
+class PartyJoinRequest(BaseModel):
+    username: str
+
 class RoomRightsRequest(BaseModel):
     user_id: int
     # Optional role preset to stamp first (owner is not assignable via this API).

@@ -1,0 +1,22 @@
+<div class="join-page">
+  <div class="join-card">
+    <img class="join-logo" src="/soundpool.png" alt="SoundPool" />
+
+    <div *ngIf="loading" class="join-msg">Loading…</div>
+
+    <div *ngIf="!loading && error" class="join-error">{{ error }}</div>
+
+    <ng-container *ngIf="!loading && !error">
+      <span class="join-eyebrow">You're invited to</span>
+      <h1 class="join-room">{{ roomName }}</h1>
+      <span class="join-meta">{{ memberCount }} listening</span>
+
+      <input class="join-input" [(ngModel)]="username" (keyup.enter)="join()"
+             maxlength="40" placeholder="Your name" />
+      <button class="join-btn" (click)="join()" [disabled]="!username.trim() || joining">
+        {{ joining ? 'Joining…' : 'Join the party' }}
+      </button>
+      <span class="join-note">Add songs and vote — no account needed.</span>
+    </ng-container>
+  </div>
+</div>

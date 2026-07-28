@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 import requests
 from datetime import datetime, timedelta
 from typing import Optional
@@ -8,7 +9,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from db_models import *
 from req_models import *
 from database import *
-from routes.auth import verify_token
+from routes.auth import verify_token, create_access_token, hash_password
 from configuration import config
 import room_player
 import tracks_manager as tmg
@@ -88,6 +89,8 @@ def get_member(db, room_id, user_id):
 def room_dict(db, room, user):
     member = get_member(db, room.id, user.id)
     count = db.query(RoomMember).filter(RoomMember.room_id == room.id).count()
+    rights = rights_dict(member)
+    can_party = bool(rights and (rights.get("is_admin") or rights.get("can_manage_party")))
     return {
         "id": room.id,
         "name": room.name,
@@ -95,9 +98,12 @@ def room_dict(db, room, user):
         "owner_id": room.owner_id,
         "member_count": count,
         "is_member": member is not None,
-        "rights": rights_dict(member),
+        "rights": rights,
         "shuffle": room.shuffle,
         "repeat": room.repeat,
+        "party_active": bool(room.party_active),
+        # the join code is only exposed to those who can manage the party
+        "party_code": room.party_code if (can_party and room.party_active) else None,
     }
 
 
@@ -105,6 +111,8 @@ def room_dict(db, room, user):
 def create_room(body: RoomCreate,
                 db: SessionLocal = Depends(get_db),  # type: ignore
                 user: User = Depends(verify_token)):
+    if getattr(user, "is_guest", False):
+        raise HTTPException(403, "Guests cannot create rooms")
     room = Room(name=body.name, password=body.password or None, owner_id=user.id)
     db.add(room)
     db.commit()
@@ -121,6 +129,42 @@ def list_rooms(db: SessionLocal = Depends(get_db),  # type: ignore
                user: User = Depends(verify_token)):
     rooms = db.query(Room).order_by(Room.created_at.desc()).all()
     return JSONResponse(content=[room_dict(db, r, user) for r in rooms])
+
+
+# ── Party guest access (public, no auth) ──
+# Declared before "/{room_id}" so the literal "party" segment isn't captured by
+# the int room_id path param.
+
+@router.get("/party/{code}")
+def party_info(code: str, db: SessionLocal = Depends(get_db)):  # type: ignore
+    room = db.query(Room).filter(Room.party_code == code, Room.party_active == True).first()
+    if not room:
+        raise HTTPException(404, "Party not found or ended")
+    count = db.query(RoomMember).filter(RoomMember.room_id == room.id).count()
+    return JSONResponse(content={"room_id": room.id, "name": room.name, "member_count": count})
+
+
+@router.post("/party/{code}/join")
+def party_join(code: str, body: PartyJoinRequest,
+               db: SessionLocal = Depends(get_db)):  # type: ignore
+    room = db.query(Room).filter(Room.party_code == code, Room.party_active == True).first()
+    if not room:
+        raise HTTPException(404, "Party not found or ended")
+    name = (body.username or "").strip()[:40] or "Guest"
+    # Accountless guest: a throwaway user + token, joined as a guest member.
+    guest = User(username=name, password=hash_password(secrets.token_urlsafe(16)),
+                 email=None, is_guest=True)
+    db.add(guest)
+    db.commit()
+    db.refresh(guest)
+    token = create_access_token(guest.id)
+    db.add(Token(value=token, user_id=guest.id, creation_date=datetime.utcnow()))
+    member = RoomMember(room_id=room.id, user_id=guest.id)
+    apply_role(member, "guest")
+    db.add(member)
+    db.commit()
+    return JSONResponse(content={"token": token, "username": name,
+                                 "room_id": room.id, "name": room.name})
 
 
 @router.get("/{room_id}")
@@ -456,6 +500,37 @@ def leave_room(room_id: int,
     db.query(RoomMember).filter(RoomMember.room_id == room_id, RoomMember.user_id == user.id).delete()
     db.commit()
     return JSONResponse(content={"status": "left"})
+
+
+@router.post("/{room_id}/party")
+def start_party(room_id: int,
+                db: SessionLocal = Depends(get_db),  # type: ignore
+                user: User = Depends(verify_token)):
+    room, _ = _require(db, room_id, user, "can_manage_party")
+    if not room.party_code:
+        room.party_code = secrets.token_urlsafe(9)
+    room.party_active = True
+    db.commit()
+    return JSONResponse(content={"party_active": True, "party_code": room.party_code})
+
+
+@router.delete("/{room_id}/party")
+def stop_party(room_id: int,
+               db: SessionLocal = Depends(get_db),  # type: ignore
+               user: User = Depends(verify_token)):
+    room, _ = _require(db, room_id, user, "can_manage_party")
+    room.party_active = False
+    room.party_code = None
+    # Remove guest members and their throwaway accounts.
+    guests = (db.query(RoomMember, User)
+                .join(User, User.id == RoomMember.user_id)
+                .filter(RoomMember.room_id == room_id, User.is_guest == True).all())
+    for member, guest in guests:
+        db.query(Token).filter(Token.user_id == guest.id).delete()
+        db.delete(member)
+        db.delete(guest)
+    db.commit()
+    return JSONResponse(content={"party_active": False})
 
 
 @router.delete("/{room_id}")

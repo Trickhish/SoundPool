@@ -4,7 +4,7 @@ import { NgCircleProgressModule, CircleProgressOptions  } from 'ng-circle-progre
 
 import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
 import {  } from '@fortawesome/free-regular-svg-icons';
-import { faPlay, faPlayCircle } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPlayCircle, faCopy } from '@fortawesome/free-solid-svg-icons';
 import { CachingService } from '../caching.service';
 import { ApiService } from '../api.service';
 import { Unit } from '../unit';
@@ -15,6 +15,7 @@ import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
+import QRCode from 'qrcode';
 
 export interface NowPlaying { id: string; title: string; artist: string; album: string; cover: string; duration: number; }
 export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; ready?: boolean; failed?: boolean; }
@@ -71,7 +72,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     window.addEventListener('mouseup', this.upHandler);
     window.addEventListener('touchmove', this.moveHandler, { passive: false });
     window.addEventListener('touchend', this.upHandler);
-    library.addIcons(faPlay, faPlayCircle);
+    library.addIcons(faPlay, faPlayCircle, faCopy);
   }
 
   pid: string | null = null;
@@ -92,6 +93,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
   voted = false;                  // did I vote to skip the current track (local)
   manageOpen = false;             // admin members/rights panel
   members: any[] = [];
+
+  // Party mode
+  partyOpen = false;
+  partyActive = false;
+  partyCode: string | null = null;
+  partyQr: string | null = null;  // QR data-URL of the join link
 
   // Authoritative player state (mirrors the unit snapshot)
   state: PlayerState = this.emptyState();
@@ -250,8 +257,45 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.rights = r.rights;
     this.player = { id: String(r.id), name: r.name, online: true } as any;
     if (r.state) this.applyState(r.state);
+    this.setParty(r.party_active, r.party_code);
     // Make this the room the global now-playing bar controls.
     this.playback.setActiveRoom(r.id, r.name);
+  }
+
+  // ── Party mode ──
+  private setParty(active: boolean, code: string | null) {
+    this.partyActive = !!active;
+    this.partyCode = code || null;
+    this.partyQr = null;
+    if (this.partyActive && this.partyCode) {
+      QRCode.toDataURL(this.partyLink, { width: 220, margin: 1 })
+        .then(url => this.zone.run(() => { this.partyQr = url; }))
+        .catch(() => {});
+    }
+  }
+  get partyLink(): string {
+    return this.partyCode ? `${window.location.origin}/party/${this.partyCode}` : '';
+  }
+  openParty() { this.partyOpen = true; }
+  closeParty() { this.partyOpen = false; }
+  startParty() {
+    if (!this.pid) return;
+    this.api.startParty(this.pid).subscribe({
+      next: (r: any) => this.zone.run(() => this.setParty(true, r.party_code)),
+      error: () => this.toastr.error('Could not start the party')
+    });
+  }
+  stopParty() {
+    if (!this.pid) return;
+    this.api.stopParty(this.pid).subscribe({
+      next: () => this.zone.run(() => this.setParty(false, null)),
+      error: () => this.toastr.error('Could not end the party')
+    });
+  }
+  copyPartyLink() {
+    navigator.clipboard?.writeText(this.partyLink)
+      .then(() => this.toastr.success('Link copied'))
+      .catch(() => {});
   }
 
   // ── Live events ──

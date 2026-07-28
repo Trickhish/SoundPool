@@ -63,6 +63,10 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
       </button>
 
+      <button *ngIf="isRoom && can('can_manage_party')" class="ec-btn" [class.active]="partyActive" (click)="openParty()" title="Party mode">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 12"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>
+      </button>
+
       <div class="volume" *ngIf="!isRoom || can('can_playpause')" [title]="isRoom ? 'Master volume' : 'Volume'">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path *ngIf="state.volume > 0.05" d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
         <input #vol type="range" min="0" max="1" step="0.01" [value]="state.volume" (input)="onVolumeInput(+vol.value)" class="vol-slider" />
@@ -268,6 +272,36 @@
             <button class="right-chip" [class.on]="m.can_manage_party" (click)="toggleMemberRight(m, 'can_manage_party')">party</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Party mode ── -->
+  <div class="library-overlay" *ngIf="partyOpen" (click)="closeParty()">
+    <div class="library party-modal" (click)="$event.stopPropagation()">
+      <div class="library-head">
+        <h2>Party mode</h2>
+        <button class="lib-close" (click)="closeParty()" title="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="library-body party-body">
+        <ng-container *ngIf="!partyActive">
+          <p class="party-hint">Let guests scan a code to add songs and vote — no account needed.</p>
+          <button class="party-start" (click)="startParty()">Start party</button>
+        </ng-container>
+
+        <ng-container *ngIf="partyActive">
+          <img *ngIf="partyQr" class="party-qr" [src]="partyQr" alt="Join QR code" />
+          <p class="party-hint">Scan to join, or share the link:</p>
+          <div class="party-link-row">
+            <input class="party-link" [value]="partyLink" readonly (click)="$any($event.target).select()" />
+            <button class="party-copy" (click)="copyPartyLink()" title="Copy link">
+              <fa-icon [icon]="['fas','copy']"></fa-icon>
+            </button>
+          </div>
+          <button class="party-stop" (click)="stopParty()">End party</button>
+        </ng-container>
       </div>
     </div>
   </div>

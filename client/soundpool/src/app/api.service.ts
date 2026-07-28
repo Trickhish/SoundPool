@@ -112,6 +112,11 @@ export class ApiService {
   public roomMembers(id:number) {
     return this.http.get<any[]>(`${ApiService.apiUrl}/room/${id}/members`);
   }
+  // ── Party mode / guest access ──
+  public startParty(id:string|number) { return this.rp(id, 'party'); }
+  public stopParty(id:string|number) { return this.http.delete<any>(`${ApiService.apiUrl}/room/${id}/party`); }
+  public getParty(code:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/party/${code}`); }
+  public joinParty(code:string, username:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/party/${code}/join`, { username }); }
   public setRoomRights(id:number, body:any) {
     return this.http.post<any>(`${ApiService.apiUrl}/room/${id}/rights`, body);
   }
