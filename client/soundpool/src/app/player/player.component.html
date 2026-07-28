@@ -102,55 +102,28 @@
         <span>Add songs or a playlist below</span>
       </div>
 
-      <!-- Previously played -->
-      <ng-container *ngIf="prevSongs.length">
-        <div class="qp-section">Previous</div>
-        <div *ngFor="let item of prevSongs" class="qp-row played" (click)="jumpTo(item)" title="Play this song">
-          <img class="qp-cover" [src]="item.cover || 'soundpool_sqrd.png'"/>
-          <div class="qp-info">
-            <span class="qp-row-title">{{ item.title }}</span>
-            <span class="qp-row-artist">{{ item.artist }}</span>
-          </div>
-          <button *ngIf="can('can_remove')" class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-          </button>
+      <!-- Flat queue: one list, current highlighted, drag any row anywhere -->
+      <div *ngFor="let item of state.queue" class="qp-row"
+           [class.current]="item.key === state.current_index"
+           [class.played]="item.key < state.current_index"
+           [class.pending]="item.ready === false && !item.failed" [class.failed]="item.failed"
+           [class.dragover]="dragOverKey === item.key"
+           [draggable]="can('can_reorder')"
+           (dragstart)="onDragStart(item)" (dragover)="onDragOver(item, $event)"
+           (drop)="onDrop(item, $event)" (dragend)="onDragEnd()"
+           (click)="jumpTo(item)"
+           [title]="item.key === state.current_index ? 'Now playing' : 'Play this song'">
+        <img class="qp-cover" [src]="item.cover || 'soundpool_sqrd.png'"/>
+        <div class="qp-info">
+          <span class="qp-row-title">{{ item.title }}</span>
+          <span class="qp-row-artist">{{ item.failed ? 'Failed' : (item.ready === false ? 'Downloading…' : item.artist) }}</span>
         </div>
-      </ng-container>
-
-      <!-- Now playing -->
-      <ng-container *ngIf="nowItem">
-        <div class="qp-section">Now playing</div>
-        <div class="qp-row current">
-          <img class="qp-cover" [src]="nowItem.cover || 'soundpool_sqrd.png'"/>
-          <div class="qp-info">
-            <span class="qp-row-title">{{ nowItem.title }}</span>
-            <span class="qp-row-artist">{{ nowItem.artist }}</span>
-          </div>
-          <span class="qp-eq" [class.paused]="!playing"><i></i><i></i><i></i></span>
-        </div>
-      </ng-container>
-
-      <!-- Up next -->
-      <ng-container *ngIf="upNext.length">
-        <div class="qp-section">Next up</div>
-        <div *ngFor="let item of upNext" class="qp-row"
-             [class.pending]="item.ready === false && !item.failed" [class.failed]="item.failed"
-             [class.dragover]="dragOverKey === item.key"
-             [draggable]="can('can_reorder')"
-             (dragstart)="onDragStart(item)" (dragover)="onDragOver(item, $event)"
-             (drop)="onDrop(item, $event)" (dragend)="onDragEnd()"
-             (click)="jumpTo(item)" title="Play this song">
-          <img class="qp-cover" [src]="item.cover || 'soundpool_sqrd.png'"/>
-          <div class="qp-info">
-            <span class="qp-row-title">{{ item.title }}</span>
-            <span class="qp-row-artist">{{ item.failed ? 'Failed' : (item.ready === false ? 'Downloading…' : item.artist) }}</span>
-          </div>
-          <div *ngIf="item.ready === false && !item.failed" class="q-spinner"></div>
-          <button *ngIf="can('can_remove')" class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-          </button>
-        </div>
-      </ng-container>
+        <span *ngIf="item.key === state.current_index" class="qp-eq" [class.paused]="!playing"><i></i><i></i><i></i></span>
+        <div *ngIf="item.ready === false && !item.failed" class="q-spinner"></div>
+        <button *ngIf="can('can_remove') && item.key !== state.current_index" class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="queue-pane-foot">
