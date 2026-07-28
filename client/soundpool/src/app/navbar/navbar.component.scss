@@ -1,5 +1,6 @@
 .main {
     padding-top: 5em;
+    padding-bottom: 4.2em;   /* room for the fixed now-playing bar */
     height: calc(100dvh - 5em);
     display: flex;
     flex-direction: column;

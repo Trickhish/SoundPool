@@ -9,6 +9,7 @@ import { CachingService } from '../caching.service';
 import { ApiService } from '../api.service';
 import { Unit } from '../unit';
 import { LivefbService } from '../livefb.service';
+import { PlaybackService } from '../playback.service';
 import { Song } from '../song';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
@@ -61,7 +62,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     private event: LivefbService,
     private zone: NgZone,
     private cdr: ChangeDetectorRef,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private playback: PlaybackService
   ) {
     this.moveHandler = (e: any) => this.onPointerMove(e);
     this.upHandler = () => this.onPointerUp();
@@ -248,6 +250,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.rights = r.rights;
     this.player = { id: String(r.id), name: r.name, online: true } as any;
     if (r.state) this.applyState(r.state);
+    // Make this the room the global now-playing bar controls.
+    this.playback.setActiveRoom(r.id, r.name);
   }
 
   // ── Live events ──

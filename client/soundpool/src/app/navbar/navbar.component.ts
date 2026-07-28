@@ -7,10 +7,11 @@ import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontaweso
 import {  } from '@fortawesome/free-regular-svg-icons';
 import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { ApiService } from '../api.service';
+import { NowPlayingBarComponent } from '../now-playing-bar/now-playing-bar.component';
 
 @Component({
   selector: 'app-navbar',
-  imports: [RouterOutlet, RouterLink, TranslateModule, CommonModule, FontAwesomeModule],
+  imports: [RouterOutlet, RouterLink, TranslateModule, CommonModule, FontAwesomeModule, NowPlayingBarComponent],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss'
 })
