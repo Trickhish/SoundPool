@@ -1,11 +1,13 @@
 .main {
     padding-top: 5em;
-    padding-bottom: 4.2em;   /* room for the fixed now-playing bar */
     height: calc(100dvh - 5em);
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
+
+    /* only reserve room for the now-playing bar when it's actually shown */
+    &.with-bar { padding-bottom: 4.2em; }
 }
 
 #page_title { display: none; }

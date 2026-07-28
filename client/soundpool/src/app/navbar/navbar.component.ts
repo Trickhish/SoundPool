@@ -8,6 +8,7 @@ import {  } from '@fortawesome/free-regular-svg-icons';
 import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { ApiService } from '../api.service';
 import { NowPlayingBarComponent } from '../now-playing-bar/now-playing-bar.component';
+import { PlaybackService } from '../playback.service';
 
 @Component({
   selector: 'app-navbar',
@@ -20,8 +21,9 @@ export class NavbarComponent {
     private library: FaIconLibrary,
     private router: Router,
     private translate: TranslateService,
-    public api: ApiService
-  ) { 
+    public api: ApiService,
+    public playback: PlaybackService
+  ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         this.currentRoute = event.urlAfterRedirects;
@@ -34,6 +36,14 @@ export class NavbarComponent {
 
   currentRoute: string = '';
   page_title: string = '';
+
+  /** The now-playing bar is shown (so reserve bottom space) unless we're on the
+   *  active room's own page, where the bar is hidden. */
+  get barVisible(): boolean {
+    const id = this.playback.activeRoomId;
+    const onActiveRoom = id != null && this.currentRoute.split('?')[0] === `/room/${id}`;
+    return !!this.playback.nowPlaying && !onActiveRoom;
+  }
 
   langImg(lg=this.translate.currentLang) {
     if (['us','en','uk','eng'].includes(lg)) {
