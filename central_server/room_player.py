@@ -32,8 +32,8 @@ class RoomPlayer:
         self._t0 = None            # monotonic timestamp the offset was anchored
         self.outputs = set()       # attached output unit ids
         self.arl = None            # room owner's Deezer ARL (for download data)
-        self._dl_index = -1        # which queue index _dl was resolved for
-        self._dl = None            # cached (song, url, key) for the current track
+        self._dl_cache = {}        # song_id -> (song, url, key); holds current + prefetched next
+        self._prefetching = set()  # song_ids currently being resolved (dedup)
         self._last_render = None   # (song_id, playing) last pushed to outputs
         self.votes = set()         # user ids who voted to skip the current track
         self.vote_threshold = 0    # votes needed to skip (updated on each vote)
@@ -88,23 +88,53 @@ class RoomPlayer:
         evt["type"] = "state"
         await sse.triggerEvent(f"room_{self.room_id}", evt)
         await self._render_outputs(force=force_render)
+        self._prefetch_next()   # keep the upcoming track's download data warm
 
-    async def _resolve_dl(self):
-        """Resolve (and cache) the current track's Deezer download data."""
-        if self._dl_index == self.current_index and self._dl is not None:
-            return self._dl
-        cur = self.cur()
-        if cur is None or not self.arl:
+    async def _resolve_for(self, song_id):
+        """Resolve (and cache) a song's Deezer download data, keyed by song id so
+        the cache survives queue reordering."""
+        if not song_id or not self.arl:
             return None
+        if song_id in self._dl_cache:
+            return self._dl_cache[song_id]
         try:
-            song = await asyncio.to_thread(tmg.get_song_gw_data, cur["id"], self.arl)
+            song = await asyncio.to_thread(tmg.get_song_gw_data, song_id, self.arl)
             song, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, song, self.arl)
         except Exception as e:
             print(f"[room_player] download-data resolve failed: {e}")
             return None
-        self._dl = (song, url, key)
-        self._dl_index = self.current_index
-        return self._dl
+        self._dl_cache[song_id] = (song, url, key)
+        return self._dl_cache[song_id]
+
+    async def _resolve_dl(self):
+        """Resolve (and cache) the current track's Deezer download data."""
+        cur = self.cur()
+        return await self._resolve_for(cur["id"]) if cur else None
+
+    def _prefetch_next(self):
+        """Resolve the upcoming track's download data in the background so the
+        next advance/skip is instant. Prunes the cache to current + next. Only
+        useful for unit outputs (browser output resolves its own stream)."""
+        if not self.outputs:
+            self._dl_cache.clear()
+            return
+        cur = self.cur()
+        keep = {cur["id"]} if cur else set()
+        nxt = self._next_index(auto=True)
+        if 0 <= nxt < len(self.queue):
+            nid = self.queue[nxt]["id"]
+            keep.add(nid)
+            if nid not in self._dl_cache and nid not in self._prefetching:
+                self._prefetching.add(nid)
+                async def _run():
+                    try:
+                        await self._resolve_for(nid)
+                    finally:
+                        self._prefetching.discard(nid)
+                asyncio.create_task(_run())
+        for sid in list(self._dl_cache):
+            if sid not in keep:
+                del self._dl_cache[sid]
 
     async def _render_outputs(self, force=False):
         if not self.outputs:
@@ -243,15 +273,12 @@ class RoomPlayer:
         if len(self.queue) <= 1:
             await self.broadcast()
             return
-        if self.playing and self.current_index >= 0:
-            start = self.current_index + 1
-        else:
-            start = max(self.current_index, 0)
-            self._dl = None          # current slot may hold a different track now
-            self._dl_index = -1
+        start = self.current_index + 1 if (self.playing and self.current_index >= 0) else max(self.current_index, 0)
         tail = self.queue[start:]
         random.shuffle(tail)
         self.queue[start:] = tail
+        # cache is keyed by song id, so it survives the reorder (broadcast then
+        # refreshes the prefetched "next" for the new order).
         await self.broadcast(force_render=True)
 
     async def advance(self, auto=False):
