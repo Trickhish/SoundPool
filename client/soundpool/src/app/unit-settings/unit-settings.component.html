@@ -12,6 +12,11 @@
       <input class="set-input" [(ngModel)]="name" (keyup.enter)="saveName()" placeholder="Unit name" />
       <button class="set-btn" (click)="saveName()">Save</button>
     </div>
+    <div class="field-row">
+      <label>Location</label>
+      <input class="set-input" [(ngModel)]="location" (keyup.enter)="saveLocation()" placeholder="e.g. Kitchen, Living room" />
+      <button class="set-btn" (click)="saveLocation()">Save</button>
+    </div>
   </section>
 
   <!-- Outputs -->

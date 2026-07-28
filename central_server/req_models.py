@@ -77,7 +77,8 @@ class SinkVolumeRequest(BaseModel):
     level: float
 
 class UnitRenameRequest(BaseModel):
-    name: str
+    name: Optional[str] = None
+    location: Optional[str] = None
 
 class BtRequest(BaseModel):
     mac: Optional[str] = None

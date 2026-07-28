@@ -270,8 +270,8 @@ async def unit_audio(unit_id: str,
                      user: User = Depends(verify_token)):
     u = _owned_unit(unit_id, user, dbs)
     uc = getUnitById(unit_id)
-    return JSONResponse(content={"id": u.id, "name": u.name, "status": u.status,
-                                 "online": uc is not None,
+    return JSONResponse(content={"id": u.id, "name": u.name, "location": u.location,
+                                 "status": u.status, "online": uc is not None,
                                  "audio": uc.audio if uc else None})
 
 
@@ -319,9 +319,12 @@ async def unit_rename(unit_id: str, body: UnitRenameRequest,
                       dbs: SessionLocal = Depends(get_db),  # type: ignore
                       user: User = Depends(verify_token)):
     u = _owned_unit(unit_id, user, dbs)
-    u.name = body.name
+    if body.name is not None:
+        u.name = body.name
+    if body.location is not None:
+        u.location = body.location
     dbs.commit()
     uc = getUnitById(unit_id)
-    if uc:
+    if uc and body.name is not None:
         uc.name = body.name
-    return JSONResponse(content={"status": "ok", "name": body.name})
+    return JSONResponse(content={"status": "ok", "name": u.name, "location": u.location})

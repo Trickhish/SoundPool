@@ -80,6 +80,9 @@ export class ApiService {
   public renameUnit(id:string, name:string) {
     return this.http.patch(`${ApiService.apiUrl}/unit/${id}`, { name });
   }
+  public setUnitLocation(id:string, location:string) {
+    return this.http.patch(`${ApiService.apiUrl}/unit/${id}`, { location });
+  }
   public btScan(id:string, seconds:number=8) {
     return this.http.post(`${ApiService.apiUrl}/unit/${id}/bt/scan`, { seconds });
   }

@@ -3,6 +3,7 @@
         <a [routerLink]="'/unit/'+u.id" [class.online]="u.online" class="unit" *ngFor="let u of units">
             <span class="status-dot"></span>
             <h2 class="title">{{u.name}}</h2>
+            <span class="location" *ngIf="u.location">{{u.location}}</span>
         </a>
     </div>
 </div>

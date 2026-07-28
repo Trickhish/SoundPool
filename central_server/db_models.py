@@ -52,6 +52,7 @@ class Unit(Base):
     __tablename__ = "units"
     id = Column(String(255), primary_key=True, index=True)
     name = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)   # physical place (e.g. "Kitchen")
     online = Column(Boolean, nullable=False, default=False)
     owner_mail = Column(String(255), nullable=True)
     owner_id = Column(Integer, nullable=True)

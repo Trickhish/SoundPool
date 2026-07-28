@@ -19,6 +19,7 @@ export class UnitSettingsComponent implements OnInit {
 
   id = '';
   name = '';
+  location = '';
   online = false;
   status = '';
   audio: any = { sinks: [], outputs: [], bt: { powered: false, scanning: false, devices: [] } };
@@ -39,6 +40,7 @@ export class UnitSettingsComponent implements OnInit {
     this.api.getUnitAudio(this.id).subscribe({
       next: (r: any) => {
         this.name = r.name || '';
+        this.location = r.location || '';
         this.online = r.online;
         this.status = r.status;
         if (r.audio) this.audio = r.audio;
@@ -52,6 +54,13 @@ export class UnitSettingsComponent implements OnInit {
     this.api.renameUnit(this.id, this.name.trim()).subscribe({
       next: () => this.toastr.success('Renamed'),
       error: () => this.toastr.error('Could not rename')
+    });
+  }
+
+  saveLocation() {
+    this.api.setUnitLocation(this.id, this.location.trim()).subscribe({
+      next: () => this.toastr.success('Location saved'),
+      error: () => this.toastr.error('Could not save location')
     });
   }
 
