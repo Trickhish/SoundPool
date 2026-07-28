@@ -67,4 +67,6 @@
     color: #fff;
     &:hover { filter: brightness(1.08); }
   }
+  &:disabled { opacity: 0.35; cursor: default; &:hover { background: transparent; filter: none; } }
+  svg { pointer-events: none; }
 }

@@ -14,6 +14,7 @@ export class PlaybackService {
   nowPlaying: any = null;      // { id, title, artist, cover, duration }
   playing = false;
   rights: any = null;
+  rightsLoaded = false;        // false until getRoom resolves (don't pre-disable)
 
   constructor(private api: ApiService, private event: LivefbService, private zone: NgZone) {
     const saved = localStorage.getItem('activeRoom');
@@ -29,6 +30,7 @@ export class PlaybackService {
     if (name) localStorage.setItem('activeRoomName', name);
 
     if (!same) {
+      this.rightsLoaded = false;   // will be set once getRoom resolves below
       // SSE fires outside Angular's zone; re-enter it. Guard by id so a stale
       // room's events (we never explicitly unsubscribe) can't clobber state.
       this.event.subscribe(`room_${id}`, (dt: any) =>
@@ -39,6 +41,7 @@ export class PlaybackService {
       next: (r: any) => this.zone.run(() => {
         this.roomName = r.name;
         this.rights = r.rights;
+        this.rightsLoaded = true;
         if (r.name) localStorage.setItem('activeRoomName', r.name);
         if (r.state) this.applyState(r.state);
       }),
