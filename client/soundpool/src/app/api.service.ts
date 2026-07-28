@@ -133,6 +133,7 @@ export class ApiService {
   public roomQueueMove(id:string|number, frm:number, to:number) { return this.rp(id, 'queue/move', { frm, to }); }
   public roomQueueJump(id:string|number, index:number) { return this.rp(id, 'queue/jump', { index }); }
   public roomQueueClear(id:string|number) { return this.http.delete(`${ApiService.apiUrl}/room/${id}/queue/clear`); }
+  public roomQueueShuffle(id:string|number) { return this.rp(id, 'queue/shuffle'); }
   public roomQueuePlaylist(id:string|number, playlistId:number) { return this.rp(id, `queue/playlist/${playlistId}`); }
   public roomVoteSkip(id:string|number) { return this.rp(id, 'vote_skip'); }
   public getRoomSong(id:string|number, songId:string) {

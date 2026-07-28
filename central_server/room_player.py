@@ -208,21 +208,36 @@ class RoomPlayer:
         await self.broadcast(force_render=True)
 
     def _next_index(self, auto):
+        # Playback always follows the (possibly shuffled) queue order, so the
+        # displayed order is the play order — shuffling reorders the list once
+        # rather than picking random tracks on the fly.
         if self.repeat == "one" and auto and self.current_index >= 0:
             return self.current_index
         if not self.queue:
             return -1
-        if self.shuffle:
-            if len(self.queue) == 1:
-                return 0
-            nxt = self.current_index
-            while nxt == self.current_index:
-                nxt = random.randrange(len(self.queue))
-            return nxt
         nxt = self.current_index + 1
         if nxt >= len(self.queue):
             return 0 if self.repeat == "all" else -1
         return nxt
+
+    async def shuffle_queue(self):
+        """Randomize the queue order once. Keeps already-played + the currently
+        playing track fixed and shuffles the upcoming songs; if nothing is
+        playing, shuffles from the current slot (which may then hold a new
+        track). Playback then proceeds in the new displayed order."""
+        if len(self.queue) <= 1:
+            await self.broadcast()
+            return
+        if self.playing and self.current_index >= 0:
+            start = self.current_index + 1
+        else:
+            start = max(self.current_index, 0)
+            self._dl = None          # current slot may hold a different track now
+            self._dl_index = -1
+        tail = self.queue[start:]
+        random.shuffle(tail)
+        self.queue[start:] = tail
+        await self.broadcast(force_render=True)
 
     async def advance(self, auto=False):
         nxt = self._next_index(auto)

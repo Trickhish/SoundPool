@@ -97,21 +97,18 @@ export class PlaylistsComponent implements OnInit {
     const done = (msg: string) => { this.starting = null; this.toastr.success(pl.title, msg); };
     const fail = () => { this.starting = null; this.toastr.error('Could not start playlist'); };
 
+    // clear -> add playlist -> (shuffle the queue) -> play from the top, so the
+    // shuffled order is the displayed/play order.
+    const playFromTop = () => this.api.roomPlay(room).subscribe({
+      next: () => done(`${shuffle ? 'Shuffling' : 'Playing'} in ${this.playback.roomName || 'room'}`),
+      error: fail
+    });
     this.api.roomQueueClear(room).subscribe({
       next: () => this.api.roomQueuePlaylist(room, pl.id).subscribe({
-        next: (r: any) => this.api.roomShuffle(room, shuffle).subscribe({
-          next: () => {
-            const total = r?.total || 0;
-            const start = (shuffle && total > 0)
-              ? this.api.roomQueueJump(room, Math.floor(Math.random() * total))
-              : this.api.roomPlay(room);
-            start.subscribe({
-              next: () => done(`${shuffle ? 'Shuffling' : 'Playing'} in ${this.playback.roomName || 'room'}`),
-              error: fail
-            });
-          },
-          error: fail
-        }),
+        next: () => {
+          if (shuffle) this.api.roomQueueShuffle(room).subscribe({ next: playFromTop, error: fail });
+          else playFromTop();
+        },
         error: fail
       }),
       error: fail

@@ -203,6 +203,16 @@ async def room_queue_remove(room_id: int, body: QueueIndexRequest,
     return JSONResponse(content={"status": "ok"})
 
 
+@router.post("/{room_id}/queue/shuffle")
+async def room_queue_shuffle(room_id: int,
+                             db: SessionLocal = Depends(get_db),  # type: ignore
+                             user: User = Depends(verify_token)):
+    _, rp = _require(db, room_id, user, "can_reorder")
+    await rp.shuffle_queue()
+    room_player.persist_queue(room_id)
+    return JSONResponse(content={"status": "ok"})
+
+
 @router.post("/{room_id}/queue/move")
 async def room_queue_move(room_id: int, body: QueueMoveRequest,
                           db: SessionLocal = Depends(get_db),  # type: ignore

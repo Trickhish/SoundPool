@@ -402,10 +402,12 @@ export class PlayerComponent implements OnInit, OnDestroy {
       (this.isRoom ? this.api.roomVolume(this.pid, v) : this.api.setVolume(this.pid, v)).subscribe();
     }, 120);
   }
-  toggleShuffle() {
-    const on = !this.state.shuffle;
-    this.state.shuffle = on;
-    if (this.pid) (this.isRoom ? this.api.roomShuffle(this.pid, on) : this.api.setShuffle(this.pid, on)).subscribe();
+  shuffleQueue() {
+    if (!this.pid || !this.isRoom || !this.can('can_reorder')) return;
+    this.api.roomQueueShuffle(this.pid).subscribe({
+      next: () => this.toastr.success('Queue shuffled'),
+      error: () => this.toastr.error('Could not shuffle')
+    });
   }
   cycleRepeat() {
     const order: ('off' | 'all' | 'one')[] = ['off', 'all', 'one'];
