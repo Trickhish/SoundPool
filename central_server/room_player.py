@@ -169,12 +169,27 @@ class RoomPlayer:
         self._t0 = None      # clock stays at 0 until _dispatch_start anchors it
         self.votes = set()  # skip-votes are per-track
 
+    async def _halt_outputs(self):
+        """Immediately silence every output. Used when switching tracks so the
+        previous song stops the moment you skip, rather than playing on while the
+        next one downloads (which looks like the skip didn't register)."""
+        if not self.outputs:
+            return
+        import pu_connection as puc
+        for uid in list(self.outputs):
+            u = puc.getUnitById(uid)
+            if u:
+                await u.send(["stop"])
+        self._last_render = None   # force the next render to re-send
+
     async def _dispatch_start(self):
         """Render the freshly-started track, THEN start the clock. _start_track
         leaves _t0 unset so position() stays at 0 while the (possibly slow)
         download resolve + render is dispatched — otherwise the progress clock
         runs ahead of the audio and you get an 'advancing but silent' gap after
-        jumping to an un-cached song."""
+        jumping to an un-cached song. Outputs are halted first so the old track
+        stops right away and playback pauses while the new one loads."""
+        await self._halt_outputs()
         await self.broadcast(force_render=True)
         if self.playing:
             self._t0 = time.monotonic()
