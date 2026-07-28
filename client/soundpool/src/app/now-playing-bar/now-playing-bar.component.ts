@@ -21,4 +21,10 @@ export class NowPlayingBarComponent {
     if (this.playback.activeRoomId != null)
       this.router.navigate(['/room', this.playback.activeRoomId]);
   }
+
+  /** Hide the bar when we're already on the active room's page (full controls). */
+  get onActiveRoomPage(): boolean {
+    const id = this.playback.activeRoomId;
+    return id != null && this.router.url.split('?')[0] === `/room/${id}`;
+  }
 }

@@ -1,4 +1,4 @@
-<div class="np-bar" *ngIf="playback.nowPlaying as np">
+<div class="np-bar" *ngIf="!onActiveRoomPage && playback.nowPlaying as np">
   <div class="np-info" (click)="openRoom()" title="Open room">
     <img class="np-cover" [src]="np.cover || 'soundpool_sqrd.png'" />
     <div class="np-text">
