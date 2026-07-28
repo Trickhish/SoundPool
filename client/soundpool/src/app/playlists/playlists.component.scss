@@ -199,3 +199,50 @@
 @media (max-width: 500px) {
     .pl-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; }
 }
+
+/* ── Opened playlist: track list ── */
+.pl-detail { margin-top: 0.5rem; }
+
+.detail-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+
+    .back-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; margin: 0; flex-shrink: 0;
+        border: 1px solid var(--inp-bd); border-radius: 50%;
+        background: var(--surface-1); color: var(--font-color); cursor: pointer;
+        transition: background 0.12s;
+        &:hover { background: rgba(255,255,255,0.08); }
+    }
+    .detail-title {
+        font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 700;
+        flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        color: var(--font-color);
+    }
+    .add-all {
+        margin: 0; flex-shrink: 0;
+        background: var(--accent); color: #fff; border: none; border-radius: 999px;
+        padding: 0.45rem 1rem; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+        transition: filter 0.12s;
+        &:hover { filter: brightness(1.08); }
+        &:disabled { opacity: 0.5; cursor: default; filter: none; }
+    }
+}
+.detail-target { display: block; font-size: 0.82rem; color: var(--font-muted); margin-bottom: 0.8rem; strong { color: var(--accent); } }
+
+.track-row {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.5rem 0.5rem; border-radius: 10px; cursor: pointer;
+    transition: background 0.12s;
+    &:hover { background: rgba(255,255,255,0.05); }
+
+    .track-cover { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .track-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .track-title { font-weight: 600; color: var(--font-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { font-size: 0.82rem; color: var(--font-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-add { color: var(--font-muted); flex-shrink: 0; }
+    &:hover .track-add { color: var(--accent); }
+}
