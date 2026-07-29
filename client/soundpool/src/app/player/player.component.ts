@@ -520,7 +520,16 @@ export class PlayerComponent implements OnInit, OnDestroy {
   voteSkip() {
     if (!this.pid || this.voted) return;
     this.voted = true;
-    this.api.roomVoteSkip(this.pid).subscribe({ error: () => { this.voted = false; } });
+    this.api.roomVoteSkip(this.pid).subscribe({
+      next: (r: any) => {
+        // votes reset to 0 once the threshold is reached and it skips.
+        if (r && r.votes && r.threshold && r.votes < r.threshold)
+          this.toastr.info(`${r.votes}/${r.threshold} — voting to skip`);
+        else
+          this.toastr.success('Skipping…');
+      },
+      error: () => { this.voted = false; this.toastr.error('Could not vote'); }
+    });
   }
 
   // ── Members / rights management (admin) ──

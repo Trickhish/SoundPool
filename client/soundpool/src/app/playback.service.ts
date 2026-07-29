@@ -1,4 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
+import { ToastrService } from 'ngx-toastr';
 import { ApiService } from './api.service';
 import { LivefbService } from './livefb.service';
 
@@ -21,7 +22,7 @@ export class PlaybackService {
   private durationMs = 0;
   private posAt = 0;           // timestamp positionMs was reported (for interpolation)
 
-  constructor(private api: ApiService, private event: LivefbService, private zone: NgZone) {
+  constructor(private api: ApiService, private event: LivefbService, private zone: NgZone, private toastr: ToastrService) {
     const saved = localStorage.getItem('activeRoom');
     if (saved) this.setActiveRoom(+saved, localStorage.getItem('activeRoomName') || '');
     this.setupKeyboard();
@@ -192,8 +193,14 @@ export class PlaybackService {
   }
   next() {
     if (this.activeRoomId == null) return;
-    if (this.canSkip) this.api.roomNext(this.activeRoomId).subscribe();
-    else if (this.canVoteSkip) this.api.roomVoteSkip(this.activeRoomId).subscribe();  // party vote
+    if (this.canSkip) { this.api.roomNext(this.activeRoomId).subscribe(); return; }
+    if (this.canVoteSkip) this.api.roomVoteSkip(this.activeRoomId).subscribe({   // party vote
+      next: (r: any) => this.zone.run(() => {
+        if (r && r.votes && r.threshold && r.votes < r.threshold)
+          this.toastr.info(`${r.votes}/${r.threshold} — voting to skip`);
+        else this.toastr.success('Skipping…');
+      })
+    });
   }
   prev() { if (this.activeRoomId != null && this.canSkip) this.api.roomPrev(this.activeRoomId).subscribe(); }
 }
