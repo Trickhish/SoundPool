@@ -33,7 +33,12 @@ export class AppComponent {
         this.livefb.launch();
       },
       error: (err)=> {
-        localStorage.removeItem("token");
+        // Only a genuine auth failure (401) invalidates the session. Transient
+        // errors — server reloading, network blips — must NOT wipe the token,
+        // or a valid user/guest gets bounced to login on a hiccup. The 401 case
+        // is already handled (token cleared + redirect) by the HTTP interceptor;
+        // for transient errors, still bring up the live feed (it self-reconnects).
+        if (err?.status !== 401) this.livefb.launch();
       }
     });
   }
