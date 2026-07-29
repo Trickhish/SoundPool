@@ -251,47 +251,51 @@ def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):
     if not room:
         raise HTTPException(404, "Display not found")
 
-    def _cache(result, source):
+    def _cache_and_return(result, source):
         result = {**result, "source": source}
-        if result["synced"] or result["plain"]:   # never pin an empty (transient) result
-            _lyrics_cache[song_id] = result
-            if len(_lyrics_cache) > 500:
-                _lyrics_cache.pop(next(iter(_lyrics_cache)))
+        _lyrics_cache[song_id] = result
+        if len(_lyrics_cache) > 500:
+            _lyrics_cache.pop(next(iter(_lyrics_cache)))
         return JSONResponse(content=result)
 
+    # A cached synced result is authoritative (can't improve on synced from any
+    # source). Cached plain-only IS re-checked, so if a provider later has synced
+    # we upgrade — otherwise we'd stay stuck on plain like the previous version.
     cached = _lyrics_cache.get(song_id)
-    # A Deezer hit is authoritative (correct version of the exact track), so it's
-    # cached permanently. A cached *fallback* result is only provisional — it must
-    # not shadow Deezer, so we re-check Deezer until it succeeds (multi-version
-    # tracks otherwise risk an aggregator matching the wrong recording).
-    if cached and cached.get("source") == "deezer":
+    if cached and cached.get("synced"):
         return JSONResponse(content=cached)
 
+    # 1) Deezer first (the source that knows the exact playing track/version).
+    dz_lyr = {"synced": [], "plain": ""}
     owner = db.query(User).filter(User.id == room.owner_id).first()
-
-    # 1) Deezer first (the source that knows the exact playing track).
     if owner and owner.deezer_arl:
         try:
             dz_lyr = tmg.get_song_lyrics(song_id, owner.deezer_arl)
         except Exception as e:
             print(f"[display] deezer lyrics failed for {song_id}: {e}")
-            dz_lyr = {"synced": [], "plain": ""}
-        if dz_lyr["synced"] or dz_lyr["plain"]:
-            return _cache(dz_lyr, "deezer")
+    if dz_lyr["synced"]:
+        return _cache_and_return(dz_lyr, "deezer")
 
-    # 2) Deezer had nothing — reuse a previously fetched fallback if we have one.
-    if cached:
-        return JSONResponse(content=cached)
-
-    # 3) Otherwise fetch from the free aggregators (LRCLIB / Musixmatch / NetEase)
-    #    using the queued track's title/artist (no extra Deezer call).
+    # 2) Deezer has no synced (plain-only or nothing) — try the free aggregators
+    #    (LRCLIB / Musixmatch / NetEase). Synced from a fuzzy match still beats
+    #    plain from the exact track for a big-screen lyric display.
+    fb_lyr = {"synced": [], "plain": ""}
     t = (db.query(RoomTrack)
            .filter(RoomTrack.room_id == room.id, RoomTrack.song_id == song_id)
            .first())
     if t and t.title and t.artist:
         dur = (t.duration_ms or 0) / 1000.0 or None
-        return _cache(tmg.get_fallback_lyrics(t.title, t.artist, dur), "fallback")
-    return JSONResponse(content={"synced": [], "plain": ""})
+        fb_lyr = tmg.get_fallback_lyrics(t.title, t.artist, dur)
+    if fb_lyr["synced"]:
+        return _cache_and_return(fb_lyr, "fallback")
+
+    # 3) Nobody has synced — return the plain-only result, preferring Deezer's
+    #    (exact track) over an aggregator's (which is a title/artist match).
+    if dz_lyr["plain"]:
+        return _cache_and_return(dz_lyr, "deezer-plain")
+    if fb_lyr["plain"]:
+        return _cache_and_return(fb_lyr, "fallback-plain")
+    return JSONResponse(content={"synced": [], "plain": ""})   # nothing — don't cache empties
 
 
 @router.get("/{room_id}")
