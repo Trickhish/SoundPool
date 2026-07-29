@@ -197,46 +197,26 @@ def _parse_lrc(lrc: str) -> list:
     return out
 
 
-def _pick_lrclib(results: list, duration_sec):
-    """Choose the best LRCLIB match: prefer synced lyrics, then the closest
-    duration."""
-    if not results:
-        return None
-    def score(x):
-        has_sync = 1 if x.get("syncedLyrics") else 0
-        d = abs((x.get("duration") or 0) - (duration_sec or 0)) if duration_sec else 0
-        return (has_sync, -d)
-    return sorted(results, key=score, reverse=True)[0]
-
-
-def get_lrclib_lyrics(title: str, artist: str, duration_sec=None, album: str = None) -> dict:
-    """Fallback lyrics from LRCLIB (lrclib.net) — free, community-sourced, and
-    includes synced lyrics. Returns {"synced": [...], "plain": str}."""
+def get_fallback_lyrics(title: str, artist: str, duration_sec=None) -> dict:
+    """Fallback lyrics via syncedlyrics, which aggregates several free providers
+    — LRCLIB (community), Musixmatch (what Spotify uses) and NetEase — and
+    returns synced LRC when any of them has it. Returns
+    {"synced": [...], "plain": str}."""
     if not title or not artist:
         return {"synced": [], "plain": ""}
-    headers = {"User-Agent": "SoundPool/1.0 (+https://soundpool.dury.dev)"}
-    base = "https://lrclib.net/api"
-    rec = None
     try:
-        # Exact match when we have album + duration (LRCLIB's preferred lookup).
-        if album and duration_sec:
-            r = requests.get(f"{base}/get", headers=headers, timeout=8, params={
-                "track_name": title, "artist_name": artist,
-                "album_name": album, "duration": int(round(duration_sec))})
-            if r.status_code == 200:
-                rec = r.json()
-        if rec is None:
-            r = requests.get(f"{base}/search", headers=headers, timeout=8,
-                             params={"track_name": title, "artist_name": artist})
-            if r.status_code == 200:
-                rec = _pick_lrclib(r.json() or [], duration_sec)
+        import syncedlyrics
+        lrc = syncedlyrics.search(f"{title} {artist}",
+                                  providers=["Lrclib", "Musixmatch", "NetEase"])
     except Exception as e:
-        print(f"[lrclib] fetch failed for {artist} - {title}: {e}")
+        print(f"[lyrics] fallback failed for {artist} - {title}: {e}")
         return {"synced": [], "plain": ""}
-    if not rec:
+    if not lrc:
         return {"synced": [], "plain": ""}
-    return {"synced": _parse_lrc(rec.get("syncedLyrics") or ""),
-            "plain": rec.get("plainLyrics") or ""}
+    synced = _parse_lrc(lrc)
+    if synced:
+        return {"synced": synced, "plain": "\n".join(l["line"] for l in synced)}
+    return {"synced": [], "plain": lrc.strip()}   # provider only had plain lyrics
 
 
 def get_deezer_playlist_tracks_gw(playlist_id: int, arl: str) -> list:

@@ -10,3 +10,5 @@ pyjwt
 bcrypt
 python-dotenv
 httpx
+
+syncedlyrics==1.0.1
