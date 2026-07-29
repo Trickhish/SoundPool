@@ -15,6 +15,11 @@
 
     <header class="disp-head">
       <span class="disp-room">{{ info.name }}</span>
+      <div *ngIf="showSkipVotes" class="disp-skipvote">
+        <svg class="dsv-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5v14l9-7zM13 5v14l9-7z"/></svg>
+        <span class="dsv-count">{{ voteCount }}/{{ voteThreshold }}</span>
+        <span class="dsv-label">voting to skip</span>
+      </div>
     </header>
 
     <div class="disp-main" [class.two-col]="showPlayer && hasRightCol">

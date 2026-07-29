@@ -79,6 +79,7 @@ class DisplayConfigRequest(BaseModel):
     show_player: Optional[bool] = None
     show_lyrics: Optional[bool] = None
     show_queue: Optional[bool] = None
+    show_skipvotes: Optional[bool] = None
     show_qr: Optional[bool] = None
     show_message: Optional[bool] = None
     message: Optional[str] = None

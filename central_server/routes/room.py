@@ -112,6 +112,7 @@ def room_dict(db, room, user):
             "show_player": bool(room.display_show_player),
             "show_lyrics": bool(room.display_show_lyrics),
             "show_queue": bool(room.display_show_queue),
+            "show_skipvotes": bool(room.display_show_skipvotes),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -199,12 +200,15 @@ def _display_payload(db, room):
         "position": st.get("position", 0),
         "playing": st.get("playing", False),
         "voting_enabled": st.get("voting_enabled", False),
+        "vote_count": st.get("vote_count", 0),
+        "vote_threshold": st.get("vote_threshold", 0),
         "queue": [{"title": t["title"], "artist": t["artist"], "cover": t["cover"],
                    "score": t.get("score", 0)}
                   for t in upcoming[:12]],
         "show_player": bool(room.display_show_player),
         "show_lyrics": bool(room.display_show_lyrics),
         "show_queue": bool(room.display_show_queue),
+        "show_skipvotes": bool(room.display_show_skipvotes),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -421,6 +425,7 @@ def _display_dict(room):
         "show_player": bool(room.display_show_player),
         "show_lyrics": bool(room.display_show_lyrics),
         "show_queue": bool(room.display_show_queue),
+        "show_skipvotes": bool(room.display_show_skipvotes),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -459,6 +464,7 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_player is not None:  room.display_show_player = body.show_player
     if body.show_lyrics is not None:  room.display_show_lyrics = body.show_lyrics
     if body.show_queue is not None:   room.display_show_queue = body.show_queue
+    if body.show_skipvotes is not None: room.display_show_skipvotes = body.show_skipvotes
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]

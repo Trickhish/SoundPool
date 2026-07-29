@@ -358,6 +358,13 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_queue"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_skipvotes')">
+                  <div class="setting-text">
+                    <span class="setting-name">Show skip votes</span>
+                    <span class="setting-desc">Shows how many have voted to skip and how many are needed. Hidden until someone votes.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_qr')">
                   <div class="setting-text">
                     <span class="setting-name">Show party QR</span>

@@ -41,6 +41,7 @@ class Room(Base):
     display_show_player = Column(Boolean, default=True)  # what the big screen shows
     display_show_lyrics = Column(Boolean, default=True)
     display_show_queue = Column(Boolean, default=True)   # upcoming songs
+    display_show_skipvotes = Column(Boolean, default=True)  # skip-vote tally (only appears when someone has voted)
     display_show_qr = Column(Boolean, default=True)      # party join QR (only appears while a party is live)
     display_show_message = Column(Boolean, default=False)
     display_message = Column(String(512), nullable=True) # admin-authored message to show on screen

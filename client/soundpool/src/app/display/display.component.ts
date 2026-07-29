@@ -32,6 +32,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
   nowId: string | null = null;
   queue: { title: string; artist: string; cover: string; score: number }[] = [];
   votingEnabled = false;
+  voteCount = 0;         // people who voted to skip the current track
+  voteThreshold = 0;     // votes needed to skip
   lyrics: LyricLine[] = [];
   plain = '';
   lyricsLoading = false;
@@ -96,6 +98,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
     if (dt.type === 'state') {
       this.setPlayback(dt.now_playing ?? null, dt.position ?? 0, !!dt.playing);
       this.votingEnabled = !!dt.voting_enabled;
+      this.voteCount = dt.vote_count ?? 0;
+      this.voteThreshold = dt.vote_threshold ?? 0;
       const q = dt.queue || [];
       const ci = dt.current_index ?? -1;
       this.queue = (ci >= 0 ? q.slice(ci + 1) : q)
@@ -130,6 +134,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
     if (Array.isArray(i.queue)) this.queue = i.queue;
     this.votingEnabled = !!i.voting_enabled;
+    this.voteCount = i.vote_count ?? 0;
+    this.voteThreshold = i.vote_threshold ?? 0;
 
     // Party-join QR — only while a party is live and the admin enabled it.
     const wantQr = i.party_active && i.show_qr && i.party_code;
@@ -213,6 +219,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
   /** Fewer entries when compact under the thumbnail, more when full-column. */
   get queueShown() { return this.queue.slice(0, this.queueUnderThumb ? 2 : 9); }
   get showMessage(): boolean { return !!this.info?.show_message && !!(this.info?.message || '').trim(); }
+  /** Skip-vote tally — only when enabled and at least one person has voted. */
+  get showSkipVotes(): boolean { return !!this.info?.show_skipvotes && this.voteCount > 0; }
   get cover(): string { return this.info?.now_playing?.cover || 'soundpool_sqrd.png'; }
   fmt(ms: number): string {
     const s = Math.max(0, Math.floor((ms || 0) / 1000));
