@@ -207,7 +207,26 @@
   flex-shrink: 0;
   background: rgba(255,255,255,0.06);
 }
-.disp-queue-info { display: flex; flex-direction: column; min-width: 0; gap: 0.2vh; }
+.disp-queue-info { display: flex; flex-direction: column; min-width: 0; gap: 0.2vh; flex: 1; }
+.disp-queue-vote {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5vh;
+  padding: 0.4vh 1.2vh;
+  border-radius: 1vh;
+  background: rgba(255,255,255,0.08);
+  font-variant-numeric: tabular-nums;
+  .dqv-arrow { font-size: 1.6vh; opacity: 0.7; }
+  .dqv-num { font-size: 2vh; font-weight: 800; }
+  &.pos { background: rgba(255,43,109,0.16); color: var(--accent, #ff2b6d); }
+  &.neg { background: rgba(91,157,255,0.16); color: #5b9dff; }
+}
+.disp-queue.full .disp-queue-vote {
+  padding: 0.6vh 1.6vh;
+  .dqv-arrow { font-size: 2vh; }
+  .dqv-num { font-size: 2.6vh; }
+}
 .disp-queue-title {
   font-size: 2.2vh;
   font-weight: 700;

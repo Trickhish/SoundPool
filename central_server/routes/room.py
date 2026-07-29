@@ -198,7 +198,9 @@ def _display_payload(db, room):
         "now_playing": st.get("now_playing"),
         "position": st.get("position", 0),
         "playing": st.get("playing", False),
-        "queue": [{"title": t["title"], "artist": t["artist"], "cover": t["cover"]}
+        "voting_enabled": st.get("voting_enabled", False),
+        "queue": [{"title": t["title"], "artist": t["artist"], "cover": t["cover"],
+                   "score": t.get("score", 0)}
                   for t in upcoming[:12]],
         "show_player": bool(room.display_show_player),
         "show_lyrics": bool(room.display_show_lyrics),
