@@ -84,3 +84,19 @@
     &.primary { background: rgba(255,43,109,0.18); border-color: rgba(255,43,109,0.4); color: var(--accent, #FF2B6D); }
     &.ghost { background: transparent; color: var(--font-muted); }
 }
+
+.test-btn {
+    flex-shrink: 0;
+    margin: 0 0 0 0.4rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--inp-bd, rgba(255,255,255,0.15));
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    color: var(--font-color);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+    &:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+    &:disabled { opacity: 0.4; cursor: default; }
+}

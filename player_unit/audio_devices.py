@@ -117,6 +117,53 @@ def set_sink_volume(name, level):
     _run(["pactl", "set-sink-volume", name, f"{pct}%"])
 
 
+_TEST_WAV = None
+
+
+def _make_test_wav(path, seg=0.8, gap=0.15, freq=520, rate=44100, vol=0.4):
+    """Stereo left/right test: a tone on the left channel, a gap, then the right,
+    so users can verify channel wiring and that each speaker works."""
+    import wave, math, struct
+    frames = bytearray()
+
+    def tone(nsamples, left, right):
+        for i in range(nsamples):
+            env = min(1.0, i / (rate * 0.03), (nsamples - i) / (rate * 0.03))  # de-click fade
+            s = int(vol * env * 32767 * math.sin(2 * math.pi * freq * i / rate))
+            frames.extend(struct.pack("<hh", s if left else 0, s if right else 0))
+
+    seg_n, gap_n = int(seg * rate), int(gap * rate)
+    tone(seg_n, True, False)                    # LEFT
+    frames.extend(b"\x00\x00\x00\x00" * gap_n)  # silence (2ch * 2 bytes)
+    tone(seg_n, False, True)                    # RIGHT
+
+    with wave.open(path, "w") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(bytes(frames))
+
+
+def test_output(sink=None):
+    """Play a short test tone on `sink` (or the default) via paplay, off-thread
+    so it doesn't block the connection."""
+    global _TEST_WAV
+    if not _TEST_WAV or not os.path.exists(_TEST_WAV):
+        import tempfile
+        fd, _TEST_WAV = tempfile.mkstemp(suffix="_sptest.wav")
+        os.close(fd)
+        try:
+            _make_test_wav(_TEST_WAV)
+        except Exception as e:
+            print(f"[audio] test tone generation failed: {e}")
+            return
+    args = ["paplay"]
+    if sink:
+        args += ["--device", sink]
+    args.append(_TEST_WAV)
+    threading.Thread(target=lambda: _run(args, timeout=15), daemon=True).start()
+
+
 def _current_outputs():
     """Best-effort: the sinks we're currently feeding."""
     if len(_selected) >= 2:

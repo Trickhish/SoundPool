@@ -62,6 +62,8 @@ async def handle_audio(r):
             await asyncio.to_thread(ad.set_outputs, r[2])
         elif cmd == "set_volume":
             await asyncio.to_thread(ad.set_sink_volume, r[2], r[3])
+        elif cmd == "test":
+            ad.test_output(r[2] if len(r) > 2 else None)  # non-blocking beep
         elif cmd == "bt_scan":
             ad.bt_scan(int(r[2]) if len(r) > 2 else 8)  # async; notifies when done
         elif cmd == "bt_pair":

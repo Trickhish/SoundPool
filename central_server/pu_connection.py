@@ -307,6 +307,14 @@ async def unit_sink_volume(unit_id: str, body: SinkVolumeRequest,
     return JSONResponse(content={"status": "ok"})
 
 
+@router.post("/{unit_id}/test")
+async def unit_test(unit_id: str, body: UnitTestRequest,
+                    dbs: SessionLocal = Depends(get_db),  # type: ignore
+                    user: User = Depends(verify_token)):
+    await _send_audio(unit_id, user, dbs, "test", body.sink)
+    return JSONResponse(content={"status": "ok"})
+
+
 @router.post("/{unit_id}/bt/{action}")
 async def unit_bt(unit_id: str, action: str, body: BtRequest,
                   dbs: SessionLocal = Depends(get_db),  # type: ignore

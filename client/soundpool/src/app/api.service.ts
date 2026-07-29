@@ -81,6 +81,9 @@ export class ApiService {
   public setSinkVolume(id:string, sink:string, level:number) {
     return this.http.post(`${ApiService.apiUrl}/unit/${id}/sink_volume`, { sink, level });
   }
+  public testUnitOutput(id:string, sink?:string) {
+    return this.http.post(`${ApiService.apiUrl}/unit/${id}/test`, { sink });
+  }
   public renameUnit(id:string, name:string) {
     return this.http.patch(`${ApiService.apiUrl}/unit/${id}`, { name });
   }

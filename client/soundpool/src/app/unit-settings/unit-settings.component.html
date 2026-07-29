@@ -32,6 +32,7 @@
       <input class="vol" type="range" min="0" max="1" step="0.01" [value]="(s.volume || 100) / 100"
              (input)="onVolume(s, +$any($event.target).value)" [disabled]="!isOutput(s.name)" />
       <span class="vol-pct">{{ s.volume }}%</span>
+      <button class="test-btn" (click)="testOutput(s)" [disabled]="!online" title="Play a test sound">Test</button>
     </div>
     <div *ngIf="online && audio.sinks.length === 0" class="hint">No outputs detected.</div>
   </section>

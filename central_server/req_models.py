@@ -80,6 +80,9 @@ class SinkVolumeRequest(BaseModel):
     sink: str
     level: float
 
+class UnitTestRequest(BaseModel):
+    sink: Optional[str] = None
+
 class UnitRenameRequest(BaseModel):
     name: Optional[str] = None
     location: Optional[str] = None

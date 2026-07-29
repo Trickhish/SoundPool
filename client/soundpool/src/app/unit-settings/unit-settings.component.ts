@@ -66,6 +66,12 @@ export class UnitSettingsComponent implements OnInit {
 
   // ── Outputs ──
   isOutput(name: string): boolean { return (this.audio.outputs || []).includes(name); }
+  testOutput(sink: any) {
+    this.api.testUnitOutput(this.id, sink.name).subscribe({
+      next: () => this.toastr.info('Playing a test sound…'),
+      error: () => this.toastr.error('Could not test output')
+    });
+  }
   toggleOutput(sink: any) {
     const cur: string[] = this.audio.outputs || [];
     const next = this.isOutput(sink.name) ? cur.filter(n => n !== sink.name) : [...cur, sink.name];
