@@ -179,6 +179,9 @@ export class PlaybackService {
   }
   get canPlayPause(): boolean { return this.can('can_playpause'); }
   get canSkip(): boolean { return this.can('can_skip'); }
+  get canVoteSkip(): boolean { return this.can('can_vote_skip'); }
+  /** Can use the next button at all (skip directly, or vote to skip in a party). */
+  get canNext(): boolean { return this.canSkip || (!this.canSkip && this.canVoteSkip); }
 
   toggle() {
     if (this.activeRoomId == null || !this.canPlayPause) return;
@@ -187,6 +190,10 @@ export class PlaybackService {
     this.reflect();
     (wasPlaying ? this.api.roomPause(this.activeRoomId) : this.api.roomPlay(this.activeRoomId)).subscribe();
   }
-  next() { if (this.activeRoomId != null && this.canSkip) this.api.roomNext(this.activeRoomId).subscribe(); }
+  next() {
+    if (this.activeRoomId == null) return;
+    if (this.canSkip) this.api.roomNext(this.activeRoomId).subscribe();
+    else if (this.canVoteSkip) this.api.roomVoteSkip(this.activeRoomId).subscribe();  // party vote
+  }
   prev() { if (this.activeRoomId != null && this.canSkip) this.api.roomPrev(this.activeRoomId).subscribe(); }
 }

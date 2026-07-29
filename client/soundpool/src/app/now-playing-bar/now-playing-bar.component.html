@@ -16,7 +16,8 @@
     <button class="np-btn play" [disabled]="playback.rightsLoaded && !playback.canPlayPause" (click)="playback.toggle()" [title]="playback.playing ? 'Pause' : 'Play'">
       <fa-icon [icon]="playback.playing ? ['fas','pause'] : ['fas','play']"></fa-icon>
     </button>
-    <button class="np-btn" [disabled]="playback.rightsLoaded && !playback.canSkip" (click)="playback.next()" title="Next">
+    <button class="np-btn" [disabled]="playback.rightsLoaded && !playback.canNext" (click)="playback.next()"
+            [title]="playback.canSkip ? 'Next' : 'Vote to skip'">
       <fa-icon [icon]="['fas','forward-step']"></fa-icon>
     </button>
     <button class="np-btn" (click)="openQueue()" title="Queue">

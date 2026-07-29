@@ -443,7 +443,11 @@ export class PlayerComponent implements OnInit, OnDestroy {
   pause() { this.state.playing = false; (this.isRoom ? this.api.roomPause(this.pid!) : this.api.pause(this.player!.id)).subscribe(); if (this.browserOutput) this.syncBrowser(); }
   playpause() { this.playing ? this.pause() : this.play(); }
   prev() { (this.isRoom ? this.api.roomPrev(this.pid!) : this.api.prev(this.player!.id)).subscribe(); }
-  next() { (this.isRoom ? this.api.roomNext(this.pid!) : this.api.next(this.player!.id)).subscribe(); }
+  next() {
+    // In party mode a guest can't skip directly — pressing next casts a vote.
+    if (this.showVoteSkip) { this.voteSkip(); return; }
+    (this.isRoom ? this.api.roomNext(this.pid!) : this.api.next(this.player!.id)).subscribe();
+  }
 
   // ── Volume / shuffle / repeat ──
   private volumeDebounce: any = null;

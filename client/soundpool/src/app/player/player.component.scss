@@ -1174,3 +1174,26 @@
     svg { color: var(--font-muted); flex-shrink: 0; }
     &:hover svg { color: var(--accent); }
 }
+
+/* Next button acting as vote-to-skip in party mode */
+.music_nav_ctn.voting {
+    color: var(--accent);
+    fill: var(--accent);
+    opacity: 0.9;
+}
+.music_nav_ctn.voted { opacity: 1; }
+.vote-badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.15rem 0.35rem;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
