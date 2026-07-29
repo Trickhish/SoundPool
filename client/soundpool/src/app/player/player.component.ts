@@ -216,7 +216,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
         if (this.browserOutput && !this.destroying && this.audioEl?.src)
           this.zone.run(() => this.toastr.error('Browser playback error'));
       });
-      this.browserOutput = localStorage.getItem(`browserOut_${this.pid}`) === '1';
+      // Browser output is a per-session, this-device-only choice — never
+      // persisted, so it always starts off and resets on reload (otherwise every
+      // device that opened the room would keep playing the audio locally).
     }
     this.ticker = setInterval(() => this.tick(), 250);
   }
@@ -543,7 +545,6 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   toggleBrowserOutput() {
     this.browserOutput = !this.browserOutput;
-    localStorage.setItem(`browserOut_${this.pid}`, this.browserOutput ? '1' : '0');
     if (this.browserOutput) {
       // Unlock audio within this user gesture.
       this.autoplayWarned = false;
