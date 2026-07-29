@@ -99,6 +99,7 @@ class RoomMember(Base):
     can_playpause = Column(Boolean, default=False)
     can_skip = Column(Boolean, default=False)
     can_vote_skip = Column(Boolean, default=True)
+    can_vote = Column(Boolean, default=True)          # up/down-vote queued songs (on by default for everyone)
     can_seek = Column(Boolean, default=False)
     can_change_volume = Column(Boolean, default=False)
     can_manage_speakers = Column(Boolean, default=False)

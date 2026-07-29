@@ -33,7 +33,7 @@ def _user_from_token(tokval):
 router = APIRouter()
 
 RIGHTS_FIELDS = ["can_add", "can_remove", "can_reorder", "can_playpause",
-                 "can_skip", "can_vote_skip", "can_seek",
+                 "can_skip", "can_vote_skip", "can_vote", "can_seek",
                  "can_change_volume", "can_manage_speakers", "can_manage_party"]
 
 # Fixed role presets → flag values. Members can override individual flags on top.
@@ -43,11 +43,11 @@ ROLE_PRESETS = {
     "admin":  {f: True for f in RIGHTS_FIELDS},
     "member": {"can_add": True, "can_remove": True, "can_reorder": True,
                "can_playpause": True, "can_skip": True, "can_vote_skip": True,
-               "can_seek": True, "can_change_volume": True,
+               "can_vote": True, "can_seek": True, "can_change_volume": True,
                "can_manage_speakers": True, "can_manage_party": False},
     "guest":  {"can_add": True, "can_remove": False, "can_reorder": False,
                "can_playpause": False, "can_skip": False, "can_vote_skip": True,
-               "can_seek": False, "can_change_volume": False,
+               "can_vote": True, "can_seek": False, "can_change_volume": False,
                "can_manage_speakers": False, "can_manage_party": False},
 }
 # Roles whose holders can manage members / rights.
@@ -264,6 +264,16 @@ async def room_queue_move(room_id: int, body: QueueMoveRequest,
     _, rp = _require(db, room_id, user, "can_reorder")
     await rp.move(body.frm, body.to)
     room_player.persist_queue(room_id)
+    return JSONResponse(content={"status": "ok"})
+
+
+@router.post("/{room_id}/queue/vote")
+async def room_queue_vote(room_id: int, body: QueueVoteRequest,
+                          db: SessionLocal = Depends(get_db),  # type: ignore
+                          user: User = Depends(verify_token)):
+    _, rp = _require(db, room_id, user, "can_vote")
+    await rp.vote_track(body.uid, user.id, body.direction)
+    room_player.persist_queue(room_id)   # votes reorder the queue — persist the new order
     return JSONResponse(content={"status": "ok"})
 
 

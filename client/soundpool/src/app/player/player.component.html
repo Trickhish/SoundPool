@@ -134,6 +134,18 @@
         </div>
         <span *ngIf="item.key === state.current_index" class="qp-eq" [class.paused]="!playing"><i></i><i></i><i></i></span>
         <div *ngIf="item.ready === false && !item.failed" class="q-spinner"></div>
+
+        <!-- Up/down-vote to reorder the queue by popularity (upcoming songs only) -->
+        <div *ngIf="canVote && item.key > state.current_index" class="qp-votes" (click)="$event.stopPropagation()">
+          <button class="qp-vote up" [class.on]="myVote(item) > 0" (click)="voteTrack(item, 1, $event)" title="Vote up">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <span class="qp-score" [class.pos]="(item.score || 0) > 0" [class.neg]="(item.score || 0) < 0">{{ item.score || 0 }}</span>
+          <button class="qp-vote down" [class.on]="myVote(item) < 0" (click)="voteTrack(item, -1, $event)" title="Vote down">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+
         <button *ngIf="can('can_remove') && item.key !== state.current_index" class="qp-remove" (click)="removeItem(item, $event)" title="Remove">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
@@ -303,6 +315,7 @@
             <button class="right-chip" [class.on]="m.can_skip" (click)="toggleMemberRight(m, 'can_skip')">skip</button>
             <button class="right-chip" [class.on]="m.can_seek" (click)="toggleMemberRight(m, 'can_seek')">seek</button>
             <button class="right-chip" [class.on]="m.can_vote_skip" (click)="toggleMemberRight(m, 'can_vote_skip')">vote-skip</button>
+            <button class="right-chip" [class.on]="m.can_vote" (click)="toggleMemberRight(m, 'can_vote')">vote</button>
             <button class="right-chip" [class.on]="m.can_change_volume" (click)="toggleMemberRight(m, 'can_change_volume')">volume</button>
             <button class="right-chip" [class.on]="m.can_manage_speakers" (click)="toggleMemberRight(m, 'can_manage_speakers')">speakers</button>
             <button class="right-chip" [class.on]="m.can_manage_party" (click)="toggleMemberRight(m, 'can_manage_party')">party</button>

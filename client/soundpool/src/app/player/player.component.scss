@@ -623,6 +623,38 @@
     50% { height: 16px; }
 }
 
+/* Up/down vote cluster — reorders the queue by popularity */
+.qp-votes {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;      /* push the vote + remove controls to the right edge */
+    flex-shrink: 0;
+    .qp-vote {
+        background: transparent;
+        border: none;
+        color: var(--font-muted);
+        cursor: pointer;
+        display: flex;
+        padding: 3px;
+        border-radius: 6px;
+        transition: background 0.12s, color 0.12s;
+        &:hover { background: rgba(255,255,255,0.08); color: var(--font-color); }
+        &.up.on { color: var(--accent); }
+        &.down.on { color: #5b9dff; }
+    }
+    .qp-score {
+        min-width: 1.1rem;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--font-muted);
+        font-variant-numeric: tabular-nums;
+        &.pos { color: var(--accent); }
+        &.neg { color: #5b9dff; }
+    }
+}
+
 .qp-remove {
     background: transparent;
     border: none;
@@ -649,6 +681,8 @@
     flex-direction: column;
     gap: 0.1rem;
     overflow: hidden;
+    flex: 1;
+    min-width: 0;
 }
 .qp-row-title {
     font-size: 0.85rem;

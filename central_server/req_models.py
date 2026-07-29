@@ -39,6 +39,7 @@ class RoomRightsRequest(BaseModel):
     can_playpause: Optional[bool] = None
     can_skip: Optional[bool] = None
     can_vote_skip: Optional[bool] = None
+    can_vote: Optional[bool] = None
     can_seek: Optional[bool] = None
     can_change_volume: Optional[bool] = None
     can_manage_speakers: Optional[bool] = None
@@ -69,6 +70,10 @@ class QueueMoveRequest(BaseModel):
 
 class QueueIndexRequest(BaseModel):
     index: int
+
+class QueueVoteRequest(BaseModel):
+    uid: int             # stable id of the queue track (survives reordering)
+    direction: int       # +1 upvote, -1 downvote, 0 clear my vote
 
 class OutputRequest(BaseModel):
     unit_id: str

@@ -19,7 +19,7 @@ import QRCode from 'qrcode';
 import { LongPressDirective, PressPoint } from '../longpress.directive';
 
 export interface NowPlaying { id: string; title: string; artist: string; album: string; cover: string; duration: number; }
-export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; ready?: boolean; failed?: boolean; }
+export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; ready?: boolean; failed?: boolean; uid?: number; score?: number; }
 export interface DeezerPlaylist { id: number; title: string; nb_tracks: number; picture: string; }
 
 export interface PlayerState {
@@ -518,6 +518,30 @@ export class PlayerComponent implements OnInit, OnDestroy {
   /** Party guest in this room — gets a simplified, add-focused UI. */
   get isGuestUser(): boolean { return this.rights?.role === 'guest'; }
   get showVoteSkip(): boolean { return this.isRoom && !this.can('can_skip') && this.can('can_vote_skip'); }
+  /** Can up/down-vote songs in the queue to reorder by popularity. */
+  get canVote(): boolean { return this.isRoom && this.can('can_vote'); }
+
+  // My up/down votes on queue tracks (by uid), kept locally since state events
+  // carry only aggregate scores, not per-user votes.
+  myVotes = new Map<number, number>();
+  myVote(item: QueueItem): number { return (item.uid != null && this.myVotes.get(item.uid)) || 0; }
+
+  voteTrack(item: QueueItem, dir: number, ev: Event) {
+    ev.stopPropagation();   // don't trigger the row's jump-to
+    if (!this.pid || !this.canVote || item.uid == null || item.key <= this.state.current_index) return;
+    const prev = this.myVote(item);
+    const next = prev === dir ? 0 : dir;      // clicking your current vote clears it
+    // Optimistic: nudge the visible score + my-vote so it feels instant.
+    this.myVotes.set(item.uid, next);
+    if (item.score != null) item.score += (next - prev);
+    this.api.roomQueueVote(this.pid, item.uid, next).subscribe({
+      error: () => {
+        this.myVotes.set(item.uid!, prev);
+        if (item.score != null) item.score -= (next - prev);
+        this.toastr.error('Could not vote');
+      }
+    });
+  }
 
   voteSkip() {
     if (!this.pid || this.voted) return;

@@ -22,7 +22,8 @@ _unit_room = {}      # unit_id -> room_id (a unit renders at most one room)
 class RoomPlayer:
     def __init__(self, room_id):
         self.room_id = room_id
-        self.queue = []            # list of {id,title,artist,cover,duration}
+        self.queue = []            # list of {id,title,artist,cover,duration,uid,votes}
+        self._seq = 0              # monotonic counter for per-track uids (vote targets)
         self.current_index = -1
         self.playing = False
         self.shuffle = False
@@ -41,6 +42,52 @@ class RoomPlayer:
         self.votes = set()         # user ids who voted to skip the current track
         self.vote_threshold = 0    # votes needed to skip (updated on each vote)
         self._hb = 0               # heartbeat counter (conductor ticks)
+
+    # ── queue votes (social-jukebox ordering) ──
+    def _tag(self, track):
+        """Give a queue track a stable uid + empty vote map (idempotent)."""
+        if "uid" not in track:
+            self._seq += 1
+            track["uid"] = self._seq
+        track.setdefault("votes", {})
+        return track
+
+    @staticmethod
+    def _score(track):
+        return sum((track.get("votes") or {}).values())
+
+    def _resort_upcoming(self):
+        """Hard-sort the upcoming songs by net vote score (highest first). Stable,
+        so equal-score songs keep their current relative order (preserving both
+        add order and any manual admin reordering within a tier). The current and
+        already-played tracks are never moved."""
+        start = self.current_index + 1 if self.current_index >= 0 else 0
+        if start >= len(self.queue):
+            return
+        tail = self.queue[start:]
+        tail.sort(key=lambda t: -self._score(t))
+        self.queue[start:] = tail
+
+    def _find_uid(self, uid):
+        for i, t in enumerate(self.queue):
+            if t.get("uid") == uid:
+                return i
+        return -1
+
+    async def vote_track(self, uid, user_id, direction):
+        """Register a member's up/down vote on an upcoming track and re-sort the
+        queue by popularity. direction: +1 up, -1 down, 0 clears the vote."""
+        idx = self._find_uid(uid)
+        if idx < 0 or idx <= self.current_index:
+            return   # gone, or already playing/played — can't reorder it
+        votes = self.queue[idx].setdefault("votes", {})
+        key = str(user_id)
+        if direction == 0:
+            votes.pop(key, None)
+        else:
+            votes[key] = 1 if direction > 0 else -1
+        self._resort_upcoming()
+        await self.broadcast()
 
     # ── timeline ──
     def position(self):
@@ -70,7 +117,8 @@ class RoomPlayer:
             "repeat": self.repeat,
             "autoplay": self.autoplay,
             "queue": [{"key": i, "id": t["id"], "title": t["title"], "artist": t["artist"],
-                       "cover": t["cover"], "duration": t["duration"], "ready": True, "failed": False}
+                       "cover": t["cover"], "duration": t["duration"], "ready": True, "failed": False,
+                       "uid": t.get("uid"), "score": self._score(t)}
                       for i, t in enumerate(self.queue)],
             "outputs": sorted(self.outputs),
             "vote_count": len(self.votes),
@@ -356,10 +404,12 @@ class RoomPlayer:
             await self._dispatch_start()
 
     async def add(self, track, autoplay=True, at_next=False):
+        self._tag(track)
         if at_next and self.current_index >= 0:
             self.queue.insert(self.current_index + 1, track)  # play right after the current track
         else:
             self.queue.append(track)
+            self._resort_upcoming()   # slot the new (unvoted) song into the score order
         if self.current_index < 0:
             # Load the first song (paused) so the room is never "empty" while
             # it has a queue — playback starts only if autoplay is requested.
@@ -449,10 +499,10 @@ class RoomPlayer:
                 sid = str(r.get("id") or "")
                 if not sid or sid in have or sid in self._failed:
                     continue
-                self.queue.append({
+                self.queue.append(self._tag({
                     "id": sid, "title": r.get("title", ""), "artist": r.get("artist", ""),
                     "cover": r.get("img_url", ""), "duration": float(r.get("duration", 0)) * 1000.0,
-                })
+                }))
                 have.add(sid)
                 added += 1
             if added:
@@ -582,8 +632,8 @@ def ensure_loaded(room_id):
         tracks = (db.query(RoomTrack)
                     .filter(RoomTrack.room_id == room_id)
                     .order_by(RoomTrack.order).all())
-        rp.queue = [{"id": t.song_id, "title": t.title, "artist": t.artist,
-                     "cover": t.cover, "duration": t.duration_ms} for t in tracks]
+        rp.queue = [rp._tag({"id": t.song_id, "title": t.title, "artist": t.artist,
+                             "cover": t.cover, "duration": t.duration_ms}) for t in tracks]
         # Resume at the persisted position/playing state (so a restart continues
         # rather than resetting to the top, paused).
         if rp.queue:
