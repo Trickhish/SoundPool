@@ -113,6 +113,7 @@ def room_dict(db, room, user):
             "show_lyrics": bool(room.display_show_lyrics),
             "show_queue": bool(room.display_show_queue),
             "show_skipvotes": bool(room.display_show_skipvotes),
+            "show_activity": bool(room.display_show_activity),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -158,8 +159,8 @@ def party_info(code: str, db: SessionLocal = Depends(get_db)):  # type: ignore
 
 
 @router.post("/party/{code}/join")
-def party_join(code: str, body: PartyJoinRequest,
-               db: SessionLocal = Depends(get_db)):  # type: ignore
+async def party_join(code: str, body: PartyJoinRequest,
+                     db: SessionLocal = Depends(get_db)):  # type: ignore
     room = db.query(Room).filter(Room.party_code == code, Room.party_active == True).first()
     if not room:
         raise HTTPException(404, "Party not found or ended")
@@ -176,6 +177,7 @@ def party_join(code: str, body: PartyJoinRequest,
     apply_role(member, "guest")
     db.add(member)
     db.commit()
+    await room_player.broadcast_activity(room.id, f"{name} joined the party", icon="👋")
     return JSONResponse(content={"token": token, "username": name,
                                  "room_id": room.id, "name": room.name})
 
@@ -209,6 +211,7 @@ def _display_payload(db, room):
         "show_lyrics": bool(room.display_show_lyrics),
         "show_queue": bool(room.display_show_queue),
         "show_skipvotes": bool(room.display_show_skipvotes),
+        "show_activity": bool(room.display_show_activity),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -333,6 +336,9 @@ async def room_queue_add(room_id: int, body: QueueAddRequest,
              "cover": body.img_url or "", "duration": duration}
     await rp.add(track, at_next=body.at_next)
     room_player.persist_queue(room_id)
+    await room_player.broadcast_activity(
+        room_id, f"{user.username} queued “{body.title}”" + (" (up next)" if body.at_next else ""),
+        icon="➕")
     return JSONResponse(content={"status": "queued"})
 
 
@@ -358,6 +364,8 @@ async def room_queue_playlist(room_id: int, playlist_id: int,
             "duration": duration,
         }, autoplay=False)
     room_player.persist_queue(room_id)
+    await room_player.broadcast_activity(
+        room_id, f"{user.username} added a playlist ({len(tracks)} tracks)", icon="📀")
     return JSONResponse(content={"status": "queuing", "total": len(tracks)})
 
 
@@ -378,6 +386,7 @@ async def room_queue_shuffle(room_id: int,
     _, rp = _require(db, room_id, user, "can_reorder")
     await rp.shuffle_queue()
     room_player.persist_queue(room_id)
+    await room_player.broadcast_activity(room_id, f"{user.username} shuffled the queue", icon="🔀")
     return JSONResponse(content={"status": "ok"})
 
 
@@ -426,6 +435,7 @@ def _display_dict(room):
         "show_lyrics": bool(room.display_show_lyrics),
         "show_queue": bool(room.display_show_queue),
         "show_skipvotes": bool(room.display_show_skipvotes),
+        "show_activity": bool(room.display_show_activity),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -465,6 +475,7 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_lyrics is not None:  room.display_show_lyrics = body.show_lyrics
     if body.show_queue is not None:   room.display_show_queue = body.show_queue
     if body.show_skipvotes is not None: room.display_show_skipvotes = body.show_skipvotes
+    if body.show_activity is not None: room.display_show_activity = body.show_activity
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]
@@ -634,6 +645,10 @@ async def room_vote_skip(room_id: int,
     _, rp = _require(db, room_id, user, "can_vote_skip")
     member_count = db.query(RoomMember).filter(RoomMember.room_id == room_id).count()
     voted, skipped = await rp.vote_skip(user.id, member_count)
+    if skipped:
+        await room_player.broadcast_activity(room_id, "The people have spoken — skipping", icon="⏭️")
+    elif voted:
+        await room_player.broadcast_activity(room_id, f"{user.username} voted to skip", icon="🙅")
     return JSONResponse(content={"status": "ok", "votes": len(rp.votes),
                                  "threshold": rp.vote_threshold, "voted": voted, "skipped": skipped})
 
@@ -688,9 +703,9 @@ async def room_autoplay(room_id: int, body: ShuffleRequest,
 
 
 @router.post("/{room_id}/join")
-def join_room(room_id: int, body: RoomJoinRequest,
-              db: SessionLocal = Depends(get_db),  # type: ignore
-              user: User = Depends(verify_token)):
+async def join_room(room_id: int, body: RoomJoinRequest,
+                    db: SessionLocal = Depends(get_db),  # type: ignore
+                    user: User = Depends(verify_token)):
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(404, "Room not found")
@@ -701,6 +716,7 @@ def join_room(room_id: int, body: RoomJoinRequest,
         apply_role(m, "guest")  # default: add + vote_skip
         db.add(m)
         db.commit()
+        await room_player.broadcast_activity(room_id, f"{user.username} joined the room", icon="👋")
     return JSONResponse(content=room_dict(db, room, user))
 
 
@@ -729,6 +745,7 @@ async def start_party(room_id: int,
     room.voting_enabled = True   # let guests vote by default during a party
     db.commit()
     await rp.set_voting(True)
+    await room_player.broadcast_activity(room_id, "Party mode is on — scan to join!", icon="🎉")
     return JSONResponse(content={"party_active": True, "party_code": room.party_code,
                                  "voting_enabled": True})
 
@@ -751,6 +768,7 @@ async def stop_party(room_id: int,
         db.delete(guest)
     db.commit()
     await rp.set_voting(False)
+    await room_player.broadcast_activity(room_id, "The party's over — thanks for coming!", icon="👋")
     return JSONResponse(content={"party_active": False, "voting_enabled": False})
 
 

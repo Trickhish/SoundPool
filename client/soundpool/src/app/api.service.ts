@@ -243,7 +243,7 @@ export class ApiService {
   public getFavorites() {
     return this.http.get<{id:string,title:string,artist:string,img_url:string}[]>(`${ApiService.apiUrl}/library/favorites`);
   }
-  public addFavorite(body: {song_id:string, title:string, artist:string, img_url:string}) {
+  public addFavorite(body: {song_id:string, title:string, artist:string, img_url:string, room_id?:number}) {
     return this.http.post(`${ApiService.apiUrl}/library/favorites`, body);
   }
   public removeFavorite(songId: string) {

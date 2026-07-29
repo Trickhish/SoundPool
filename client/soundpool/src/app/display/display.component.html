@@ -102,6 +102,14 @@
 
     </div>
 
+    <!-- ── Activity ticker ── -->
+    <aside *ngIf="info.show_activity && activity.length" class="disp-activity">
+      <div *ngFor="let a of activity; trackBy: trackAct" class="disp-act">
+        <span class="disp-act-icon">{{ a.icon }}</span>
+        <span class="disp-act-text">{{ a.text }}</span>
+      </div>
+    </aside>
+
     <!-- ── Party QR ── -->
     <aside *ngIf="qr" class="disp-qr">
       <img [src]="qr" alt="Join the party" />

@@ -80,6 +80,7 @@ class DisplayConfigRequest(BaseModel):
     show_lyrics: Optional[bool] = None
     show_queue: Optional[bool] = None
     show_skipvotes: Optional[bool] = None
+    show_activity: Optional[bool] = None
     show_qr: Optional[bool] = None
     show_message: Optional[bool] = None
     message: Optional[str] = None
@@ -110,3 +111,4 @@ class FavoriteRequest(BaseModel):
     title: str = ""
     artist: str = ""
     img_url: str = ""
+    room_id: Optional[int] = None   # for a heads-up on the big-screen activity feed

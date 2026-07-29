@@ -522,6 +522,9 @@ class RoomPlayer:
             if added:
                 persist_queue(self.room_id)
                 await self.broadcast()
+                await broadcast_activity(self.room_id,
+                                         f"Auto-mix added {added} track{'s' if added != 1 else ''}",
+                                         icon="🤖")
         except Exception as e:
             print(f"[room_player] autoplay top-up failed: {e}")
         finally:
@@ -549,6 +552,18 @@ class RoomPlayer:
         # Persist the position periodically so a restart resumes near where it was.
         if self.playing and self._hb % 15 == 0:
             persist_position(self.room_id)
+
+
+async def broadcast_activity(room_id, text, icon="🎵"):
+    """Push a one-off activity message to the room's SSE channel (for the
+    big-screen ticker). Best-effort — swallowed on failure so a broken
+    broadcast can never block the action that triggered it."""
+    try:
+        await sse.triggerEvent(f"room_{int(room_id)}", {
+            "type": "activity", "text": text, "icon": icon, "ts": time.time(),
+        })
+    except Exception as e:
+        print(f"[activity] broadcast failed: {e}")
 
 
 async def on_unit_online(unit_id):

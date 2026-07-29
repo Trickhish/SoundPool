@@ -51,6 +51,11 @@ async def add_favorite(
         db.add(Favorite(user_id=user.id, song_id=body.song_id,
                         title=body.title, artist=body.artist, cover=body.img_url))
         db.commit()
+        # If it was liked from inside a room, let that room's big screen cheer.
+        if body.room_id:
+            import room_player
+            title = body.title or "the song"
+            await room_player.broadcast_activity(body.room_id, f"{user.username} ❤️ “{title}”", icon="❤️")
     return JSONResponse(content={"status": "ok"})
 
 

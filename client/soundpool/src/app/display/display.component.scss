@@ -290,6 +290,47 @@
   text-align: left;
 }
 
+/* ── Activity ticker ── */
+.disp-activity {
+  position: absolute;
+  z-index: 3;
+  left: 3vw;
+  bottom: 3vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8vh;
+  max-width: 42vw;
+  pointer-events: none;
+}
+.disp-act {
+  display: flex;
+  align-items: center;
+  gap: 1.2vh;
+  padding: 1.2vh 1.8vh;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(12px);
+  border-radius: 1.4vh;
+  box-shadow: 0 1vh 4vh rgba(0,0,0,0.4);
+  animation: disp-act-in 0.35s ease-out both, disp-act-out 0.4s ease-in 6.1s both;
+  .disp-act-icon { font-size: 2.6vh; flex-shrink: 0; }
+  .disp-act-text {
+    font-size: 2vh;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@keyframes disp-act-in {
+  from { opacity: 0; transform: translateY(1.5vh); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes disp-act-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-1vh); }
+}
+
 /* ── Party QR ── */
 .disp-qr {
   position: absolute;

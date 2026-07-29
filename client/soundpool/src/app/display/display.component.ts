@@ -34,6 +34,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
   votingEnabled = false;
   voteCount = 0;         // people who voted to skip the current track
   voteThreshold = 0;     // votes needed to skip
+
+  // Live activity ticker — small stack of recent one-liners, each self-expires.
+  activity: { id: number; icon: string; text: string }[] = [];
+  private nextActId = 0;
   lyrics: LyricLine[] = [];
   plain = '';
   lyricsLoading = false;
@@ -111,7 +115,19 @@ export class DisplayComponent implements OnInit, OnDestroy {
     } else if (dt.type === 'status') {
       if (dt.status === 'paused') this.playing = false;
       else if (dt.status === 'playing') this.playing = true;
+    } else if (dt.type === 'activity') {
+      this.pushActivity(dt.icon || '🎵', dt.text || '');
     }
+  }
+
+  private pushActivity(icon: string, text: string) {
+    if (!text || !this.info?.show_activity) return;
+    const id = ++this.nextActId;
+    this.activity = [...this.activity, { id, icon, text }];
+    if (this.activity.length > 4) this.activity = this.activity.slice(-4);   // keep it tidy
+    setTimeout(() => this.zone.run(() => {
+      this.activity = this.activity.filter(a => a.id !== id);
+    }), 6500);   // self-expire after ~6.5s
   }
 
   /** Apply a now-playing snapshot (from a poll or an SSE state event). */
@@ -222,6 +238,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   /** Skip-vote tally — only when enabled and at least one person has voted. */
   get showSkipVotes(): boolean { return !!this.info?.show_skipvotes && this.voteCount > 0; }
   get cover(): string { return this.info?.now_playing?.cover || 'soundpool_sqrd.png'; }
+  trackAct = (_: number, a: { id: number }) => a.id;
   fmt(ms: number): string {
     const s = Math.max(0, Math.floor((ms || 0) / 1000));
     return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;

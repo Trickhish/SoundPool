@@ -365,6 +365,13 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_activity')">
+                  <div class="setting-text">
+                    <span class="setting-name">Show activity feed</span>
+                    <span class="setting-desc">Live one-liners: joins, songs added, likes, skip votes, auto-mix…</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.show_activity"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_qr')">
                   <div class="setting-text">
                     <span class="setting-name">Show party QR</span>

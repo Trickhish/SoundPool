@@ -808,7 +808,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
       this.api.removeFavorite(s.id).subscribe();
     } else {
       this.favoriteIds.add(s.id);
-      this.api.addFavorite({ song_id: s.id, title: s.title || '', artist: s.artist || '', img_url: s.img_url || '' }).subscribe(() => {
+      this.api.addFavorite({ song_id: s.id, title: s.title || '', artist: s.artist || '', img_url: s.img_url || '',
+                             room_id: this.isRoom && this.pid ? +this.pid : undefined }).subscribe(() => {
         this.toastr.success(s.title || '', 'Added to favorites');
       });
     }
