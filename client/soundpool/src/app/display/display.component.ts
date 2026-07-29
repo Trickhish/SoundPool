@@ -120,8 +120,21 @@ export class DisplayComponent implements OnInit, OnDestroy {
     }
   }
 
+  private recentActivity = new Map<string, number>();   // key -> last-seen ms
   private pushActivity(icon: string, text: string) {
     if (!text || !this.info?.show_activity) return;
+    // Dedupe: the SSE delivery layer can hand the same event to a tab more than
+    // once when a prior stale server-side client is still fanned into (a real
+    // duplicate action wouldn't fire the exact same icon+text within 1.5s).
+    const key = icon + '|' + text;
+    const now = Date.now();
+    const last = this.recentActivity.get(key) || 0;
+    if (now - last < 1500) return;
+    this.recentActivity.set(key, now);
+    if (this.recentActivity.size > 40) {   // bounded cache
+      const cutoff = now - 3000;
+      for (const [k, t] of this.recentActivity) if (t < cutoff) this.recentActivity.delete(k);
+    }
     const id = ++this.nextActId;
     this.activity = [...this.activity, { id, icon, text }];
     if (this.activity.length > 4) this.activity = this.activity.slice(-4);   // keep it tidy
