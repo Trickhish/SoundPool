@@ -234,33 +234,48 @@ def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):
     room = db.query(Room).filter(Room.display_code == code).first()
     if not room:
         raise HTTPException(404, "Display not found")
-    if song_id in _lyrics_cache:
-        return JSONResponse(content=_lyrics_cache[song_id])
+
+    def _cache(result, source):
+        result = {**result, "source": source}
+        if result["synced"] or result["plain"]:   # never pin an empty (transient) result
+            _lyrics_cache[song_id] = result
+            if len(_lyrics_cache) > 500:
+                _lyrics_cache.pop(next(iter(_lyrics_cache)))
+        return JSONResponse(content=result)
+
+    cached = _lyrics_cache.get(song_id)
+    # A Deezer hit is authoritative (correct version of the exact track), so it's
+    # cached permanently. A cached *fallback* result is only provisional — it must
+    # not shadow Deezer, so we re-check Deezer until it succeeds (multi-version
+    # tracks otherwise risk an aggregator matching the wrong recording).
+    if cached and cached.get("source") == "deezer":
+        return JSONResponse(content=cached)
+
     owner = db.query(User).filter(User.id == room.owner_id).first()
-    if not owner or not owner.deezer_arl:
-        return JSONResponse(content={"synced": [], "plain": ""})
-    try:
-        lyr = tmg.get_song_lyrics(song_id, owner.deezer_arl)
-    except Exception as e:
-        print(f"[display] deezer lyrics failed for {song_id}: {e}")
-        lyr = {"synced": [], "plain": ""}
-    # Fall back to the free aggregators (LRCLIB / Musixmatch / NetEase) when
-    # Deezer has nothing — uses the queued track's title/artist (no extra
-    # Deezer call).
-    if not (lyr["synced"] or lyr["plain"]):
-        t = (db.query(RoomTrack)
-               .filter(RoomTrack.room_id == room.id, RoomTrack.song_id == song_id)
-               .first())
-        if t and t.title and t.artist:
-            dur = (t.duration_ms or 0) / 1000.0 or None
-            lyr = tmg.get_fallback_lyrics(t.title, t.artist, dur)
-    # Only cache a real hit — empty results are often transient (rate limit,
-    # csrf race), so don't pin a "no lyrics" answer that never gets retried.
-    if lyr["synced"] or lyr["plain"]:
-        _lyrics_cache[song_id] = lyr
-        if len(_lyrics_cache) > 500:  # keep the cache bounded
-            _lyrics_cache.pop(next(iter(_lyrics_cache)))
-    return JSONResponse(content=lyr)
+
+    # 1) Deezer first (the source that knows the exact playing track).
+    if owner and owner.deezer_arl:
+        try:
+            dz_lyr = tmg.get_song_lyrics(song_id, owner.deezer_arl)
+        except Exception as e:
+            print(f"[display] deezer lyrics failed for {song_id}: {e}")
+            dz_lyr = {"synced": [], "plain": ""}
+        if dz_lyr["synced"] or dz_lyr["plain"]:
+            return _cache(dz_lyr, "deezer")
+
+    # 2) Deezer had nothing — reuse a previously fetched fallback if we have one.
+    if cached:
+        return JSONResponse(content=cached)
+
+    # 3) Otherwise fetch from the free aggregators (LRCLIB / Musixmatch / NetEase)
+    #    using the queued track's title/artist (no extra Deezer call).
+    t = (db.query(RoomTrack)
+           .filter(RoomTrack.room_id == room.id, RoomTrack.song_id == song_id)
+           .first())
+    if t and t.title and t.artist:
+        dur = (t.duration_ms or 0) / 1000.0 or None
+        return _cache(tmg.get_fallback_lyrics(t.title, t.artist, dur), "fallback")
+    return JSONResponse(content={"synced": [], "plain": ""})
 
 
 @router.get("/{room_id}")
