@@ -19,5 +19,8 @@
     <button class="np-btn" [disabled]="playback.rightsLoaded && !playback.canSkip" (click)="playback.next()" title="Next">
       <fa-icon [icon]="['fas','forward-step']"></fa-icon>
     </button>
+    <button class="np-btn" (click)="openQueue()" title="Queue">
+      <fa-icon [icon]="['fas','list-ul']"></fa-icon>
+    </button>
   </div>
 </div>

@@ -199,6 +199,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.pid = this.aroute.snapshot.paramMap.get('player_id');
     if (!this.pid) return;
     this.isRoom = !!this.aroute.snapshot.data['room'];
+    // Opened from the now-playing bar's queue button.
+    if (this.aroute.snapshot.queryParamMap.get('queue')) this.queueOpen = true;
     this.loadContent();
 
     // SSE callbacks come from the `eventsource` package's custom fetch, which
