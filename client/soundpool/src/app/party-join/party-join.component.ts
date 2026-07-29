@@ -35,6 +35,9 @@ export class PartyJoinComponent {
     this.joining = true;
     this.api.joinParty(this.code, name).subscribe({
       next: (r) => {
+        // Preserve a real account's token so the guest can exit back to it later.
+        const existing = localStorage.getItem('token');
+        if (existing && !localStorage.getItem('realToken')) localStorage.setItem('realToken', existing);
         localStorage.setItem('token', r.token);
         // Full reload so the app bootstraps authenticated (validates token, opens SSE).
         window.location.href = `/room/${r.room_id}`;

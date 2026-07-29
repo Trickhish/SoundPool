@@ -270,3 +270,18 @@
         }
     }
 }
+
+.navbar .exit-guest-btn {
+    margin: 0;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: rgba(255,43,109,0.15);
+    color: var(--font-color);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s;
+    &:hover { background: rgba(255,43,109,0.28); color: var(--font-color); }
+}

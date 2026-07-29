@@ -3,6 +3,7 @@
         <img class="logo" src="/soundpool.png" />
         <div class="user_ctn">
             <h2>{{this.api.user.username??''}}</h2>
+            <button *ngIf="canExitGuest" class="exit-guest-btn" (click)="exitGuest()">Exit guest mode</button>
             <fa-icon (click)="logout()" id="logout_btn" [icon]="['fas', 'right-from-bracket']"></fa-icon>
         </div>
 

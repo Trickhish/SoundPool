@@ -39,6 +39,14 @@ export class NavbarComponent {
 
   /** Party guests get a stripped-down shell (no nav menu) — just the player. */
   get isGuest(): boolean { return !!this.api.user?.is_guest; }
+  /** A guest who joined from a real account can switch back to it. */
+  get canExitGuest(): boolean { return this.isGuest && !!localStorage.getItem('realToken'); }
+
+  exitGuest() {
+    const real = localStorage.getItem('realToken');
+    if (real) { localStorage.setItem('token', real); localStorage.removeItem('realToken'); }
+    window.location.href = '/home';   // full reload to re-bootstrap with the real account
+  }
 
   /** The now-playing bar is shown (so reserve bottom space) unless we're on the
    *  active room's own page, where the bar is hidden. */
