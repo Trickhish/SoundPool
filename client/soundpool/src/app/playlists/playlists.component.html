@@ -68,7 +68,7 @@
 
         <div *ngIf="tracksLoading" class="loading-row"><div class="spinner"></div><span>Loading tracks…</span></div>
 
-        <div *ngFor="let t of tracks" class="track-row" (click)="addTrack(t)">
+        <div *ngFor="let t of tracks" class="track-row" appLongPress (press)="openCtx($event, t)" (click)="addTrack(t)">
           <img class="track-cover" [src]="t.img_url || 'soundpool_sqrd.png'" [alt]="t.title" />
           <div class="track-info">
             <span class="track-title">{{ t.title }}</span>
@@ -98,5 +98,18 @@
       </div>
     </section>
 
+  </div>
+
+  <!-- ── Track context menu (long-press / right-click) ── -->
+  <div class="ctx-backdrop" *ngIf="ctx.open" (click)="closeCtx()" (contextmenu)="$event.preventDefault(); closeCtx()"></div>
+  <div class="ctx-menu" *ngIf="ctx.open" [style.left.px]="ctx.x" [style.top.px]="ctx.y">
+    <button class="ctx-item" (click)="playNext(ctx.track)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      Play next
+    </button>
+    <button class="ctx-item" (click)="addToQueue(ctx.track)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Add to queue
+    </button>
   </div>
 </div>

@@ -6,6 +6,7 @@ import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontaweso
 import { faChevronLeft, faPlus, faPlay, faShuffle } from '@fortawesome/free-solid-svg-icons';
 import { ApiService } from '../api.service';
 import { PlaybackService } from '../playback.service';
+import { LongPressDirective, PressPoint } from '../longpress.directive';
 
 interface DeezerPlaylist {
   id: number;
@@ -18,7 +19,7 @@ interface PlaylistTrack { id: string; title: string; artist: string; img_url: st
 
 @Component({
   selector: 'app-playlists',
-  imports: [CommonModule, FontAwesomeModule],
+  imports: [CommonModule, FontAwesomeModule, LongPressDirective],
   templateUrl: './playlists.component.html',
   styleUrl: './playlists.component.scss'
 })
@@ -78,11 +79,31 @@ export class PlaylistsComponent implements OnInit {
     return this.playback.activeRoomId;
   }
 
+  // ── Track context menu (long-press / right-click) ──
+  ctx = { open: false, x: 0, y: 0, track: null as PlaylistTrack | null };
+  private suppressAdd = false;
+
+  openCtx(pos: PressPoint, t: PlaylistTrack) {
+    const x = Math.min(pos.x, window.innerWidth - 170);
+    const y = Math.min(pos.y, window.innerHeight - 110);
+    this.ctx = { open: true, x, y, track: t };
+    this.suppressAdd = true;
+    setTimeout(() => { this.suppressAdd = false; }, 500);
+  }
+  closeCtx() { this.ctx.open = false; this.suppressAdd = false; }
+  playNext(t: PlaylistTrack | null) { this.closeCtx(); if (t) this.queueTrack(t, true); }
+  addToQueue(t: PlaylistTrack | null) { this.closeCtx(); if (t) this.queueTrack(t, false); }
+
   addTrack(t: PlaylistTrack) {
+    if (this.suppressAdd) { this.suppressAdd = false; return; }  // came from a long-press
+    this.queueTrack(t, false);
+  }
+
+  private queueTrack(t: PlaylistTrack, atNext: boolean) {
     const room = this.ensureRoom();
     if (room == null) return;
-    this.api.roomQueueAdd(room, { song_id: t.id, title: t.title, artist: t.artist, img_url: t.img_url || '' }).subscribe({
-      next: () => this.toastr.success(t.title, `Added to ${this.playback.roomName || 'room'}`),
+    this.api.roomQueueAdd(room, { song_id: t.id, title: t.title, artist: t.artist, img_url: t.img_url || '', at_next: atNext }).subscribe({
+      next: () => this.toastr.success(t.title, atNext ? `Playing next in ${this.playback.roomName || 'room'}` : `Added to ${this.playback.roomName || 'room'}`),
       error: () => this.toastr.error('Could not add song')
     });
   }
