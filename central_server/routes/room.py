@@ -207,7 +207,7 @@ async def room_queue_add(room_id: int, body: QueueAddRequest,
         duration = 0.0
     track = {"id": body.song_id, "title": body.title, "artist": body.artist,
              "cover": body.img_url or "", "duration": duration}
-    await rp.add(track)
+    await rp.add(track, at_next=body.at_next)
     room_player.persist_queue(room_id)
     return JSONResponse(content={"status": "queued"})
 

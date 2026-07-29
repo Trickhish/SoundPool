@@ -314,8 +314,11 @@ class RoomPlayer:
             self.playing = True
             await self._dispatch_start()
 
-    async def add(self, track, autoplay=True):
-        self.queue.append(track)
+    async def add(self, track, autoplay=True, at_next=False):
+        if at_next and self.current_index >= 0:
+            self.queue.insert(self.current_index + 1, track)  # play right after the current track
+        else:
+            self.queue.append(track)
         if self.current_index < 0:
             # Load the first song (paused) so the room is never "empty" while
             # it has a queue — playback starts only if autoplay is requested.

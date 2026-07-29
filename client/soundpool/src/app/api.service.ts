@@ -137,7 +137,7 @@ export class ApiService {
   public roomVolume(id:string|number, level:number) { return this.rp(id, 'volume', { level }); }
   public roomShuffle(id:string|number, on:boolean) { return this.rp(id, 'shuffle', { on }); }
   public roomRepeat(id:string|number, mode:string) { return this.rp(id, 'repeat', { mode }); }
-  public roomQueueAdd(id:string|number, song:{song_id:string,title:string,artist:string,img_url:string}) { return this.rp(id, 'queue/add', song); }
+  public roomQueueAdd(id:string|number, song:{song_id:string,title:string,artist:string,img_url:string,at_next?:boolean}) { return this.rp(id, 'queue/add', song); }
   public roomQueueRemove(id:string|number, index:number) { return this.rp(id, 'queue/remove', { index }); }
   public roomQueueMove(id:string|number, frm:number, to:number) { return this.rp(id, 'queue/move', { frm, to }); }
   public roomQueueJump(id:string|number, index:number) { return this.rp(id, 'queue/jump', { index }); }

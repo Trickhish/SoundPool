@@ -16,6 +16,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import QRCode from 'qrcode';
+import { LongPressDirective, PressPoint } from '../longpress.directive';
 
 export interface NowPlaying { id: string; title: string; artist: string; album: string; cover: string; duration: number; }
 export interface QueueItem { key: number; id: string; title: string; artist: string; cover: string; duration: number; ready?: boolean; failed?: boolean; }
@@ -39,7 +40,7 @@ const FALLBACK_COVER = 'soundpool_sqrd.png';
 
 @Component({
   selector: 'app-player',
-  imports: [NgCircleProgressModule, FontAwesomeModule, TranslateModule, CommonModule, FormsModule],
+  imports: [NgCircleProgressModule, FontAwesomeModule, TranslateModule, CommonModule, FormsModule, LongPressDirective],
   templateUrl: './player.component.html',
   styleUrl: './player.component.scss',
   providers: [
@@ -742,11 +743,33 @@ export class PlayerComponent implements OnInit, OnDestroy {
     }, 350);
   }
 
+  // ── Song context menu (long-press / right-click): add to queue vs play next ──
+  ctx = { open: false, x: 0, y: 0, song: null as any };
+  private suppressAdd = false;   // swallow the tap that follows a touch long-press
+
+  openCtx(pos: PressPoint, song: any) {
+    if (!this.can('can_add')) return;
+    // clamp so the menu stays on-screen
+    const x = Math.min(pos.x, window.innerWidth - 170);
+    const y = Math.min(pos.y, window.innerHeight - 110);
+    this.ctx = { open: true, x, y, song };
+    this.suppressAdd = true;
+    setTimeout(() => { this.suppressAdd = false; }, 500);
+  }
+  closeCtx() { this.ctx.open = false; this.suppressAdd = false; }
+  playNext(song: any) { this.closeCtx(); this.queueSong(song, true); }
+  addToQueue(song: any) { this.closeCtx(); this.queueSong(song, false); }
+
   addSong(song: any) {
+    if (this.suppressAdd) { this.suppressAdd = false; return; }  // came from a long-press
+    this.queueSong(song, false);
+  }
+
+  private queueSong(song: any, atNext: boolean) {
     if (!this.pid || !this.can('can_add')) return;
-    const body = { song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || '' };
+    const body = { song_id: song.id, title: song.title, artist: song.artist, img_url: song.img_url || '', at_next: atNext };
     (this.isRoom ? this.api.roomQueueAdd(this.pid, body) : this.api.queueAdd(this.pid, body)).subscribe({
-      next: () => this.toastr.success(song.title, 'Added to queue'),
+      next: () => this.toastr.success(song.title, atNext ? 'Playing next' : 'Added to queue'),
       error: () => this.toastr.error('Could not add song')
     });
   }

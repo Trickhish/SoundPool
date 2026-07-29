@@ -49,6 +49,7 @@ class QueueAddRequest(BaseModel):
     title: str
     artist: str
     img_url: str = ""
+    at_next: bool = False   # insert right after the current track ("play next")
 
 class SeekRequest(BaseModel):
     percent: float

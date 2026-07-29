@@ -162,7 +162,7 @@
         <div class="library-body">
           <ng-container *ngIf="searchQuery.trim().length">
             <div *ngIf="searchResults.length === 0" class="q-empty">No results</div>
-            <div *ngFor="let s of searchResults" class="lib-row" (click)="addSong(s)">
+            <div *ngFor="let s of searchResults" class="lib-row" appLongPress (press)="openCtx($event, s)" (click)="addSong(s)">
               <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
               <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
               <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -171,7 +171,7 @@
           <ng-container *ngIf="!searchQuery.trim().length">
             <div class="lib-section">Suggested</div>
             <div *ngIf="!suggestionsLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading…</span></div>
-            <div *ngFor="let s of suggestions" class="lib-row" (click)="addSong(s)">
+            <div *ngFor="let s of suggestions" class="lib-row" appLongPress (press)="openCtx($event, s)" (click)="addSong(s)">
               <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
               <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
               <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -193,7 +193,7 @@
         <ng-container *ngIf="libraryTab === 'songs'">
           <ng-container *ngIf="searchQuery.trim().length">
             <div *ngIf="searchResults.length === 0" class="q-empty">No results</div>
-            <div *ngFor="let s of searchResults" class="lib-row" (click)="addSong(s)">
+            <div *ngFor="let s of searchResults" class="lib-row" appLongPress (press)="openCtx($event, s)" (click)="addSong(s)">
               <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
               <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
               <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -202,7 +202,7 @@
           <ng-container *ngIf="!searchQuery.trim().length">
             <div *ngIf="!favoritesLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading your songs…</span></div>
             <div *ngIf="favoritesLoaded && favorites.length === 0" class="q-empty">No liked songs on Deezer</div>
-            <div *ngFor="let s of favorites" class="lib-row" (click)="addSong(s)">
+            <div *ngFor="let s of favorites" class="lib-row" appLongPress (press)="openCtx($event, s)" (click)="addSong(s)">
               <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
               <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
               <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -236,7 +236,7 @@
               </button>
             </div>
             <div *ngIf="playlistTracksLoading" class="q-loading"><div class="q-spinner"></div><span>Loading tracks…</span></div>
-            <div *ngFor="let t of playlistTracks" class="lib-row" (click)="addSong(t)">
+            <div *ngFor="let t of playlistTracks" class="lib-row" appLongPress (press)="openCtx($event, t)" (click)="addSong(t)">
               <img class="lib-cover" [src]="t.img_url || 'soundpool_sqrd.png'" />
               <div class="lib-info"><span class="lib-title">{{ t.title }}</span><span class="lib-artist">{{ t.artist }}</span></div>
               <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -247,7 +247,7 @@
         <!-- Favorites tab (SoundPool) -->
         <ng-container *ngIf="libraryTab === 'favorites'">
           <div *ngIf="favoritesList.length === 0" class="q-empty">No favorites yet — tap the heart on a playing song</div>
-          <div *ngFor="let s of favoritesList" class="lib-row" (click)="addSong(s)">
+          <div *ngFor="let s of favoritesList" class="lib-row" appLongPress (press)="openCtx($event, s)" (click)="addSong(s)">
             <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
             <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
             <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -258,7 +258,7 @@
         <ng-container *ngIf="libraryTab === 'history'">
           <div *ngIf="!historyLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading history…</span></div>
           <div *ngIf="historyLoaded && historyList.length === 0" class="q-empty">Nothing played yet</div>
-          <div *ngFor="let s of historyList" class="lib-row" (click)="addSong(s)">
+          <div *ngFor="let s of historyList" class="lib-row" appLongPress (press)="openCtx($event, s)" (click)="addSong(s)">
             <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
             <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
             <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -364,6 +364,19 @@
         <div *ngIf="myUnits.length === 0" class="q-empty">No units — add one in the Units page</div>
       </div>
     </div>
+  </div>
+
+  <!-- ── Song context menu (long-press / right-click) ── -->
+  <div class="ctx-backdrop" *ngIf="ctx.open" (click)="closeCtx()" (contextmenu)="$event.preventDefault(); closeCtx()"></div>
+  <div class="ctx-menu" *ngIf="ctx.open" [style.left.px]="ctx.x" [style.top.px]="ctx.y">
+    <button class="ctx-item" (click)="playNext(ctx.song)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      Play next
+    </button>
+    <button class="ctx-item" (click)="addToQueue(ctx.song)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Add to queue
+    </button>
   </div>
 
 </div>

@@ -1135,3 +1135,42 @@
     color: var(--font-muted);
     padding: 0.3rem 1.1rem 0.5rem;
 }
+
+/* ── Song context menu (long-press / right-click) ── */
+.ctx-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+}
+.ctx-menu {
+    position: fixed;
+    z-index: 91;
+    min-width: 160px;
+    padding: 0.35rem;
+    background: rgba(28, 28, 36, 0.98);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    animation: fadeUp 0.12s ease both;
+}
+.ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--font-color);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    svg { color: var(--font-muted); flex-shrink: 0; }
+    &:hover svg { color: var(--accent); }
+}
