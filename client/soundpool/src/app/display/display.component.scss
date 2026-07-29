@@ -1,8 +1,13 @@
 :host {
-  /* Pin to the viewport so no parent margin/padding (e.g. the default body
-     margin) can leave a gap below the full-bleed background. */
+  /* Pin to the viewport and give an explicit (dynamic) viewport height so
+     percentage-height children resolve — a fixed element sized only by insets
+     doesn't provide a definite height basis in every browser, which left the
+     root collapsed and a dark gap below the blurred cover. */
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   display: block;
   overflow: hidden;
   background: #0a0a0f;
@@ -10,9 +15,9 @@
 }
 
 .display-root {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  /* absolute inset:0 fills :host without relying on percentage-height resolution */
+  position: absolute;
+  inset: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
