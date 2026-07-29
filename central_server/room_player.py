@@ -34,6 +34,7 @@ class RoomPlayer:
         self.arl = None            # room owner's Deezer ARL (for download data)
         self._dl_cache = {}        # song_id -> (song, url, key); holds current + prefetched next
         self._prefetching = set()  # song_ids currently being resolved (dedup)
+        self._failed = set()       # song_ids that failed to resolve (unavailable) — skip them
         self._last_render = None   # (song_id, playing) last pushed to outputs
         self.votes = set()         # user ids who voted to skip the current track
         self.vote_threshold = 0    # votes needed to skip (updated on each vote)
@@ -93,7 +94,7 @@ class RoomPlayer:
     async def _resolve_for(self, song_id):
         """Resolve (and cache) a song's Deezer download data, keyed by song id so
         the cache survives queue reordering."""
-        if not song_id or not self.arl:
+        if not song_id or not self.arl or song_id in self._failed:
             return None
         if song_id in self._dl_cache:
             return self._dl_cache[song_id]
@@ -101,10 +102,35 @@ class RoomPlayer:
             song = await asyncio.to_thread(tmg.get_song_gw_data, song_id, self.arl)
             song, url, _ext, key = await asyncio.to_thread(tmg.getDownloadData, song, self.arl)
         except Exception as e:
-            print(f"[room_player] download-data resolve failed: {e}")
+            print(f"[room_player] download-data resolve failed for {song_id}: {e}")
+            self._failed.add(song_id)   # unavailable — don't keep retrying it
             return None
         self._dl_cache[song_id] = (song, url, key)
         return self._dl_cache[song_id]
+
+    async def _ensure_playable(self):
+        """Skip forward past tracks that can't be resolved (unavailable on
+        Deezer) so one bad track doesn't silently stall the room. Bounded to the
+        queue length; pauses if nothing is playable."""
+        if not self.playing or not self.arl:
+            return
+        for _ in range(len(self.queue)):
+            if self.cur() is None:
+                break
+            if await self._resolve_dl() is not None:
+                return   # current track is playable
+            bad = self.cur()
+            print(f"[room_player] skipping unplayable track {bad.get('id')} — {bad.get('title')}")
+            nxt = self.current_index + 1
+            if nxt >= len(self.queue):
+                if self.repeat == "all":
+                    nxt = 0
+                else:
+                    break
+            self._start_track(nxt)
+        # nothing playable
+        self.playing = False
+        self._t0 = None
 
     async def _resolve_dl(self):
         """Resolve (and cache) the current track's Deezer download data."""
@@ -172,6 +198,7 @@ class RoomPlayer:
                 await other.detach(unit_id)
         _unit_room[unit_id] = self.room_id
         self.outputs.add(unit_id)
+        await self._ensure_playable()   # if the current track is unavailable, skip to a playable one
         import pu_connection as puc
         u = puc.getUnitById(unit_id)
         cur = self.cur()
@@ -180,6 +207,8 @@ class RoomPlayer:
             if dl:
                 song, url, key = dl
                 await u.send(["render", song, url, key, self.position(), self.playing, self.volume])
+            else:
+                await u.send(["stop"])
         await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
 
     async def detach(self, unit_id):
@@ -219,6 +248,7 @@ class RoomPlayer:
         runs ahead of the audio and you get an 'advancing but silent' gap after
         jumping to an un-cached song. Outputs are halted first so the old track
         stops right away and playback pauses while the new one loads."""
+        await self._ensure_playable()   # skip unplayable tracks so we don't stall
         await self._halt_outputs()
         await self.broadcast(force_render=True)
         if self.playing:
@@ -232,7 +262,10 @@ class RoomPlayer:
         if not self.playing:
             self.playing = True
             self._t0 = time.monotonic()  # resume from base_offset
+        await self._ensure_playable()    # skip if the current track is unavailable
         await self.broadcast()
+        if self.playing and self._t0 is None:  # re-anchor if _ensure_playable started a new track
+            self._t0 = time.monotonic()
 
     async def pause(self):
         self.base_offset = self.position()
