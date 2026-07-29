@@ -244,9 +244,12 @@ def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):
     except Exception as e:
         print(f"[display] lyrics fetch failed for {song_id}: {e}")
         lyr = {"synced": [], "plain": ""}
-    _lyrics_cache[song_id] = lyr
-    if len(_lyrics_cache) > 500:      # keep the cache bounded
-        _lyrics_cache.pop(next(iter(_lyrics_cache)))
+    # Only cache a real hit — empty results are often transient (rate limit,
+    # csrf race), so don't pin a "no lyrics" answer that never gets retried.
+    if lyr["synced"] or lyr["plain"]:
+        _lyrics_cache[song_id] = lyr
+        if len(_lyrics_cache) > 500:  # keep the cache bounded
+            _lyrics_cache.pop(next(iter(_lyrics_cache)))
     return JSONResponse(content=lyr)
 
 
