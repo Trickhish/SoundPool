@@ -627,7 +627,7 @@
 .qp-votes {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
     margin-left: auto;      /* push the vote + remove controls to the right edge */
     flex-shrink: 0;
     .qp-vote {
@@ -636,17 +636,19 @@
         color: var(--font-muted);
         cursor: pointer;
         display: flex;
-        padding: 3px;
-        border-radius: 6px;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        border-radius: 8px;
         transition: background 0.12s, color 0.12s;
         &:hover { background: rgba(255,255,255,0.08); color: var(--font-color); }
-        &.up.on { color: var(--accent); }
-        &.down.on { color: #5b9dff; }
+        &.up.on { color: var(--accent); background: rgba(255,43,109,0.14); }
+        &.down.on { color: #5b9dff; background: rgba(91,157,255,0.14); }
     }
     .qp-score {
-        min-width: 1.1rem;
+        min-width: 1.25rem;
         text-align: center;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         font-weight: 700;
         color: var(--font-muted);
         font-variant-numeric: tabular-nums;

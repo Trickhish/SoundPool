@@ -138,11 +138,11 @@
         <!-- Up/down-vote to reorder the queue by popularity (upcoming songs only) -->
         <div *ngIf="canVote && item.key > state.current_index" class="qp-votes" (click)="$event.stopPropagation()">
           <button class="qp-vote up" [class.on]="myVote(item) > 0" (click)="voteTrack(item, 1, $event)" title="Vote up">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
           <span class="qp-score" [class.pos]="(item.score || 0) > 0" [class.neg]="(item.score || 0) < 0">{{ item.score || 0 }}</span>
           <button class="qp-vote down" [class.on]="myVote(item) < 0" (click)="voteTrack(item, -1, $event)" title="Vote down">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
 
