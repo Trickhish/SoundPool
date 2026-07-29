@@ -65,12 +65,14 @@ def verify_token(
         ).first()
 
         if not token:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+            # 401 = not authenticated (client should log out). Distinct from 403
+            # = authenticated but forbidden action (client should NOT log out).
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
         user = session.query(User).filter(User.id == token.user_id).first()
 
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=401, detail="User not found")
 
         return user
 

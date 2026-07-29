@@ -20,7 +20,9 @@ export const apiInterceptor:HttpInterceptorFn = (req:HttpRequest<any>, next:Http
       return event;
     }),
     catchError((error: HttpErrorResponse) => {
-      if (error.status==403) {
+      // 401 = the session is invalid -> log out. A 403 just means this specific
+      // action is forbidden (e.g. a party guest lacking a right); don't log out.
+      if (error.status==401) {
         localStorage.removeItem("token");
         router.navigate(['/login']);
       }

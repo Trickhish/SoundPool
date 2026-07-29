@@ -31,10 +31,13 @@ async def search_handler(
         user: User = Depends(verify_token),
         q: str = Query(..., description="Search query")
     ):
-    if not user.deezer_arl:
+    # Fall back to the server's Deezer account so users without a connected
+    # Deezer (party guests especially) can still search to add songs.
+    arl = user.deezer_arl or config["deezer"]["cookie_arl"]
+    if not arl:
         raise HTTPException(403, "Deezer account not connected")
 
-    r = await asyncio.to_thread(tmg.search, q, user.deezer_arl)
+    r = await asyncio.to_thread(tmg.search, q, arl)
     return JSONResponse(content=r)
 
 
