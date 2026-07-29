@@ -31,6 +31,7 @@ export interface PlayerState {
   volume: number;
   shuffle: boolean;
   repeat: 'off' | 'all' | 'one';
+  autoplay: boolean;
   queue: QueueItem[];
 }
 
@@ -149,7 +150,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   emptyState(): PlayerState {
     return { now_playing: null, position: 0, playing: false, current_index: -1,
-             msid: 0, volume: 1, shuffle: false, repeat: 'off', queue: [] };
+             msid: 0, volume: 1, shuffle: false, repeat: 'off', autoplay: false, queue: [] };
   }
 
   // ── Derived view helpers ──
@@ -337,6 +338,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       volume: s.volume ?? 1,
       shuffle: !!s.shuffle,
       repeat: s.repeat ?? 'off',
+      autoplay: !!s.autoplay,
       queue: s.queue ?? [],
     };
     if (s.outputs !== undefined) this.roomOutputs = s.outputs;
@@ -465,6 +467,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
     const next = order[(order.indexOf(this.state.repeat) + 1) % 3];
     this.state.repeat = next;
     if (this.pid) (this.isRoom ? this.api.roomRepeat(this.pid, next) : this.api.setRepeat(this.pid, next)).subscribe();
+  }
+  toggleAutoplay() {
+    if (!this.pid || !this.isRoom) return;
+    const on = !this.state.autoplay;
+    this.state.autoplay = on;
+    this.api.roomAutoplay(this.pid, on).subscribe({
+      next: () => this.toastr.info(on ? 'Autoplay on — similar songs keep playing' : 'Autoplay off'),
+      error: () => { this.state.autoplay = !on; }
+    });
   }
 
   // ── Queue management ──

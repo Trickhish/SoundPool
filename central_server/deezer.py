@@ -524,6 +524,10 @@ def deezer_track_radio(sng_id, limit=40):
     out = []
     for item in tracks[:limit]:
         pic = item.get('ALB_PICTURE', '')
+        try:
+            duration = int(item.get('DURATION', 0))
+        except (TypeError, ValueError):
+            duration = 0
         out.append({
             'id': str(item.get('SNG_ID', '')),
             'id_type': TYPE_TRACK,
@@ -532,6 +536,7 @@ def deezer_track_radio(sng_id, limit=40):
             'album': item.get('ALB_TITLE', ''),
             'album_id': item.get('ALB_ID', ''),
             'artist': item.get('ART_NAME', ''),
+            'duration': duration,       # seconds
             'preview_url': '',
         })
     return out

@@ -30,6 +30,7 @@ class Room(Base):
     shuffle = Column(Boolean, default=False)
     repeat = Column(String(8), default="off")            # off | all | one
     volume = Column(Float, default=1.0)                  # master volume (0..1)
+    autoplay = Column(Boolean, default=False)            # keep playing similar tracks when the queue ends
     party_active = Column(Boolean, default=False)        # guests may join via link
     party_code = Column(String(64), nullable=True)       # shareable join token
     created_at = Column(DateTime, default=datetime.utcnow)

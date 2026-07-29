@@ -28,6 +28,8 @@ class RoomPlayer:
         self.shuffle = False
         self.repeat = "off"        # off | all | one
         self.volume = 1.0          # master volume (scales each output's stream)
+        self.autoplay = False      # append a Deezer track-radio when the queue runs low
+        self._autoplay_busy = False
         self.base_offset = 0.0     # ms into the current track at _t0
         self._t0 = None            # monotonic timestamp the offset was anchored
         self.outputs = set()       # attached output unit ids
@@ -66,6 +68,7 @@ class RoomPlayer:
             "volume": self.volume,
             "shuffle": self.shuffle,
             "repeat": self.repeat,
+            "autoplay": self.autoplay,
             "queue": [{"key": i, "id": t["id"], "title": t["title"], "artist": t["artist"],
                        "cover": t["cover"], "duration": t["duration"], "ready": True, "failed": False}
                       for i, t in enumerate(self.queue)],
@@ -253,6 +256,7 @@ class RoomPlayer:
         await self.broadcast(force_render=True)
         if self.playing:
             self._t0 = time.monotonic()
+        self._autoplay_topup()          # refill the queue with a radio if it's running low
 
     async def play(self):
         if self.current_index < 0:
@@ -413,6 +417,48 @@ class RoomPlayer:
             self.repeat = mode
         await self.broadcast()
 
+    async def set_autoplay(self, on):
+        self.autoplay = bool(on)
+        await self.broadcast()
+        self._autoplay_topup()   # top up now if we're already near the end
+
+    # ── Autoplay: keep a track-radio flowing when the queue runs low ──
+    def _autoplay_topup(self):
+        """If autoplay is on and few tracks remain after the current one, fetch a
+        Deezer track-radio (seeded from the current song) and append it, in the
+        background so playback isn't blocked."""
+        if not self.autoplay or self._autoplay_busy or not self.arl or self.repeat == "one":
+            return
+        cur = self.cur()
+        upcoming = len(self.queue) - self.current_index - 1
+        if cur is None or upcoming > 2:
+            return
+        self._autoplay_busy = True
+        asyncio.create_task(self._do_autoplay_topup(cur["id"]))
+
+    async def _do_autoplay_topup(self, seed_id):
+        try:
+            radio = await asyncio.to_thread(tmg.track_radio, self.arl, seed_id, 30)
+            have = {t["id"] for t in self.queue}
+            added = 0
+            for r in radio:
+                sid = str(r.get("id") or "")
+                if not sid or sid in have or sid in self._failed:
+                    continue
+                self.queue.append({
+                    "id": sid, "title": r.get("title", ""), "artist": r.get("artist", ""),
+                    "cover": r.get("img_url", ""), "duration": float(r.get("duration", 0)) * 1000.0,
+                })
+                have.add(sid)
+                added += 1
+            if added:
+                persist_queue(self.room_id)
+                await self.broadcast()
+        except Exception as e:
+            print(f"[room_player] autoplay top-up failed: {e}")
+        finally:
+            self._autoplay_busy = False
+
     async def set_volume(self, level):
         self.volume = max(0.0, min(1.0, float(level)))
         await self.broadcast(force_render=True)  # push new stream volume to outputs
@@ -476,6 +522,7 @@ def ensure_loaded(room_id):
             rp.shuffle = bool(room.shuffle)
             rp.repeat = room.repeat or "off"
             rp.volume = room.volume if room.volume is not None else 1.0
+            rp.autoplay = bool(getattr(room, "autoplay", False))
             owner = db.query(User).filter(User.id == room.owner_id).first()
             rp.arl = owner.deezer_arl if owner else None
         tracks = (db.query(RoomTrack)
@@ -512,6 +559,7 @@ def persist_queue(room_id):
             room.repeat = rp.repeat
             room.current_index = rp.current_index
             room.volume = rp.volume
+            room.autoplay = rp.autoplay
         db.commit()
     except Exception:
         db.rollback()

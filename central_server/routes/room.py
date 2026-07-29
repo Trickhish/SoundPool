@@ -471,6 +471,16 @@ async def room_repeat(room_id: int, body: RepeatRequest,
     return JSONResponse(content={"status": "ok"})
 
 
+@router.post("/{room_id}/autoplay")
+async def room_autoplay(room_id: int, body: ShuffleRequest,
+                        db: SessionLocal = Depends(get_db),  # type: ignore
+                        user: User = Depends(verify_token)):
+    _, rp = _require(db, room_id, user, "can_playpause")
+    await rp.set_autoplay(body.on)
+    room_player.persist_queue(room_id)
+    return JSONResponse(content={"status": "ok"})
+
+
 @router.post("/{room_id}/join")
 def join_room(room_id: int, body: RoomJoinRequest,
               db: SessionLocal = Depends(get_db),  # type: ignore
