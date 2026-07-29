@@ -174,6 +174,71 @@ def get_song_lyrics(song_id: str, arl: str) -> dict:
     return {"synced": synced, "plain": res.get('LYRICS_TEXT') or ''}
 
 
+import re as _re
+
+_LRC_TAG = _re.compile(r'\[(\d+):(\d+)(?:\.(\d+))?\]')
+
+
+def _parse_lrc(lrc: str) -> list:
+    """Parse an LRC string into [{"ms": int, "line": str}] sorted by time.
+    Handles multiple timestamps per line and 2- or 3-digit fractions."""
+    out = []
+    for raw in (lrc or '').splitlines():
+        tags = _LRC_TAG.findall(raw)
+        if not tags:
+            continue
+        text = _LRC_TAG.sub('', raw).strip()
+        for mnt, sec, frac in tags:
+            ms = int(mnt) * 60000 + int(sec) * 1000
+            if frac:
+                ms += int(frac.ljust(3, '0')[:3])   # ".34" -> 340ms, ".5" -> 500ms
+            out.append({"ms": ms, "line": text})
+    out.sort(key=lambda x: x["ms"])
+    return out
+
+
+def _pick_lrclib(results: list, duration_sec):
+    """Choose the best LRCLIB match: prefer synced lyrics, then the closest
+    duration."""
+    if not results:
+        return None
+    def score(x):
+        has_sync = 1 if x.get("syncedLyrics") else 0
+        d = abs((x.get("duration") or 0) - (duration_sec or 0)) if duration_sec else 0
+        return (has_sync, -d)
+    return sorted(results, key=score, reverse=True)[0]
+
+
+def get_lrclib_lyrics(title: str, artist: str, duration_sec=None, album: str = None) -> dict:
+    """Fallback lyrics from LRCLIB (lrclib.net) — free, community-sourced, and
+    includes synced lyrics. Returns {"synced": [...], "plain": str}."""
+    if not title or not artist:
+        return {"synced": [], "plain": ""}
+    headers = {"User-Agent": "SoundPool/1.0 (+https://soundpool.dury.dev)"}
+    base = "https://lrclib.net/api"
+    rec = None
+    try:
+        # Exact match when we have album + duration (LRCLIB's preferred lookup).
+        if album and duration_sec:
+            r = requests.get(f"{base}/get", headers=headers, timeout=8, params={
+                "track_name": title, "artist_name": artist,
+                "album_name": album, "duration": int(round(duration_sec))})
+            if r.status_code == 200:
+                rec = r.json()
+        if rec is None:
+            r = requests.get(f"{base}/search", headers=headers, timeout=8,
+                             params={"track_name": title, "artist_name": artist})
+            if r.status_code == 200:
+                rec = _pick_lrclib(r.json() or [], duration_sec)
+    except Exception as e:
+        print(f"[lrclib] fetch failed for {artist} - {title}: {e}")
+        return {"synced": [], "plain": ""}
+    if not rec:
+        return {"synced": [], "plain": ""}
+    return {"synced": _parse_lrc(rec.get("syncedLyrics") or ""),
+            "plain": rec.get("plainLyrics") or ""}
+
+
 def get_deezer_playlist_tracks_gw(playlist_id: int, arl: str) -> list:
     """Fetch all GW track data (includes TRACK_TOKEN) for a Deezer playlist."""
     _init_session(arl)

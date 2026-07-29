@@ -242,8 +242,17 @@ def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):
     try:
         lyr = tmg.get_song_lyrics(song_id, owner.deezer_arl)
     except Exception as e:
-        print(f"[display] lyrics fetch failed for {song_id}: {e}")
+        print(f"[display] deezer lyrics failed for {song_id}: {e}")
         lyr = {"synced": [], "plain": ""}
+    # Fall back to LRCLIB when Deezer has nothing (uses the queued track's
+    # title/artist/duration — no extra Deezer call).
+    if not (lyr["synced"] or lyr["plain"]):
+        t = (db.query(RoomTrack)
+               .filter(RoomTrack.room_id == room.id, RoomTrack.song_id == song_id)
+               .first())
+        if t and t.title and t.artist:
+            dur = (t.duration_ms or 0) / 1000.0 or None
+            lyr = tmg.get_lrclib_lyrics(t.title, t.artist, dur)
     # Only cache a real hit — empty results are often transient (rate limit,
     # csrf race), so don't pin a "no lyrics" answer that never gets retried.
     if lyr["synced"] or lyr["plain"]:
