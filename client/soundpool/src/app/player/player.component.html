@@ -85,6 +85,12 @@
     </button>
   </section>
 
+  <!-- Prominent add button for party guests -->
+  <button *ngIf="isRoom && isGuestUser && can('can_add')" class="add-fab" (click)="openLibrary('songs')">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add songs
+  </button>
+
   <!-- Queue panel backdrop -->
   <div class="queue-backdrop" *ngIf="queueOpen" (click)="closeQueue()"></div>
 

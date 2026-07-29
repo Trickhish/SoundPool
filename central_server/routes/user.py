@@ -23,7 +23,8 @@ async def test_handler(
 
     return JSONResponse(content={
         "username": user.username,
-        "email": user.email
+        "email": user.email,
+        "is_guest": bool(getattr(user, "is_guest", False)),
     })
 
 @router.get("/units")

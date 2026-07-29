@@ -6,21 +6,23 @@
             <fa-icon (click)="logout()" id="logout_btn" [icon]="['fas', 'right-from-bracket']"></fa-icon>
         </div>
 
-        <button (click)="closeBurger()" [class.active]="currentRoute==='/home'" [routerLink]="['/home']" >{{'home' | translate}}</button>
-        <button (click)="closeBurger()" [class.active]="currentRoute==='/rooms'" [routerLink]="['/rooms']" >{{'rooms' | translate}}</button>
-        <button (click)="closeBurger()" [class.active]="currentRoute==='/playlists'" [routerLink]="['/playlists']" >{{'playlists' | translate}}</button>
-        <button (click)="closeBurger()" [class.active]="currentRoute==='/units'" [routerLink]="['/units']" >{{'units' | translate}}</button>
-        <button (click)="closeBurger()" [class.active]="currentRoute==='/profile'" [routerLink]="['/profile']" >{{'profile' | translate}}</button>
+        <ng-container *ngIf="!isGuest">
+            <button (click)="closeBurger()" [class.active]="currentRoute==='/home'" [routerLink]="['/home']" >{{'home' | translate}}</button>
+            <button (click)="closeBurger()" [class.active]="currentRoute==='/rooms'" [routerLink]="['/rooms']" >{{'rooms' | translate}}</button>
+            <button (click)="closeBurger()" [class.active]="currentRoute==='/playlists'" [routerLink]="['/playlists']" >{{'playlists' | translate}}</button>
+            <button (click)="closeBurger()" [class.active]="currentRoute==='/units'" [routerLink]="['/units']" >{{'units' | translate}}</button>
+            <button (click)="closeBurger()" [class.active]="currentRoute==='/profile'" [routerLink]="['/profile']" >{{'profile' | translate}}</button>
 
-        <img id="langbtn" class="lang donotdismiss active" (click)="selectLang()" [src]="this.langImg()" />
-        <div class="lang_ctn dismissible" data-activateonhide='[".navbar #langbtn"]'>
-            <img *ngFor="let lg of langs()" (click)="setLang(lg)" class="lang" [src]="this.langImg(lg)" />
-        </div>
+            <img id="langbtn" class="lang donotdismiss active" (click)="selectLang()" [src]="this.langImg()" />
+            <div class="lang_ctn dismissible" data-activateonhide='[".navbar #langbtn"]'>
+                <img *ngFor="let lg of langs()" (click)="setLang(lg)" class="lang" [src]="this.langImg(lg)" />
+            </div>
+        </ng-container>
     </div>
 
     <h2 id="page_title">{{page_title | translate}}</h2>
 
-    <div class="burger_ctn" (click)="burger($event)">
+    <div class="burger_ctn" *ngIf="!isGuest" (click)="burger($event)">
         <p class="burger_lines"></p>
     </div>
 

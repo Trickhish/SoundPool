@@ -37,6 +37,9 @@ export class NavbarComponent {
   currentRoute: string = '';
   page_title: string = '';
 
+  /** Party guests get a stripped-down shell (no nav menu) — just the player. */
+  get isGuest(): boolean { return !!this.api.user?.is_guest; }
+
   /** The now-playing bar is shown (so reserve bottom space) unless we're on the
    *  active room's own page, where the bar is hidden. */
   get barVisible(): boolean {

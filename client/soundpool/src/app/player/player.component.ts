@@ -495,6 +495,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     return !!this.rights.is_admin || !!this.rights[right];
   }
   get isAdmin(): boolean { return this.isRoom && !!this.rights?.is_admin; }
+  /** Party guest in this room — gets a simplified, add-focused UI. */
+  get isGuestUser(): boolean { return this.rights?.role === 'guest'; }
   get showVoteSkip(): boolean { return this.isRoom && !this.can('can_skip') && this.can('can_vote_skip'); }
 
   voteSkip() {
