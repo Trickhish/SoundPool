@@ -94,11 +94,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
   voteCount = 0;
   voteThreshold = 0;
   voted = false;                  // did I vote to skip the current track (local)
-  manageOpen = false;             // admin members/rights panel
   members: any[] = [];
 
   // Party mode
-  partyOpen = false;
   partyActive = false;
   partyCode: string | null = null;
   partyQr: string | null = null;  // QR data-URL of the join link
@@ -286,8 +284,6 @@ export class PlayerComponent implements OnInit, OnDestroy {
   get partyLink(): string {
     return this.partyCode ? `${window.location.origin}/party/${this.partyCode}` : '';
   }
-  openParty() { this.partyOpen = true; }
-  closeParty() { this.partyOpen = false; }
   startParty() {
     if (!this.pid) return;
     this.api.startParty(this.pid).subscribe({
@@ -563,7 +559,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   // ── Room settings (admin) ──
   settingsOpen = false;
-  openSettings() { this.settingsOpen = true; }
+  openSettings() {
+    this.settingsOpen = true;
+    if (this.pid) this.api.roomMembers(+this.pid).subscribe({ next: (m) => this.members = m });
+  }
   closeSettings() { this.settingsOpen = false; }
   toggleVoting() {
     if (!this.pid || !this.isAdmin) return;
@@ -575,13 +574,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Members / rights management (admin) ──
-  openManage() {
-    if (!this.pid) return;
-    this.manageOpen = true;
-    this.api.roomMembers(+this.pid).subscribe({ next: (m) => this.members = m });
-  }
-  closeManage() { this.manageOpen = false; }
+  // ── Members / rights management (admin) — shown inside the settings modal ──
   toggleMemberRight(m: any, field: string) {
     if (!this.pid) return;
     const val = !m[field];

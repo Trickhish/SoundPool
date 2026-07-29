@@ -1077,6 +1077,17 @@
 /* ── Party mode modal ── */
 /* ── Room settings ── */
 .settings-modal { max-width: 420px; }
+.settings-section {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--font-muted);
+    padding: 0.9rem 0.4rem 0.35rem;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    margin-top: 0.5rem;
+    &:first-child { border-top: none; margin-top: 0; padding-top: 0.2rem; }
+}
 .setting-row {
     display: flex;
     align-items: center;
