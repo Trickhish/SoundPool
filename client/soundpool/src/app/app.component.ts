@@ -28,6 +28,9 @@ export class AppComponent {
   }
 
   ngOnInit() {
+    // No token = nothing to validate. Skip vtk() so public pages (login,
+    // register, /party/:code join) don't trigger a 401 -> redirect-to-login.
+    if (!localStorage.getItem('token')) return;
     this.api.vtk().subscribe({
       next: (r)=> {
         this.livefb.launch();
