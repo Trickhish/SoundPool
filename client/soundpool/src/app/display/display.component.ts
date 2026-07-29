@@ -151,6 +151,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
     this.lastAt = Date.now();
     if ((np?.id || null) !== this.nowId) {
       this.nowId = np?.id || null;
+      // Snap the progress + lyric highlight to the new track immediately so we
+      // don't briefly render the previous track's tail (a full progress bar for
+      // ~250ms) while waiting for the next tick to recompute.
+      this.posMs = this.lastPos;
+      this.activeIdx = -1;
       this.loadLyrics();
     }
   }
@@ -190,7 +195,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.lyrics = r?.synced || [];
         this.plain = r?.plain || '';
         this.lyricsLoading = false;
-        this.kickBg();   // lyrics rendering can leave the blur layer stale — nudge it
+        this.activeIdx = -1;   // start fresh so the first tick picks the new song's line, not the old index
+        this.kickBg();         // lyrics rendering can leave the blur layer stale — nudge it
       }),
       error: () => this.zone.run(() => { this.lyricsLoading = false; })
     });
