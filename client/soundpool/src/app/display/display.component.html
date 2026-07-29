@@ -17,7 +17,7 @@
       <span class="disp-room">{{ info.name }}</span>
     </header>
 
-    <div class="disp-main" [class.two-col]="showPlayer && showLyrics">
+    <div class="disp-main" [class.two-col]="showPlayer && hasRightCol">
 
       <!-- ── Player ── -->
       <section *ngIf="showPlayer" class="disp-player">
@@ -38,6 +38,19 @@
         <ng-template #nothingPlaying>
           <div class="disp-track"><h1 class="disp-title dim">Nothing playing</h1></div>
         </ng-template>
+
+        <!-- Compact queue under the thumbnail (when lyrics take the column) -->
+        <div *ngIf="queueUnderThumb" class="disp-queue compact">
+          <div class="disp-queue-head">Up next</div>
+          <div *ngIf="!queueShown.length" class="disp-queue-empty">Nothing queued</div>
+          <div *ngFor="let q of queueShown" class="disp-queue-row">
+            <img class="disp-queue-cover" [src]="q.cover || 'soundpool_sqrd.png'" />
+            <div class="disp-queue-info">
+              <span class="disp-queue-title">{{ q.title }}</span>
+              <span class="disp-queue-artist">{{ q.artist }}</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ── Lyrics ── -->
@@ -56,6 +69,21 @@
         <!-- Plain fallback -->
         <div *ngIf="!lyrics.length && plain" class="disp-lyr-scroll plain">
           <pre>{{ plain }}</pre>
+        </div>
+      </section>
+
+      <!-- ── Queue (full column, when lyrics are off) ── -->
+      <section *ngIf="queueInColumn" class="disp-queue full">
+        <div class="disp-queue-head">Up next</div>
+        <div *ngIf="!queueShown.length" class="disp-queue-empty">Nothing queued</div>
+        <div class="disp-queue-list">
+          <div *ngFor="let q of queueShown" class="disp-queue-row">
+            <img class="disp-queue-cover" [src]="q.cover || 'soundpool_sqrd.png'" />
+            <div class="disp-queue-info">
+              <span class="disp-queue-title">{{ q.title }}</span>
+              <span class="disp-queue-artist">{{ q.artist }}</span>
+            </div>
+          </div>
         </div>
       </section>
 

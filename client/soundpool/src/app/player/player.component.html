@@ -351,6 +351,13 @@
                   <div class="setting-text"><span class="setting-name">Show lyrics</span></div>
                   <span class="toggle" [class.on]="displayCfg.show_lyrics"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_queue')">
+                  <div class="setting-text">
+                    <span class="setting-name">Show queue</span>
+                    <span class="setting-desc">Takes the lyrics area when lyrics are off, or a short list under the cover when they're on.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.show_queue"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_qr')">
                   <div class="setting-text">
                     <span class="setting-name">Show party QR</span>

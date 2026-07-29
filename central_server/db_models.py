@@ -40,6 +40,7 @@ class Room(Base):
     display_code = Column(String(64), nullable=True)     # shareable link token for the display page
     display_show_player = Column(Boolean, default=True)  # what the big screen shows
     display_show_lyrics = Column(Boolean, default=True)
+    display_show_queue = Column(Boolean, default=True)   # upcoming songs
     display_show_qr = Column(Boolean, default=True)      # party join QR (only appears while a party is live)
     display_show_message = Column(Boolean, default=False)
     display_message = Column(String(512), nullable=True) # admin-authored message to show on screen

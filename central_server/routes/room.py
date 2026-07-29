@@ -111,6 +111,7 @@ def room_dict(db, room, user):
         "display": {
             "show_player": bool(room.display_show_player),
             "show_lyrics": bool(room.display_show_lyrics),
+            "show_queue": bool(room.display_show_queue),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -186,6 +187,9 @@ _lyrics_cache = {}   # song_id -> {"synced": [...], "plain": str}
 def _display_payload(db, room):
     rp = room_player.ensure_loaded(room.id)
     st = rp.state()
+    q = st.get("queue") or []
+    ci = st.get("current_index", -1)
+    upcoming = q[ci + 1:] if ci >= 0 else q
     return {
         "room_id": room.id,
         "name": room.name,
@@ -194,8 +198,11 @@ def _display_payload(db, room):
         "now_playing": st.get("now_playing"),
         "position": st.get("position", 0),
         "playing": st.get("playing", False),
+        "queue": [{"title": t["title"], "artist": t["artist"], "cover": t["cover"]}
+                  for t in upcoming[:12]],
         "show_player": bool(room.display_show_player),
         "show_lyrics": bool(room.display_show_lyrics),
+        "show_queue": bool(room.display_show_queue),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -411,6 +418,7 @@ def _display_dict(room):
         "display_code": room.display_code,
         "show_player": bool(room.display_show_player),
         "show_lyrics": bool(room.display_show_lyrics),
+        "show_queue": bool(room.display_show_queue),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -448,6 +456,7 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
         room.display_code = secrets.token_urlsafe(9)
     if body.show_player is not None:  room.display_show_player = body.show_player
     if body.show_lyrics is not None:  room.display_show_lyrics = body.show_lyrics
+    if body.show_queue is not None:   room.display_show_queue = body.show_queue
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]

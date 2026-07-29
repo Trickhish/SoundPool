@@ -182,6 +182,73 @@
 }
 .disp-main:not(.two-col) .disp-lyrics { max-width: 70vw; }
 
+/* ── Queue ── */
+.disp-queue-head {
+  font-size: 1.9vh;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 1.4vh;
+}
+.disp-queue-empty { font-size: 2vh; opacity: 0.4; }
+.disp-queue-row {
+  display: flex;
+  align-items: center;
+  gap: 1.4vh;
+  padding: 0.7vh 0;
+  text-align: left;
+}
+.disp-queue-cover {
+  width: 6vh;
+  height: 6vh;
+  border-radius: 1vh;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.disp-queue-info { display: flex; flex-direction: column; min-width: 0; gap: 0.2vh; }
+.disp-queue-title {
+  font-size: 2.2vh;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.disp-queue-artist {
+  font-size: 1.7vh;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Full-column queue (lyrics off) — centered like the lyrics panel */
+.disp-queue.full {
+  flex: 1 1 0;
+  height: 82%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  .disp-queue-head { font-size: 2.4vh; }
+  .disp-queue-list { overflow-y: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+  .disp-queue-cover { width: 8vh; height: 8vh; }
+  .disp-queue-title { font-size: 2.8vh; }
+  .disp-queue-artist { font-size: 2vh; }
+  .disp-queue-row { padding: 1vh 0; }
+}
+.disp-main:not(.two-col) .disp-queue.full { max-width: 70vw; }
+
+/* Compact queue under the thumbnail (lyrics on) */
+.disp-queue.compact {
+  width: 100%;
+  max-width: 40vw;
+  margin-top: 1vh;
+  text-align: left;
+}
+
 /* ── Party QR ── */
 .disp-qr {
   position: absolute;

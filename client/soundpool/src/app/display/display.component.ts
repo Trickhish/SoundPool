@@ -30,6 +30,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   notFound = false;
 
   nowId: string | null = null;
+  queue: { title: string; artist: string; cover: string }[] = [];
   lyrics: LyricLine[] = [];
   plain = '';
   lyricsLoading = false;
@@ -93,6 +94,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
     this.sseLive = true;
     if (dt.type === 'state') {
       this.setPlayback(dt.now_playing ?? null, dt.position ?? 0, !!dt.playing);
+      const q = dt.queue || [];
+      const ci = dt.current_index ?? -1;
+      this.queue = (ci >= 0 ? q.slice(ci + 1) : q)
+        .map((t: any) => ({ title: t.title, artist: t.artist, cover: t.cover }));
     } else if (dt.type === 'progress') {
       this.durMs = parseFloat(dt.duration) || this.durMs;
       this.lastPos = parseFloat(dt.progress) || 0;
@@ -121,6 +126,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
     this.startSse(i.room_id);
     // Seed playback from the poll until the live SSE feed takes over.
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
+    if (Array.isArray(i.queue)) this.queue = i.queue;
 
     // Party-join QR — only while a party is live and the admin enabled it.
     const wantQr = i.party_active && i.show_qr && i.party_code;
@@ -194,6 +200,15 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
   get showPlayer(): boolean { return !!this.info?.show_player; }
   get showLyrics(): boolean { return !!this.info?.show_lyrics; }
+  get showQueue(): boolean { return !!this.info?.show_queue; }
+  /** Queue takes the big right-hand column when lyrics aren't shown. */
+  get queueInColumn(): boolean { return this.showQueue && !this.showLyrics; }
+  /** Compact queue under the thumbnail when lyrics occupy the column. */
+  get queueUnderThumb(): boolean { return this.showQueue && this.showLyrics && this.showPlayer; }
+  /** Is there anything filling the right-hand column? */
+  get hasRightCol(): boolean { return this.showLyrics || this.queueInColumn; }
+  /** Fewer entries when compact under the thumbnail, more when full-column. */
+  get queueShown() { return this.queue.slice(0, this.queueUnderThumb ? 4 : 9); }
   get showMessage(): boolean { return !!this.info?.show_message && !!(this.info?.message || '').trim(); }
   get cover(): string { return this.info?.now_playing?.cover || 'soundpool_sqrd.png'; }
   fmt(ms: number): string {
