@@ -1012,8 +1012,8 @@
     .music_ctn { --lc_size: 290px; }
     .music_title { font-size: 1.5rem; }
 }
-@media (max-width: 420px) {
-    .music_ctn { --lc_size: 240px; }
+@media (max-width: 800px) {
+    /* Mobile: prev/next sit inside the disc, flanking the play button */
     .music_nav_ctn {
         height: 28px;
         width: 28px;
@@ -1033,6 +1033,9 @@
             translate: 100% -50%;
         }
     }
+}
+@media (max-width: 420px) {
+    .music_ctn { --lc_size: 240px; }
 }
 
 /* ── Party mode modal ── */
