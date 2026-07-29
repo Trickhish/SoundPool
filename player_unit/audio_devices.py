@@ -15,9 +15,15 @@ _bt_scanning = False
 _selected = []                   # last selected sink names (persisted in-memory)
 
 
+# Force English output so we can parse pactl/bluetoothctl regardless of the
+# system locale (e.g. a French box prints "Nom :"/"Volume :" and our parsing
+# expects "Name:"/"Volume:").
+_C_ENV = {**os.environ, "LC_ALL": "C", "LANG": "C"}
+
+
 def _run(args, timeout=10):
     try:
-        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout, env=_C_ENV)
         return r.stdout
     except Exception as e:
         print(f"[audio] {' '.join(args)} failed: {e}")
@@ -25,38 +31,37 @@ def _run(args, timeout=10):
 
 
 # ── Sinks ──
-def _sink_descriptions():
-    """name -> human description from `pactl list sinks`."""
+def _sink_info():
+    """name -> {description, volume(0..100), mute} from a single `pactl list sinks`.
+    Reads volume here (not via `get-sink-volume`, which doesn't exist on older
+    pactl) and takes the first Volume line so we skip the later "Base Volume"."""
     out = _run(["pactl", "list", "sinks"])
-    desc, cur = {}, None
-    for line in out.splitlines():
-        line = line.strip()
+    info, cur = {}, None
+    for raw in out.splitlines():
+        line = raw.strip()
         if line.startswith("Name:"):
             cur = line.split("Name:", 1)[1].strip()
-        elif line.startswith("Description:") and cur:
-            desc[cur] = line.split("Description:", 1)[1].strip()
-    return desc
-
-
-def _sink_volume(name):
-    out = _run(["pactl", "get-sink-volume", name])
-    m = re.search(r"(\d+)%", out)
-    return int(m.group(1)) if m else 100
+            info[cur] = {"description": cur, "volume": 100, "mute": False, "_vol": False}
+        elif not cur:
+            continue
+        elif line.startswith("Description:"):
+            info[cur]["description"] = line.split("Description:", 1)[1].strip()
+        elif line.startswith("Volume:") and not info[cur]["_vol"]:
+            m = re.search(r"(\d+)%", line)
+            if m:
+                info[cur]["volume"] = int(m.group(1))
+            info[cur]["_vol"] = True
+        elif line.startswith("Mute:"):
+            info[cur]["mute"] = line.split("Mute:", 1)[1].strip().lower().startswith("y")
+    return info
 
 
 def list_sinks():
-    out = _run(["pactl", "list", "short", "sinks"])
-    desc = _sink_descriptions()
     sinks = []
-    for line in out.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        name = parts[1]
+    for name, d in _sink_info().items():
         if name == COMBINE_SINK or ".monitor" in name or name == "auto_null":
             continue
-        sinks.append({"name": name, "description": desc.get(name, name),
-                      "volume": _sink_volume(name)})
+        sinks.append({"name": name, "description": d["description"], "volume": d["volume"]})
     return sinks
 
 
