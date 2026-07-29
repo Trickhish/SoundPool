@@ -554,6 +554,7 @@ def delete_room(room_id: int,
         raise HTTPException(403, "Only the owner can delete the room")
     db.query(RoomTrack).filter(RoomTrack.room_id == room_id).delete()
     db.query(RoomMember).filter(RoomMember.room_id == room_id).delete()
+    db.query(Unit).filter(Unit.room_id == room_id).update({Unit.room_id: None})  # clear persisted attachments
     db.delete(room)
     db.commit()
     return JSONResponse(content={"status": "deleted"})

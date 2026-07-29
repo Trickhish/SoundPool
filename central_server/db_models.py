@@ -31,6 +31,8 @@ class Room(Base):
     repeat = Column(String(8), default="off")            # off | all | one
     volume = Column(Float, default=1.0)                  # master volume (0..1)
     autoplay = Column(Boolean, default=False)            # keep playing similar tracks when the queue ends
+    position_ms = Column(Float, default=0)               # persisted playback position (resume after restart)
+    playing = Column(Boolean, default=False)             # was it playing when last saved
     party_active = Column(Boolean, default=False)        # guests may join via link
     party_code = Column(String(64), nullable=True)       # shareable join token
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -60,6 +62,7 @@ class Unit(Base):
     online = Column(Boolean, nullable=False, default=False)
     owner_mail = Column(String(255), nullable=True)
     owner_id = Column(Integer, nullable=True)
+    room_id = Column(Integer, nullable=True)             # room this unit is an output of (persisted attachment)
     status = Column(String(255), nullable=False, default="empty")
     # Possible values:
     # - "playing"     -> Actively playing media

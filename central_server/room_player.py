@@ -12,7 +12,7 @@ import random
 import sse
 import tracks_manager as tmg
 from database import SessionLocal
-from db_models import RoomTrack, Room, User
+from db_models import RoomTrack, Room, User, Unit
 
 _rooms = {}          # room_id -> RoomPlayer
 _loaded = set()      # room_ids whose queue has been loaded from the DB
@@ -201,6 +201,7 @@ class RoomPlayer:
                 await other.detach(unit_id)
         _unit_room[unit_id] = self.room_id
         self.outputs.add(unit_id)
+        _set_unit_room_db(unit_id, self.room_id)   # persist so it resurvives a restart
         await self._ensure_playable()   # if the current track is unavailable, skip to a playable one
         import pu_connection as puc
         u = puc.getUnitById(unit_id)
@@ -218,6 +219,7 @@ class RoomPlayer:
         self.outputs.discard(unit_id)
         if _unit_room.get(unit_id) == self.room_id:
             _unit_room.pop(unit_id, None)
+        _set_unit_room_db(unit_id, None)
         import pu_connection as puc
         u = puc.getUnitById(unit_id)
         if u:
@@ -257,6 +259,7 @@ class RoomPlayer:
         if self.playing:
             self._t0 = time.monotonic()
         self._autoplay_topup()          # refill the queue with a radio if it's running low
+        persist_position(self.room_id)  # capture the new current track
 
     async def play(self):
         if self.current_index < 0:
@@ -276,6 +279,7 @@ class RoomPlayer:
         self.playing = False
         self._t0 = None
         await self.broadcast()
+        persist_position(self.room_id)   # capture where we paused
 
     async def toggle(self):
         await (self.pause() if self.playing else self.play())
@@ -478,6 +482,9 @@ class RoomPlayer:
         # skip that didn't render) self-heals without a page reload.
         if self._hb % 5 == 0:
             await sse.triggerEvent(f"room_{self.room_id}", {**self.state(), "type": "state"})
+        # Persist the position periodically so a restart resumes near where it was.
+        if self.playing and self._hb % 15 == 0:
+            persist_position(self.room_id)
 
 
 async def on_unit_online(unit_id):
@@ -490,6 +497,14 @@ async def on_unit_online(unit_id):
     if u is None:
         return
     rid = _unit_room.get(unit_id)
+    if rid is None:
+        # Not attached in memory — check the persisted attachment (e.g. after a
+        # server restart) and restore it so the unit resumes its room.
+        rid = _unit_room_db(unit_id)
+        if rid is not None:
+            rp = ensure_loaded(rid)
+            rp.outputs.add(unit_id)
+            _unit_room[unit_id] = rid
     rp = _rooms.get(rid) if rid is not None else None
     if rp is not None and unit_id in rp.outputs and rp.cur() is not None:
         dl = await rp._resolve_dl()
@@ -498,6 +513,45 @@ async def on_unit_online(unit_id):
             await u.send(["render", song, url, key, rp.position(), rp.playing, rp.volume])
             return
     await u.send(["stop"])
+
+
+def _set_unit_room_db(unit_id, room_id):
+    """Persist a unit's room attachment so it survives a server restart."""
+    db = SessionLocal()
+    try:
+        u = db.query(Unit).filter(Unit.id == unit_id).first()
+        if u:
+            u.room_id = room_id
+            db.commit()
+    finally:
+        db.close()
+
+
+def _unit_room_db(unit_id):
+    db = SessionLocal()
+    try:
+        u = db.query(Unit).filter(Unit.id == unit_id).first()
+        return u.room_id if u else None
+    finally:
+        db.close()
+
+
+def persist_position(room_id):
+    """Lightweight save of playback position/state (no queue rewrite)."""
+    room_id = int(room_id)
+    rp = _rooms.get(room_id)
+    if rp is None:
+        return
+    db = SessionLocal()
+    try:
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if room:
+            room.position_ms = rp.position()
+            room.playing = rp.playing
+            room.current_index = rp.current_index
+            db.commit()
+    finally:
+        db.close()
 
 
 def get_player(room_id):
@@ -530,13 +584,19 @@ def ensure_loaded(room_id):
                     .order_by(RoomTrack.order).all())
         rp.queue = [{"id": t.song_id, "title": t.title, "artist": t.artist,
                      "cover": t.cover, "duration": t.duration_ms} for t in tracks]
-        # Load the first (or persisted) song, paused — never start empty.
+        # Resume at the persisted position/playing state (so a restart continues
+        # rather than resetting to the top, paused).
         if rp.queue:
             ci = room.current_index if room else 0
             rp.current_index = ci if (0 <= ci < len(rp.queue)) else 0
-            rp.playing = False
-            rp.base_offset = 0.0
-            rp._t0 = None
+            rp.base_offset = float(getattr(room, "position_ms", 0) or 0)
+            rp.playing = bool(getattr(room, "playing", False))
+            rp._t0 = time.monotonic() if rp.playing else None
+        # Restore persisted output attachments so the conductor knows its outputs
+        # even before the units reconnect.
+        for u in db.query(Unit).filter(Unit.room_id == room_id).all():
+            rp.outputs.add(u.id)
+            _unit_room[u.id] = room_id
     finally:
         db.close()
     _loaded.add(room_id)
@@ -560,6 +620,8 @@ def persist_queue(room_id):
             room.current_index = rp.current_index
             room.volume = rp.volume
             room.autoplay = rp.autoplay
+            room.position_ms = rp.position()
+            room.playing = rp.playing
         db.commit()
     except Exception:
         db.rollback()
@@ -576,6 +638,20 @@ async def conductor():
     if _conductor_started:
         return
     _conductor_started = True
+    # Restore rooms that had units attached so playback resumes after a restart,
+    # even before a client opens the room.
+    try:
+        db = SessionLocal()
+        rids = {u.room_id for u in db.query(Unit).filter(Unit.room_id != None).all() if u.room_id}
+        db.close()
+        for rid in rids:
+            try:
+                ensure_loaded(rid)
+                print(f"[room_player] restored room {rid} with persisted outputs")
+            except Exception as e:
+                print(f"[room_player] restore room {rid} failed: {e}")
+    except Exception as e:
+        print(f"[room_player] startup restore failed: {e}")
     while True:
         for rp in list(_rooms.values()):
             try:
