@@ -1110,3 +1110,28 @@
     &:hover { transform: translateX(-50%) scale(1.05); filter: brightness(1.08); }
     &:active { transform: translateX(-50%) scale(0.98); }
 }
+
+/* ── Guest add view (prominent search + suggestions) ── */
+.lib-guest-search {
+    padding: 0.4rem 1.1rem 0.9rem;
+}
+.lib-search.big {
+    width: 100%;
+    height: 48px;
+    font-size: 1rem;
+    padding: 0 1.2rem;
+    border-radius: 999px;
+    background: var(--surface-1);
+    border: 1px solid var(--inp-bd);
+    color: var(--font-color);
+    &:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,43,109,0.2); }
+}
+.lib-section {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--font-muted);
+    padding: 0.3rem 1.1rem 0.5rem;
+}

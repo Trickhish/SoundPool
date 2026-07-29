@@ -135,6 +135,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
   queueBusy = false;
   searchQuery = '';
   searchResults: any[] = [];
+  suggestions: any[] = [];        // "suggested songs" (track radio / chart) for the guest view
+  suggestionsLoaded = false;
   searchDebounce: any = null;
   deezerPlaylists: DeezerPlaylist[] = [];
   playlistsLoaded = false;
@@ -628,7 +630,19 @@ export class PlayerComponent implements OnInit, OnDestroy {
   // ── Library overlay ──
   openLibrary(tab: 'songs' | 'playlists' = 'songs') {
     this.libraryOpen = true;
+    if (this.isGuestUser) { this.loadSuggestions(); return; }  // guests get a simple search + suggestions view
     this.setTab(tab);
+  }
+
+  /** Suggested songs for the guest add view — a track radio seeded from the
+   *  current song, falling back to the chart. */
+  loadSuggestions() {
+    this.suggestionsLoaded = false;
+    const seed = this.state.now_playing?.id;
+    this.api.getSuggestions(seed).subscribe({
+      next: (r) => { this.suggestions = r || []; this.suggestionsLoaded = true; },
+      error: () => { this.suggestionsLoaded = true; }
+    });
   }
   closeLibrary() {
     this.libraryOpen = false;

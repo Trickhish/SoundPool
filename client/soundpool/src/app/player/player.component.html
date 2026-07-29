@@ -148,13 +148,39 @@
   <div class="library-overlay" *ngIf="libraryOpen" (click)="closeLibrary()">
     <div class="library" (click)="$event.stopPropagation()">
       <div class="library-head">
-        <h2>Your Library</h2>
+        <h2>{{ isGuestUser ? 'Add songs' : 'Your Library' }}</h2>
         <button class="lib-close" (click)="closeLibrary()" title="Close">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
       </div>
 
-      <div class="library-tabs">
+      <!-- Guest: prominent search + suggestions -->
+      <ng-container *ngIf="isGuestUser">
+        <div class="lib-guest-search">
+          <input class="lib-search big" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search songs to add…" />
+        </div>
+        <div class="library-body">
+          <ng-container *ngIf="searchQuery.trim().length">
+            <div *ngIf="searchResults.length === 0" class="q-empty">No results</div>
+            <div *ngFor="let s of searchResults" class="lib-row" (click)="addSong(s)">
+              <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
+              <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
+              <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+          </ng-container>
+          <ng-container *ngIf="!searchQuery.trim().length">
+            <div class="lib-section">Suggested</div>
+            <div *ngIf="!suggestionsLoaded" class="q-loading"><div class="q-spinner"></div><span>Loading…</span></div>
+            <div *ngFor="let s of suggestions" class="lib-row" (click)="addSong(s)">
+              <img class="lib-cover" [src]="s.img_url || 'soundpool_sqrd.png'" />
+              <div class="lib-info"><span class="lib-title">{{ s.title }}</span><span class="lib-artist">{{ s.artist }}</span></div>
+              <svg class="lib-add" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <div class="library-tabs" *ngIf="!isGuestUser">
         <button class="lib-tab" [class.active]="libraryTab === 'songs'" (click)="setTab('songs')">Songs</button>
         <button class="lib-tab" [class.active]="libraryTab === 'playlists'" (click)="setTab('playlists')">Playlists</button>
         <button class="lib-tab" [class.active]="libraryTab === 'favorites'" (click)="setTab('favorites')">Favorites</button>
@@ -162,7 +188,7 @@
         <input *ngIf="libraryTab === 'songs'" class="lib-search" [(ngModel)]="searchQuery" (input)="onSearchInput()" placeholder="Search all songs…" />
       </div>
 
-      <div class="library-body">
+      <div class="library-body" *ngIf="!isGuestUser">
         <!-- Songs tab -->
         <ng-container *ngIf="libraryTab === 'songs'">
           <ng-container *ngIf="searchQuery.trim().length">

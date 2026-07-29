@@ -512,6 +512,53 @@ def deezer_search(search, search_type):
     return return_nice
 
 
+def deezer_track_radio(sng_id, limit=40):
+    # Deezer's track "mix"/radio: given a seed track, return similar songs (the
+    # same engine as Flow-from-a-song). Returns the same shape as a track search.
+    csrf = session.post(
+        "https://www.deezer.com/ajax/gw-light.php?method=deezer.getUserData&input=3&api_version=1.0&api_token="
+    ).json()['results']['checkForm']
+    url = "https://www.deezer.com/ajax/gw-light.php?method=song.getSearchTrackMix&input=3&api_version=1.0&api_token={}".format(csrf)
+    resp = session.post(url, json={"sng_id": str(sng_id), "start_with_input_track": True}).json()
+    tracks = resp.get('results', {}).get('data', [])
+    out = []
+    for item in tracks[:limit]:
+        pic = item.get('ALB_PICTURE', '')
+        out.append({
+            'id': str(item.get('SNG_ID', '')),
+            'id_type': TYPE_TRACK,
+            'title': item.get('SNG_TITLE', ''),
+            'img_url': "https://e-cdns-images.dzcdn.net/images/cover/{}/250x250-000000-80-0-0.jpg".format(pic) if pic else '',
+            'album': item.get('ALB_TITLE', ''),
+            'album_id': item.get('ALB_ID', ''),
+            'artist': item.get('ART_NAME', ''),
+            'preview_url': '',
+        })
+    return out
+
+
+def deezer_chart(limit=40):
+    # Top tracks from Deezer's public chart, mapped like a TYPE_TRACK search
+    # result. Used for "suggested songs" (e.g. party guests with no library).
+    resp = session.get("https://api.deezer.com/chart/0/tracks?limit={}".format(int(limit))).json().get('data', [])
+    out = []
+    for item in resp:
+        try:
+            out.append({
+                'id': str(item['id']),
+                'id_type': TYPE_TRACK,
+                'title': item['title'],
+                'img_url': item['album']['cover_medium'],
+                'album': item['album']['title'],
+                'album_id': item['album']['id'],
+                'artist': item['artist']['name'],
+                'preview_url': item.get('preview', ''),
+            })
+        except (KeyError, TypeError):
+            continue
+    return out
+
+
 def parse_deezer_playlist(playlist_id):
     # playlist_id: id of the playlist or the url of it
     # e.g. https://www.deezer.com/de/playlist/6046721604 or 6046721604

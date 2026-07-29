@@ -55,6 +55,10 @@ export class ApiService {
     return(this.http.get(`${ApiService.apiUrl}/auth/vtk`));
   }
 
+  public getSuggestions(seed?: string) {
+    const q = seed ? `?seed=${encodeURIComponent(seed)}` : '';
+    return this.http.get<any[]>(`${ApiService.apiUrl}/song/suggestions${q}`);
+  }
   public search(q: string) {
     return(this.http.get.bind(this.http)<Song[]>(`${ApiService.apiUrl}/song/search?q=`+encodeURIComponent(q)));
   }

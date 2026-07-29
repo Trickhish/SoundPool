@@ -15,6 +15,16 @@ def search(q: str, arl: str):
     return dz.deezer_search(q, "track")
 
 
+def chart(arl: str, limit: int = 40):
+    _init_session(arl)
+    return dz.deezer_chart(limit)
+
+
+def track_radio(arl: str, sng_id: str, limit: int = 40):
+    _init_session(arl)
+    return dz.deezer_track_radio(sng_id, limit)
+
+
 def download_song_and_get_absolute_filename(search_type, song, playlist_name=None):
     global conf
 
