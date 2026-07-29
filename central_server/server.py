@@ -191,15 +191,21 @@ app.include_router(library_router, prefix="/library", tags=["Library"])
 app.include_router(pu_router, prefix="/unit", tags=["Unit"])
 app.include_router(sse_router, prefix="/event", tags=["SSE"])
 
+# In debug, allow any origin for convenience; in prod, pin to the known frontends.
+_debug = bool(config and config["server"]["debug"] == "true")
+_allowed_origins = ["*"] if _debug else [
+    "https://soundpool.dury.dev",
+    "https://dev.soundpool.dury.dev",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-if (config and config["server"]["debug"]=="true"):
+if _debug:
     app.add_middleware(RequestLoggerMiddleware)
 
 # Endpoints
@@ -229,7 +235,10 @@ if (__name__=="__main__"):
     port = int(config["server"]["port"])
     dbg = (config["server"]["debug"].lower().strip()=="true")
     wdir = os.path.dirname(os.path.realpath(__file__))
-    workersnb = int(config["server"]["workers"]) if not dbg else 1
+    # The conductor (room playback state, SSE clients, unit websockets) lives in
+    # process memory, so the server must run as a SINGLE worker regardless of
+    # config — multiple workers would each hold a separate, inconsistent state.
+    workersnb = 1
 
     if (len(sys.argv)>=2 and sys.argv[1] in ["-c", "--config"]):
         if (not os.path.exists("install.py")):
