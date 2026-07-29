@@ -201,7 +201,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid) return;
     this.isRoom = !!this.aroute.snapshot.data['room'];
     // Opened from the now-playing bar's queue button.
-    if (this.aroute.snapshot.queryParamMap.get('queue')) this.queueOpen = true;
+    if (this.aroute.snapshot.queryParamMap.get('queue')) { this.queueOpen = true; this._pendingQueueScroll = true; }
     this.loadContent();
 
     // SSE callbacks come from the `eventsource` package's custom fetch, which
@@ -342,6 +342,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
       queue: s.queue ?? [],
     };
     if (s.outputs !== undefined) this.roomOutputs = s.outputs;
+    if (this._pendingQueueScroll && this.state.queue.length) {
+      this._pendingQueueScroll = false;
+      this.scrollQueueToCurrent(150);   // queue opened via the bar; scroll once loaded
+    }
     if (s.vote_count !== undefined) {
       if (s.vote_count === 0) this.voted = false; // reset on new track / cleared votes
       this.voteCount = s.vote_count;
@@ -647,8 +651,23 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   // ── Queue panel ──
-  toggleQueue() { this.queueOpen = !this.queueOpen; }
+  toggleQueue() {
+    this.queueOpen = !this.queueOpen;
+    if (this.queueOpen) this.scrollQueueToCurrent();
+  }
   closeQueue() { this.queueOpen = false; }
+
+  private _pendingQueueScroll = false;
+  /** Position the queue scroll at the current track (history stays above, just
+   *  scrolled up) so you don't have to hunt for what's playing. */
+  private scrollQueueToCurrent(delay = 90) {
+    setTimeout(() => {
+      const scroll = document.querySelector('.queue-scroll') as HTMLElement | null;
+      const cur = scroll?.querySelector('.qp-row.current') as HTMLElement | null;
+      if (!scroll || !cur) return;
+      scroll.scrollTop += cur.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+    }, delay);
+  }
 
   // ── Library overlay ──
   openLibrary(tab: 'songs' | 'playlists' = 'songs') {
