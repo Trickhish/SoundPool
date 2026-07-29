@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../api.service';
+import { LivefbService } from '../livefb.service';
 import QRCode from 'qrcode';
 
 interface LyricLine { ms: number; line: string; }
@@ -12,8 +13,9 @@ interface LyricLine { ms: number; line: string; }
  * the now-playing track, synced lyrics, a party-join QR while a party is live,
  * and an admin-authored message. Everything the admin toggles in room settings.
  *
- * Fully polled (every 2s) so it needs no auth/token; playback position is
- * interpolated locally between polls for a smooth progress bar + lyric sync.
+ * Playback (song / position / pause / seek) rides the live SSE feed so it
+ * reacts instantly; a slow poll refreshes the admin config (what to show,
+ * message, party QR). Position is interpolated locally for a smooth bar.
  */
 @Component({
   selector: 'app-display',
@@ -44,13 +46,16 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
   private pollTimer: any = null;
   private tickTimer: any = null;
+  private sseStarted = false;
+  private sseLive = false;   // true once live playback events arrive
 
-  constructor(private aroute: ActivatedRoute, private api: ApiService, private zone: NgZone) {}
+  constructor(private aroute: ActivatedRoute, private api: ApiService,
+              private zone: NgZone, private event: LivefbService) {}
 
   ngOnInit() {
     this.code = this.aroute.snapshot.paramMap.get('code') || '';
     this.poll();
-    this.pollTimer = setInterval(() => this.poll(), 2000);
+    this.pollTimer = setInterval(() => this.poll(), 4000);   // config/message/party only
     this.tickTimer = setInterval(() => this.zone.run(() => this.tick()), 250);
   }
 
@@ -66,19 +71,56 @@ export class DisplayComponent implements OnInit, OnDestroy {
     });
   }
 
-  private applyInfo(i: any) {
-    this.notFound = false;
-    this.info = i;
-    const np = i.now_playing;
-    this.playing = !!i.playing;
-    this.durMs = np?.duration || 0;
-    this.lastPos = i.position || 0;
-    this.lastAt = Date.now();
+  /** Once we know the room id, wire up the live SSE feed for snappy playback.
+   *  Reuse any existing token (e.g. a logged-in admin previewing); otherwise
+   *  mint a throwaway display token so a public TV can subscribe. */
+  private startSse(roomId: number) {
+    if (this.sseStarted) return;
+    this.sseStarted = true;
+    const go = () => {
+      this.event.subscribe(`room_${roomId}`, (dt: any) => this.zone.run(() => this.onSse(dt)));
+      this.event.launch();
+    };
+    if (localStorage.getItem('token')) { go(); return; }
+    this.api.displayToken(this.code).subscribe({
+      next: (r) => { localStorage.setItem('token', r.token); go(); },
+      error: () => { this.sseStarted = false; }   // keep polling as the fallback
+    });
+  }
 
+  private onSse(dt: any) {
+    if (!dt) return;
+    this.sseLive = true;
+    if (dt.type === 'state') {
+      this.setPlayback(dt.now_playing ?? null, dt.position ?? 0, !!dt.playing);
+    } else if (dt.type === 'progress') {
+      this.durMs = parseFloat(dt.duration) || this.durMs;
+      this.lastPos = parseFloat(dt.progress) || 0;
+      this.lastAt = Date.now();
+    } else if (dt.type === 'status') {
+      if (dt.status === 'paused') this.playing = false;
+      else if (dt.status === 'playing') this.playing = true;
+    }
+  }
+
+  /** Apply a now-playing snapshot (from a poll or an SSE state event). */
+  private setPlayback(np: any, position: number, playing: boolean) {
+    this.playing = playing;
+    this.durMs = np?.duration || 0;
+    this.lastPos = position || 0;
+    this.lastAt = Date.now();
     if ((np?.id || null) !== this.nowId) {
       this.nowId = np?.id || null;
       this.loadLyrics();
     }
+  }
+
+  private applyInfo(i: any) {
+    this.notFound = false;
+    this.info = i;
+    this.startSse(i.room_id);
+    // Seed playback from the poll until the live SSE feed takes over.
+    if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
 
     // Party-join QR — only while a party is live and the admin enabled it.
     const wantQr = i.party_active && i.show_qr && i.party_code;

@@ -210,6 +210,25 @@ def display_info(code: str, db: SessionLocal = Depends(get_db)):  # type: ignore
     return JSONResponse(content=_display_payload(db, room))
 
 
+@router.post("/display/{code}/token")
+def display_token(code: str, db: SessionLocal = Depends(get_db)):  # type: ignore
+    """Mint a throwaway token so a public display can use the live SSE feed.
+    The account is a non-member guest (no room membership, so it never affects
+    member/vote counts). Reused per device via the browser's stored token."""
+    room = db.query(Room).filter(Room.display_code == code).first()
+    if not room:
+        raise HTTPException(404, "Display not found")
+    disp = User(username="display", password=hash_password(secrets.token_urlsafe(16)),
+                email=None, is_guest=True)
+    db.add(disp)
+    db.commit()
+    db.refresh(disp)
+    token = create_access_token(disp.id)
+    db.add(Token(value=token, user_id=disp.id, creation_date=datetime.utcnow()))
+    db.commit()
+    return JSONResponse(content={"token": token, "room_id": room.id})
+
+
 @router.get("/display/{code}/lyrics/{song_id}")
 def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):  # type: ignore
     room = db.query(Room).filter(Room.display_code == code).first()
