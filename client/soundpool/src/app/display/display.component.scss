@@ -1,7 +1,9 @@
 :host {
+  /* Pin to the viewport so no parent margin/padding (e.g. the default body
+     margin) can leave a gap below the full-bleed background. */
+  position: fixed;
+  inset: 0;
   display: block;
-  width: 100vw;
-  height: 100vh;
   overflow: hidden;
   background: #0a0a0f;
   color: #fff;
