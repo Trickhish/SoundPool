@@ -79,7 +79,7 @@
     </div>
 
     <!-- ── Output selector (room mode) ── -->
-    <button class="output-btn" *ngIf="isRoom" (click)="openOutputs()">
+    <button class="output-btn" *ngIf="isRoom && !isGuestUser" (click)="openOutputs()">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
       Output<span *ngIf="outputCount" class="out-count"> · {{ outputCount }}</span>
     </button>
