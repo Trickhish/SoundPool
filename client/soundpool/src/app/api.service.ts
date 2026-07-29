@@ -124,6 +124,11 @@ export class ApiService {
   public stopParty(id:string|number) { return this.http.delete<any>(`${ApiService.apiUrl}/room/${id}/party`); }
   public getParty(code:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/party/${code}`); }
   public joinParty(code:string, username:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/party/${code}/join`, { username }); }
+  // Big-screen display mode
+  public displayInfo(code:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/display/${code}`); }
+  public displayLyrics(code:string, songId:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/display/${code}/lyrics/${songId}`); }
+  public enableDisplay(id:string|number) { return this.rp(id, 'display'); }
+  public setDisplayConfig(id:string|number, cfg:any) { return this.rp(id, 'display/config', cfg); }
   public setRoomRights(id:number, body:any) {
     return this.http.post<any>(`${ApiService.apiUrl}/room/${id}/rights`, body);
   }

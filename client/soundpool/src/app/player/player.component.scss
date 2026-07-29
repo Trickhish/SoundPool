@@ -1129,6 +1129,9 @@
     &.on i { transform: translateX(18px); }
 }
 
+.display-opts { width: 100%; margin-top: 0.4rem; }
+.display-msg { width: 100%; margin-top: 0.6rem; box-sizing: border-box; }
+
 .party-modal { max-width: 360px; }
 .party-body {
     display: flex;

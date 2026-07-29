@@ -146,6 +146,34 @@ def get_song_gw_data(song_id: str, arl: str) -> dict:
     return resp.json()['results']
 
 
+def get_song_lyrics(song_id: str, arl: str) -> dict:
+    """Fetch a track's lyrics from Deezer. Returns
+    {"synced": [{"ms": int, "line": str}, ...], "plain": str}. `synced` is empty
+    when the track only has unsynced (or no) lyrics."""
+    _init_session(arl)
+    dz.session.cookies.set('arl', arl, domain='.deezer.com')
+    gw = 'https://www.deezer.com/ajax/gw-light.php'
+    resp = dz.session.post(gw, params={
+        'method': 'deezer.getUserData', 'input': '3', 'api_version': '1.0', 'api_token': '',
+    }, json={})
+    csrf = resp.json()['results']['checkForm']
+    resp = dz.session.post(gw, params={
+        'method': 'song.getLyrics', 'input': '3', 'api_version': '1.0', 'api_token': csrf,
+    }, json={'sng_id': str(song_id)})
+    res = (resp.json() or {}).get('results') or {}
+    synced = []
+    for row in (res.get('LYRICS_SYNC_JSON') or []):
+        ms = row.get('milliseconds')
+        line = row.get('line', '')
+        if ms is None:
+            continue
+        try:
+            synced.append({"ms": int(ms), "line": line})
+        except (TypeError, ValueError):
+            continue
+    return {"synced": synced, "plain": res.get('LYRICS_TEXT') or ''}
+
+
 def get_deezer_playlist_tracks_gw(playlist_id: int, arl: str) -> list:
     """Fetch all GW track data (includes TRACK_TOKEN) for a Deezer playlist."""
     _init_session(arl)

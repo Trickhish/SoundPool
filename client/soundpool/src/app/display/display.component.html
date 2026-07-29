@@ -1,0 +1,76 @@
+<div class="display-root">
+
+  <!-- Not found / ended -->
+  <div *ngIf="notFound" class="disp-notfound">
+    <img class="disp-logo" src="soundpool_sqrd.png" />
+    <h1>Display unavailable</h1>
+    <p>This screen link is invalid or has been turned off.</p>
+  </div>
+
+  <ng-container *ngIf="info && !notFound">
+
+    <!-- Blurred cover backdrop -->
+    <div class="disp-bg" [style.background-image]="'url(' + cover + ')'"></div>
+    <div class="disp-scrim"></div>
+
+    <header class="disp-head">
+      <span class="disp-room">{{ info.name }}</span>
+    </header>
+
+    <div class="disp-main" [class.two-col]="showPlayer && showLyrics">
+
+      <!-- ── Player ── -->
+      <section *ngIf="showPlayer" class="disp-player">
+        <div class="disp-cover-wrap">
+          <img class="disp-cover" [src]="cover" />
+        </div>
+        <div class="disp-track" *ngIf="info.now_playing; else nothingPlaying">
+          <h1 class="disp-title">{{ info.now_playing.title }}</h1>
+          <h2 class="disp-artist">{{ info.now_playing.artist }}</h2>
+          <div class="disp-progress">
+            <div class="disp-progress-fill" [style.width.%]="progressPct"></div>
+          </div>
+          <div class="disp-times">
+            <span>{{ fmt(posMs) }}</span>
+            <span>{{ fmt(durMs) }}</span>
+          </div>
+        </div>
+        <ng-template #nothingPlaying>
+          <div class="disp-track"><h1 class="disp-title dim">Nothing playing</h1></div>
+        </ng-template>
+      </section>
+
+      <!-- ── Lyrics ── -->
+      <section *ngIf="showLyrics" class="disp-lyrics">
+        <div *ngIf="lyricsLoading" class="disp-lyr-note">Loading lyrics…</div>
+        <div *ngIf="!lyricsLoading && !lyrics.length && !plain" class="disp-lyr-note">No lyrics for this track</div>
+
+        <!-- Synced -->
+        <div *ngIf="lyrics.length" class="disp-lyr-scroll synced">
+          <p *ngFor="let l of lyrics; let i = index" [id]="'lyric-' + i" class="disp-lyr-line"
+             [class.active]="i === activeIdx" [class.past]="i < activeIdx">
+            {{ l.line || '♪' }}
+          </p>
+        </div>
+
+        <!-- Plain fallback -->
+        <div *ngIf="!lyrics.length && plain" class="disp-lyr-scroll plain">
+          <pre>{{ plain }}</pre>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ── Party QR ── -->
+    <aside *ngIf="qr" class="disp-qr">
+      <img [src]="qr" alt="Join the party" />
+      <span>Scan to add songs</span>
+    </aside>
+
+    <!-- ── Admin message ── -->
+    <div *ngIf="showMessage" class="disp-message">
+      <span>{{ info.message }}</span>
+    </div>
+
+  </ng-container>
+</div>

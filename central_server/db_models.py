@@ -36,6 +36,13 @@ class Room(Base):
     party_active = Column(Boolean, default=False)        # guests may join via link
     party_code = Column(String(64), nullable=True)       # shareable join token
     voting_enabled = Column(Boolean, default=False)      # allow up/down-voting queued songs (auto-on with party mode)
+    # Big-screen display mode (public read-only view via a shareable link)
+    display_code = Column(String(64), nullable=True)     # shareable link token for the display page
+    display_show_player = Column(Boolean, default=True)  # what the big screen shows
+    display_show_lyrics = Column(Boolean, default=True)
+    display_show_qr = Column(Boolean, default=True)      # party join QR (only appears while a party is live)
+    display_show_message = Column(Boolean, default=False)
+    display_message = Column(String(512), nullable=True) # admin-authored message to show on screen
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class User(Base):

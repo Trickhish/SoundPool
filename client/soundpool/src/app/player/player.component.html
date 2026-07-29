@@ -325,6 +325,51 @@
           </div>
         </ng-container>
 
+        <!-- Big-screen display -->
+        <ng-container *ngIf="isAdmin">
+          <div class="settings-section">Big-screen display</div>
+          <div class="party-body">
+            <p class="party-hint">Open this link on a TV or projector to show the player, lyrics and a party join code.</p>
+            <ng-container *ngIf="!displayCode">
+              <button class="party-start" (click)="ensureDisplay()">Set up display</button>
+            </ng-container>
+            <ng-container *ngIf="displayCode">
+              <div class="party-link-row">
+                <input class="party-link" [value]="displayLink" readonly (click)="$any($event.target).select()" />
+                <button class="party-copy" (click)="copyDisplayLink()" title="Copy link">
+                  <fa-icon [icon]="['fas','copy']"></fa-icon>
+                </button>
+              </div>
+              <button class="party-start" (click)="openDisplay()">Open display</button>
+
+              <div class="display-opts" *ngIf="displayCfg">
+                <div class="setting-row" (click)="toggleDisplayFlag('show_player')">
+                  <div class="setting-text"><span class="setting-name">Show player</span></div>
+                  <span class="toggle" [class.on]="displayCfg.show_player"><i></i></span>
+                </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_lyrics')">
+                  <div class="setting-text"><span class="setting-name">Show lyrics</span></div>
+                  <span class="toggle" [class.on]="displayCfg.show_lyrics"><i></i></span>
+                </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_qr')">
+                  <div class="setting-text">
+                    <span class="setting-name">Show party QR</span>
+                    <span class="setting-desc">Only appears while a party is live.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.show_qr"><i></i></span>
+                </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_message')">
+                  <div class="setting-text"><span class="setting-name">Show message</span></div>
+                  <span class="toggle" [class.on]="displayCfg.show_message"><i></i></span>
+                </div>
+                <input class="lib-search display-msg" [(ngModel)]="displayCfg.message"
+                       (blur)="saveDisplayMessage()" maxlength="512"
+                       placeholder="Message to show on screen…" />
+              </div>
+            </ng-container>
+          </div>
+        </ng-container>
+
         <!-- Members & rights -->
         <ng-container *ngIf="isAdmin">
           <div class="settings-section">Members &amp; rights</div>

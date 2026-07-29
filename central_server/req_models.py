@@ -75,6 +75,13 @@ class QueueVoteRequest(BaseModel):
     uid: int             # stable id of the queue track (survives reordering)
     direction: int       # +1 upvote, -1 downvote, 0 clear my vote
 
+class DisplayConfigRequest(BaseModel):
+    show_player: Optional[bool] = None
+    show_lyrics: Optional[bool] = None
+    show_qr: Optional[bool] = None
+    show_message: Optional[bool] = None
+    message: Optional[str] = None
+
 class OutputRequest(BaseModel):
     unit_id: str
 

@@ -101,6 +101,10 @@ export class PlayerComponent implements OnInit, OnDestroy {
   partyCode: string | null = null;
   partyQr: string | null = null;  // QR data-URL of the join link
 
+  // Big-screen display mode (admin)
+  displayCode: string | null = null;
+  displayCfg: any = null;         // { show_player, show_lyrics, show_qr, show_message, message }
+
   // Authoritative player state (mirrors the unit snapshot)
   state: PlayerState = this.emptyState();
 
@@ -266,6 +270,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
     this.player = { id: String(r.id), name: r.name, online: true } as any;
     if (r.state) this.applyState(r.state);
     this.setParty(r.party_active, r.party_code);
+    this.displayCode = r.display_code || null;
+    this.displayCfg = r.display || null;
     // Make this the room the global now-playing bar controls.
     this.playback.setActiveRoom(r.id, r.name);
   }
@@ -302,6 +308,39 @@ export class PlayerComponent implements OnInit, OnDestroy {
     navigator.clipboard?.writeText(this.partyLink)
       .then(() => this.toastr.success('Link copied'))
       .catch(() => {});
+  }
+
+  // ── Big-screen display mode ──
+  get displayLink(): string {
+    return this.displayCode ? `${window.location.origin}/display/${this.displayCode}` : '';
+  }
+  ensureDisplay() {
+    if (!this.pid) return;
+    this.api.enableDisplay(this.pid).subscribe({
+      next: (r: any) => this.zone.run(() => { this.displayCode = r.display_code; this.displayCfg = r; }),
+      error: () => this.toastr.error('Could not set up the display')
+    });
+  }
+  openDisplay() { if (this.displayLink) window.open(this.displayLink, '_blank'); }
+  copyDisplayLink() {
+    navigator.clipboard?.writeText(this.displayLink)
+      .then(() => this.toastr.success('Link copied')).catch(() => {});
+  }
+  toggleDisplayFlag(flag: string) {
+    if (!this.pid || !this.displayCfg) return;
+    const val = !this.displayCfg[flag];
+    this.displayCfg[flag] = val;
+    this.api.setDisplayConfig(this.pid, { [flag]: val }).subscribe({
+      next: (r: any) => this.zone.run(() => { this.displayCfg = r; this.displayCode = r.display_code; }),
+      error: () => { this.displayCfg[flag] = !val; this.toastr.error('Could not update the display'); }
+    });
+  }
+  saveDisplayMessage() {
+    if (!this.pid || !this.displayCfg) return;
+    this.api.setDisplayConfig(this.pid, { message: this.displayCfg.message || '' }).subscribe({
+      next: () => this.toastr.success('Display message updated'),
+      error: () => this.toastr.error('Could not save the message')
+    });
   }
 
   // ── Live events ──

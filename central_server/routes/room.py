@@ -91,6 +91,7 @@ def room_dict(db, room, user):
     count = db.query(RoomMember).filter(RoomMember.room_id == room.id).count()
     rights = rights_dict(member)
     can_party = bool(rights and (rights.get("is_admin") or rights.get("can_manage_party")))
+    is_admin_user = bool(rights and rights.get("is_admin"))
     return {
         "id": room.id,
         "name": room.name,
@@ -105,6 +106,15 @@ def room_dict(db, room, user):
         "voting_enabled": bool(room.voting_enabled),
         # the join code is only exposed to those who can manage the party
         "party_code": room.party_code if (can_party and room.party_active) else None,
+        # display-mode config (link + settings shown only to admins)
+        "display_code": room.display_code if is_admin_user else None,
+        "display": {
+            "show_player": bool(room.display_show_player),
+            "show_lyrics": bool(room.display_show_lyrics),
+            "show_qr": bool(room.display_show_qr),
+            "show_message": bool(room.display_show_message),
+            "message": room.display_message or "",
+        } if is_admin_user else None,
     }
 
 
@@ -166,6 +176,59 @@ def party_join(code: str, body: PartyJoinRequest,
     db.commit()
     return JSONResponse(content={"token": token, "username": name,
                                  "room_id": room.id, "name": room.name})
+
+
+# ── Big-screen display mode (public, no auth — access is via the display code) ──
+
+_lyrics_cache = {}   # song_id -> {"synced": [...], "plain": str}
+
+
+def _display_payload(db, room):
+    rp = room_player.ensure_loaded(room.id)
+    st = rp.state()
+    return {
+        "room_id": room.id,
+        "name": room.name,
+        "party_active": bool(room.party_active),
+        "party_code": room.party_code if room.party_active else None,
+        "now_playing": st.get("now_playing"),
+        "position": st.get("position", 0),
+        "playing": st.get("playing", False),
+        "show_player": bool(room.display_show_player),
+        "show_lyrics": bool(room.display_show_lyrics),
+        "show_qr": bool(room.display_show_qr),
+        "show_message": bool(room.display_show_message),
+        "message": room.display_message or "",
+    }
+
+
+@router.get("/display/{code}")
+def display_info(code: str, db: SessionLocal = Depends(get_db)):  # type: ignore
+    room = db.query(Room).filter(Room.display_code == code).first()
+    if not room:
+        raise HTTPException(404, "Display not found")
+    return JSONResponse(content=_display_payload(db, room))
+
+
+@router.get("/display/{code}/lyrics/{song_id}")
+def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):  # type: ignore
+    room = db.query(Room).filter(Room.display_code == code).first()
+    if not room:
+        raise HTTPException(404, "Display not found")
+    if song_id in _lyrics_cache:
+        return JSONResponse(content=_lyrics_cache[song_id])
+    owner = db.query(User).filter(User.id == room.owner_id).first()
+    if not owner or not owner.deezer_arl:
+        return JSONResponse(content={"synced": [], "plain": ""})
+    try:
+        lyr = tmg.get_song_lyrics(song_id, owner.deezer_arl)
+    except Exception as e:
+        print(f"[display] lyrics fetch failed for {song_id}: {e}")
+        lyr = {"synced": [], "plain": ""}
+    _lyrics_cache[song_id] = lyr
+    if len(_lyrics_cache) > 500:      # keep the cache bounded
+        _lyrics_cache.pop(next(iter(_lyrics_cache)))
+    return JSONResponse(content=lyr)
 
 
 @router.get("/{room_id}")
@@ -294,6 +357,55 @@ async def room_set_voting(room_id: int, body: ShuffleRequest,
     db.commit()
     await room_player.ensure_loaded(room_id).set_voting(body.on)
     return JSONResponse(content={"voting_enabled": bool(body.on)})
+
+
+def _display_dict(room):
+    return {
+        "display_code": room.display_code,
+        "show_player": bool(room.display_show_player),
+        "show_lyrics": bool(room.display_show_lyrics),
+        "show_qr": bool(room.display_show_qr),
+        "show_message": bool(room.display_show_message),
+        "message": room.display_message or "",
+    }
+
+
+def _require_admin(db, room_id, user):
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Room not found")
+    member = get_member(db, room_id, user.id)
+    if member is None or not member.is_admin:
+        raise HTTPException(403, "Only admins can change room settings")
+    return room
+
+
+@router.post("/{room_id}/display")
+def enable_display(room_id: int,
+                   db: SessionLocal = Depends(get_db),  # type: ignore
+                   user: User = Depends(verify_token)):
+    """Ensure the room has a display link (generates one on first use)."""
+    room = _require_admin(db, room_id, user)
+    if not room.display_code:
+        room.display_code = secrets.token_urlsafe(9)
+        db.commit()
+    return JSONResponse(content=_display_dict(room))
+
+
+@router.post("/{room_id}/display/config")
+def set_display_config(room_id: int, body: DisplayConfigRequest,
+                       db: SessionLocal = Depends(get_db),  # type: ignore
+                       user: User = Depends(verify_token)):
+    room = _require_admin(db, room_id, user)
+    if not room.display_code:
+        room.display_code = secrets.token_urlsafe(9)
+    if body.show_player is not None:  room.display_show_player = body.show_player
+    if body.show_lyrics is not None:  room.display_show_lyrics = body.show_lyrics
+    if body.show_qr is not None:      room.display_show_qr = body.show_qr
+    if body.show_message is not None: room.display_show_message = body.show_message
+    if body.message is not None:      room.display_message = body.message[:512]
+    db.commit()
+    return JSONResponse(content=_display_dict(room))
 
 
 @router.post("/{room_id}/queue/jump")
