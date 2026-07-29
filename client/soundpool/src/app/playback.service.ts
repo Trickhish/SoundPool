@@ -194,11 +194,11 @@ export class PlaybackService {
   next() {
     if (this.activeRoomId == null) return;
     if (this.canSkip) { this.api.roomNext(this.activeRoomId).subscribe(); return; }
-    if (this.canVoteSkip) this.api.roomVoteSkip(this.activeRoomId).subscribe({   // party vote
+    if (this.canVoteSkip) this.api.roomVoteSkip(this.activeRoomId).subscribe({   // party vote (re-click cancels)
       next: (r: any) => this.zone.run(() => {
-        if (r && r.votes && r.threshold && r.votes < r.threshold)
-          this.toastr.info(`${r.votes}/${r.threshold} — voting to skip`);
-        else this.toastr.success('Skipping…');
+        if (r?.skipped) this.toastr.success('Skipping…');
+        else if (r?.voted) this.toastr.info(`${r.votes}/${r.threshold} — voting to skip`);
+        else this.toastr.info('Vote canceled');
       })
     });
   }

@@ -582,17 +582,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   voteSkip() {
-    if (!this.pid || this.voted) return;
-    this.voted = true;
+    if (!this.pid) return;   // re-click toggles the vote off
     this.api.roomVoteSkip(this.pid).subscribe({
       next: (r: any) => {
-        // votes reset to 0 once the threshold is reached and it skips.
-        if (r && r.votes && r.threshold && r.votes < r.threshold)
-          this.toastr.info(`${r.votes}/${r.threshold} — voting to skip`);
-        else
-          this.toastr.success('Skipping…');
+        this.voted = !!r?.voted;
+        if (r?.skipped) this.toastr.success('Skipping…');
+        else if (r?.voted) this.toastr.info(`${r.votes}/${r.threshold} — voting to skip`);
+        else this.toastr.info('Vote canceled');
       },
-      error: () => { this.voted = false; this.toastr.error('Could not vote'); }
+      error: () => this.toastr.error('Could not vote')
     });
   }
 

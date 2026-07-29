@@ -128,14 +128,22 @@ class RoomPlayer:
         }
 
     async def vote_skip(self, user_id, member_count):
+        """Toggle a user's skip vote. Returns (voted, skipped): `voted` is whether
+        the user now holds a vote, `skipped` whether this pushed it over the
+        threshold and advanced the track."""
         if self.cur() is None:
-            return
+            return (False, False)
         self.vote_threshold = max(1, (member_count + 1) // 2)  # simple majority
+        if user_id in self.votes:
+            self.votes.discard(user_id)      # re-click cancels the vote
+            await self.broadcast()
+            return (False, False)
         self.votes.add(user_id)
         if len(self.votes) >= self.vote_threshold:
-            await self.advance()  # _start_track clears votes
-        else:
-            await self.broadcast()
+            await self.advance()             # _start_track clears votes
+            return (False, True)
+        await self.broadcast()
+        return (True, False)
 
     async def broadcast(self, force_render=False):
         evt = dict(self.state())
