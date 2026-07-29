@@ -146,8 +146,20 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.lyrics = r?.synced || [];
         this.plain = r?.plain || '';
         this.lyricsLoading = false;
+        this.kickBg();   // lyrics rendering can leave the blur layer stale — nudge it
       }),
       error: () => this.zone.run(() => { this.lyricsLoading = false; })
+    });
+  }
+
+  /** Force the backdrop's composited blur layer to re-rasterize (same effect as
+   *  poking a size property by hand), guarding against a stale bottom gap. */
+  private kickBg() {
+    requestAnimationFrame(() => {
+      const bg = document.querySelector('.disp-bg') as HTMLElement | null;
+      if (!bg) return;
+      bg.style.transform = 'translateZ(0) scale(1.0001)';
+      requestAnimationFrame(() => { bg.style.transform = ''; });
     });
   }
 
@@ -167,8 +179,13 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
   private scrollActive() {
     setTimeout(() => {
+      // Scroll only the lyrics container — never scrollIntoView, which can also
+      // scroll the page/host and disturb the full-screen backdrop layout.
+      const scroll = document.querySelector('.disp-lyr-scroll') as HTMLElement | null;
       const el = document.querySelector(`#lyric-${this.activeIdx}`) as HTMLElement | null;
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!scroll || !el) return;
+      const top = el.offsetTop - scroll.clientHeight / 2 + el.offsetHeight / 2;
+      scroll.scrollTo({ top, behavior: 'smooth' });
     }, 0);
   }
 
