@@ -61,6 +61,10 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
       </button>
 
+      <button *ngIf="isAdmin" class="ec-btn" (click)="openSettings()" title="Room settings">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+
       <button *ngIf="isRoom && can('can_manage_party')" class="ec-btn" [class.active]="partyActive" (click)="openParty()" title="Party mode">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 12"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>
       </button>
@@ -320,6 +324,27 @@
             <button class="right-chip" [class.on]="m.can_manage_speakers" (click)="toggleMemberRight(m, 'can_manage_speakers')">speakers</button>
             <button class="right-chip" [class.on]="m.can_manage_party" (click)="toggleMemberRight(m, 'can_manage_party')">party</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Room settings (admin) ── -->
+  <div class="library-overlay" *ngIf="settingsOpen" (click)="closeSettings()">
+    <div class="library settings-modal" (click)="$event.stopPropagation()">
+      <div class="library-head">
+        <h2>Room settings</h2>
+        <button class="lib-close" (click)="closeSettings()" title="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="library-body">
+        <div class="setting-row" (click)="toggleVoting()">
+          <div class="setting-text">
+            <span class="setting-name">Up / down voting</span>
+            <span class="setting-desc">Let everyone vote songs up or down to reorder the queue. Turns on automatically with party mode.</span>
+          </div>
+          <span class="toggle" [class.on]="state.voting_enabled"><i></i></span>
         </div>
       </div>
     </div>

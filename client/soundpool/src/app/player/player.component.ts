@@ -32,6 +32,7 @@ export interface PlayerState {
   shuffle: boolean;
   repeat: 'off' | 'all' | 'one';
   autoplay: boolean;
+  voting_enabled: boolean;
   queue: QueueItem[];
 }
 
@@ -150,7 +151,8 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   emptyState(): PlayerState {
     return { now_playing: null, position: 0, playing: false, current_index: -1,
-             msid: 0, volume: 1, shuffle: false, repeat: 'off', autoplay: false, queue: [] };
+             msid: 0, volume: 1, shuffle: false, repeat: 'off', autoplay: false,
+             voting_enabled: false, queue: [] };
   }
 
   // ── Derived view helpers ──
@@ -339,6 +341,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       shuffle: !!s.shuffle,
       repeat: s.repeat ?? 'off',
       autoplay: !!s.autoplay,
+      voting_enabled: !!s.voting_enabled,
       queue: s.queue ?? [],
     };
     if (s.outputs !== undefined) this.roomOutputs = s.outputs;
@@ -519,7 +522,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   get isGuestUser(): boolean { return this.rights?.role === 'guest'; }
   get showVoteSkip(): boolean { return this.isRoom && !this.can('can_skip') && this.can('can_vote_skip'); }
   /** Can up/down-vote songs in the queue to reorder by popularity. */
-  get canVote(): boolean { return this.isRoom && this.can('can_vote'); }
+  get canVote(): boolean { return this.isRoom && this.state.voting_enabled && this.can('can_vote'); }
 
   // My up/down votes on queue tracks (by uid), kept locally since state events
   // carry only aggregate scores, not per-user votes.
@@ -555,6 +558,20 @@ export class PlayerComponent implements OnInit, OnDestroy {
           this.toastr.success('Skipping…');
       },
       error: () => { this.voted = false; this.toastr.error('Could not vote'); }
+    });
+  }
+
+  // ── Room settings (admin) ──
+  settingsOpen = false;
+  openSettings() { this.settingsOpen = true; }
+  closeSettings() { this.settingsOpen = false; }
+  toggleVoting() {
+    if (!this.pid || !this.isAdmin) return;
+    const on = !this.state.voting_enabled;
+    this.state.voting_enabled = on;   // optimistic; SSE state will confirm
+    this.api.roomSetVoting(this.pid, on).subscribe({
+      next: () => this.toastr.info(on ? 'Up/down voting enabled' : 'Up/down voting disabled'),
+      error: () => { this.state.voting_enabled = !on; this.toastr.error('Could not update setting'); }
     });
   }
 

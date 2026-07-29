@@ -35,6 +35,7 @@ class Room(Base):
     playing = Column(Boolean, default=False)             # was it playing when last saved
     party_active = Column(Boolean, default=False)        # guests may join via link
     party_code = Column(String(64), nullable=True)       # shareable join token
+    voting_enabled = Column(Boolean, default=False)      # allow up/down-voting queued songs (auto-on with party mode)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class User(Base):

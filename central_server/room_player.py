@@ -31,6 +31,7 @@ class RoomPlayer:
         self.volume = 1.0          # master volume (scales each output's stream)
         self.autoplay = False      # append a Deezer track-radio when the queue runs low
         self._autoplay_busy = False
+        self.voting_enabled = False  # room-level master switch for up/down-voting the queue
         self.base_offset = 0.0     # ms into the current track at _t0
         self._t0 = None            # monotonic timestamp the offset was anchored
         self.outputs = set()       # attached output unit ids
@@ -116,6 +117,7 @@ class RoomPlayer:
             "shuffle": self.shuffle,
             "repeat": self.repeat,
             "autoplay": self.autoplay,
+            "voting_enabled": self.voting_enabled,
             "queue": [{"key": i, "id": t["id"], "title": t["title"], "artist": t["artist"],
                        "cover": t["cover"], "duration": t["duration"], "ready": True, "failed": False,
                        "uid": t.get("uid"), "score": self._score(t)}
@@ -476,6 +478,10 @@ class RoomPlayer:
         await self.broadcast()
         self._autoplay_topup()   # top up now if we're already near the end
 
+    async def set_voting(self, on):
+        self.voting_enabled = bool(on)
+        await self.broadcast()   # push the new setting to every connected client
+
     # ── Autoplay: keep a track-radio flowing when the queue runs low ──
     def _autoplay_topup(self):
         """If autoplay is on and few tracks remain after the current one, fetch a
@@ -627,6 +633,7 @@ def ensure_loaded(room_id):
             rp.repeat = room.repeat or "off"
             rp.volume = room.volume if room.volume is not None else 1.0
             rp.autoplay = bool(getattr(room, "autoplay", False))
+            rp.voting_enabled = bool(getattr(room, "voting_enabled", False))
             owner = db.query(User).filter(User.id == room.owner_id).first()
             rp.arl = owner.deezer_arl if owner else None
         tracks = (db.query(RoomTrack)
@@ -670,6 +677,7 @@ def persist_queue(room_id):
             room.current_index = rp.current_index
             room.volume = rp.volume
             room.autoplay = rp.autoplay
+            room.voting_enabled = rp.voting_enabled
             room.position_ms = rp.position()
             room.playing = rp.playing
         db.commit()

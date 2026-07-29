@@ -1075,6 +1075,49 @@
 }
 
 /* ── Party mode modal ── */
+/* ── Room settings ── */
+.settings-modal { max-width: 420px; }
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 0.4rem;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.12s;
+    &:hover { background: rgba(255,255,255,0.04); }
+}
+.setting-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 0;
+}
+.setting-name { font-size: 0.95rem; font-weight: 600; color: var(--font-color); }
+.setting-desc { font-size: 0.78rem; color: var(--font-muted); line-height: 1.35; }
+.toggle {
+    flex-shrink: 0;
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--surface-2);
+    position: relative;
+    transition: background 0.15s;
+    i {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.15s;
+    }
+    &.on { background: var(--accent); }
+    &.on i { transform: translateX(18px); }
+}
+
 .party-modal { max-width: 360px; }
 .party-body {
     display: flex;

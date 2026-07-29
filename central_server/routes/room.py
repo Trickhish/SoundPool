@@ -102,6 +102,7 @@ def room_dict(db, room, user):
         "shuffle": room.shuffle,
         "repeat": room.repeat,
         "party_active": bool(room.party_active),
+        "voting_enabled": bool(room.voting_enabled),
         # the join code is only exposed to those who can manage the party
         "party_code": room.party_code if (can_party and room.party_active) else None,
     }
@@ -271,10 +272,28 @@ async def room_queue_move(room_id: int, body: QueueMoveRequest,
 async def room_queue_vote(room_id: int, body: QueueVoteRequest,
                           db: SessionLocal = Depends(get_db),  # type: ignore
                           user: User = Depends(verify_token)):
-    _, rp = _require(db, room_id, user, "can_vote")
+    room, rp = _require(db, room_id, user, "can_vote")
+    if not room.voting_enabled:
+        raise HTTPException(403, "Voting is disabled in this room")
     await rp.vote_track(body.uid, user.id, body.direction)
     room_player.persist_queue(room_id)   # votes reorder the queue — persist the new order
     return JSONResponse(content={"status": "ok"})
+
+
+@router.post("/{room_id}/voting")
+async def room_set_voting(room_id: int, body: ShuffleRequest,
+                          db: SessionLocal = Depends(get_db),  # type: ignore
+                          user: User = Depends(verify_token)):
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Room not found")
+    member = get_member(db, room_id, user.id)
+    if member is None or not member.is_admin:
+        raise HTTPException(403, "Only admins can change room settings")
+    room.voting_enabled = bool(body.on)
+    db.commit()
+    await room_player.ensure_loaded(room_id).set_voting(body.on)
+    return JSONResponse(content={"voting_enabled": bool(body.on)})
 
 
 @router.post("/{room_id}/queue/jump")
@@ -523,24 +542,28 @@ def leave_room(room_id: int,
 
 
 @router.post("/{room_id}/party")
-def start_party(room_id: int,
-                db: SessionLocal = Depends(get_db),  # type: ignore
-                user: User = Depends(verify_token)):
-    room, _ = _require(db, room_id, user, "can_manage_party")
+async def start_party(room_id: int,
+                      db: SessionLocal = Depends(get_db),  # type: ignore
+                      user: User = Depends(verify_token)):
+    room, rp = _require(db, room_id, user, "can_manage_party")
     if not room.party_code:
         room.party_code = secrets.token_urlsafe(9)
     room.party_active = True
+    room.voting_enabled = True   # let guests vote by default during a party
     db.commit()
-    return JSONResponse(content={"party_active": True, "party_code": room.party_code})
+    await rp.set_voting(True)
+    return JSONResponse(content={"party_active": True, "party_code": room.party_code,
+                                 "voting_enabled": True})
 
 
 @router.delete("/{room_id}/party")
-def stop_party(room_id: int,
-               db: SessionLocal = Depends(get_db),  # type: ignore
-               user: User = Depends(verify_token)):
-    room, _ = _require(db, room_id, user, "can_manage_party")
+async def stop_party(room_id: int,
+                     db: SessionLocal = Depends(get_db),  # type: ignore
+                     user: User = Depends(verify_token)):
+    room, rp = _require(db, room_id, user, "can_manage_party")
     room.party_active = False
     room.party_code = None
+    room.voting_enabled = False   # voting is party-scoped by default
     # Remove guest members and their throwaway accounts.
     guests = (db.query(RoomMember, User)
                 .join(User, User.id == RoomMember.user_id)
@@ -550,7 +573,8 @@ def stop_party(room_id: int,
         db.delete(member)
         db.delete(guest)
     db.commit()
-    return JSONResponse(content={"party_active": False})
+    await rp.set_voting(False)
+    return JSONResponse(content={"party_active": False, "voting_enabled": False})
 
 
 @router.delete("/{room_id}")
