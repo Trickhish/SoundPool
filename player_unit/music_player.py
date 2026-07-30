@@ -5,8 +5,11 @@ import json
 #import simpleaudio as sa
 from pathlib import Path
 import threading
-import pygame.mixer as mix
+import audio_backend
 from mutagen.mp3 import MP3
+
+# Playback engine: mpv when available, pygame otherwise (see audio_backend).
+audio = audio_backend.make_backend()
 
 #import pu_server as serv2
 import pu_server2 as serv
@@ -122,10 +125,9 @@ def current_position():
     """Absolute playback position (ms) within the current song."""
     if currentSong is None:
         return 0
-    p = mix.music.get_pos()  # ms since the last play(); -1 when not playing
-    if p < 0:
-        p = 0
-    return play_offset_ms + p
+    # The backend reports an absolute position (mpv natively; the pygame
+    # fallback adds the seek offset itself), so no bookkeeping is needed here.
+    return audio.position_ms()
 
 
 def state_dict():
@@ -173,8 +175,8 @@ def seek(percent):
         return
     seconds = max(0.0, (float(percent) / 100.0) * (currentSong.duration / 1000.0))
     try:
-        mix.music.play(start=seconds)
-        mix.music.set_volume(volume)
+        audio.seek(seconds)
+        audio.set_volume(volume)
         play_offset_ms = int(seconds * 1000)
         playing = True
     except Exception as ex:
@@ -187,7 +189,7 @@ def set_volume(level):
     global volume
     volume = max(0.0, min(1.0, float(level)))
     try:
-        mix.music.set_volume(volume)
+        audio.set_volume(volume)
     except Exception:
         pass
     save_queue()
@@ -223,7 +225,7 @@ def render_stop():
     render_current = None
     playing = False
     try:
-        mix.music.stop()
+        audio.stop()
     except Exception:
         pass
 
@@ -263,7 +265,7 @@ def queue_jump(index):
     _manual_skip = True
     msid = index
     playing = True
-    mix.music.stop()  # playerManager will load musics[msid] next
+    audio.stop()  # playerManager will load musics[msid] next
     emit_state()
 
 
@@ -277,7 +279,7 @@ def getSongDuration(filename):
     return(audio.info.length*1000)
 
 def isPlaying():
-    return(mix.music.get_busy())
+    return(audio.get_busy())
 
 async def playerManager(ws):
     global playing, msid, currentSong, current_index, play_offset_ms, _manual_skip
@@ -317,9 +319,8 @@ async def playerManager(ws):
             current_index = msid
             currentSong = m
             print(f"Playing {m.name}")
-            mix.music.load(m.file)
-            mix.music.play()
-            mix.music.set_volume(volume)
+            audio.play(start=0, path=m.file)
+            audio.set_volume(volume)
             play_offset_ms = 0
             msid += 1
             save_queue()
@@ -357,7 +358,7 @@ async def runPlayer(player):
 
     sws = player.ws
 
-    mix.init()
+    audio.init()
     load_queue()
     print("🎵 Player ready to play")
     await serv.sendcmd(sws, ["status", "idle"])

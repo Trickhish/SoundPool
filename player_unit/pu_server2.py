@@ -82,14 +82,14 @@ async def handle_audio(r):
 async def do_render(song, url, key, pos_ms, playing, vol=None):
     """Act as a room output: play exactly what the server's room conductor
     dictates (track + position + playing + master volume), downloading on demand."""
-    # The websocket is live before runPlayer() gets to mix.init(), so a render
-    # can land on an uninitialised mixer right after startup. init() is a no-op
-    # once initialised, so just make sure it's ready here.
+    # The websocket is live before runPlayer() initialises the backend, so a
+    # render can land on an uninitialised player right after startup. init() is
+    # a no-op once initialised, so just make sure it's ready here.
     try:
-        if not mp.mix.get_init():
-            mp.mix.init()
+        if not mp.audio.get_init():
+            mp.audio.init()
     except Exception as ex:
-        print(f"    ✖ Mixer init failed: {ex}")
+        print(f"    ✖ Audio backend init failed: {ex}")
         return
 
     if vol is not None:
@@ -119,9 +119,8 @@ async def do_render(song, url, key, pos_ms, playing, vol=None):
         # compensate for download time to stay near the room timeline
         start = (pos_ms + (time.monotonic() - t_recv) * 1000.0) / 1000.0 if playing else pos_ms / 1000.0
         try:
-            mp.mix.music.load(path)
-            mp.mix.music.play(start=max(0.0, start))
-            mp.mix.music.set_volume(mp.volume)
+            mp.audio.play(start=max(0.0, start), path=path)
+            mp.audio.set_volume(mp.volume)
             # Only claim the track once it's really loaded: setting this before
             # the load meant a failed load (e.g. a render arriving before the
             # mixer finished initialising) left us thinking the song was ready,
@@ -131,7 +130,7 @@ async def do_render(song, url, key, pos_ms, playing, vol=None):
             mp.render_paused = not playing
             mp.render_pause_ms = pos_ms
             if not playing:
-                mp.mix.music.pause()
+                mp.audio.pause()
         except Exception as ex:
             mp.render_current = None   # force a full reload on the next render
             print(f"    ✖ Render play failed: {ex}")
@@ -141,19 +140,17 @@ async def do_render(song, url, key, pos_ms, playing, vol=None):
         # Same track already loaded — resume/seek/pause.
         try:
             if playing:
-                # `music.play(start=…)` restarts the decoder and seeks from the
-                # top of the MP3, which is slow (very noticeable deep into a
-                # track). A plain resume asks for the position we paused at, so
-                # unpause instead — that's instant.
+                # A plain resume asks for the position we paused at, so
+                # unpause rather than re-seek: no decoder restart, no glitch.
                 resuming = mp.render_paused and abs(pos_ms - mp.render_pause_ms) < 2000
                 if resuming:
-                    mp.mix.music.unpause()
+                    mp.audio.unpause()
                 else:
-                    mp.mix.music.play(start=pos_ms / 1000.0)
-                mp.mix.music.set_volume(mp.volume)
+                    mp.audio.seek(pos_ms / 1000.0)
+                mp.audio.set_volume(mp.volume)
                 mp.render_paused = False
             else:
-                mp.mix.music.pause()
+                mp.audio.pause()
                 mp.render_paused = True
                 mp.render_pause_ms = pos_ms
         except Exception as ex:
@@ -251,13 +248,13 @@ async def receiveHandler(ws, ro):
         if r[1]=="play":
             print("Playing the music.")
             mp.playing=True
-            mp.mix.music.unpause()
+            mp.audio.unpause()
             await sendcmd(ws, ["status", "playing"])
             mp.emit_state()
         elif r[1]=="pause":
             print("Pausing the music.")
             mp.playing=False
-            mp.mix.music.pause()
+            mp.audio.pause()
             await sendcmd(ws, ["status", "paused"])
             mp.emit_state()
         elif r[1]=="prev":
@@ -265,13 +262,13 @@ async def receiveHandler(ws, ro):
             mp._manual_skip = True
             mp.playing = True   # load & play even if currently paused/idle
             mp.msid-=2
-            mp.mix.music.stop()
+            mp.audio.stop()
             await sendcmd(ws, ["status", "loading"])
         elif r[1]=="next":
             print("Loading next song.")
             mp._manual_skip = True
             mp.playing = True   # load & play even if currently paused/idle
-            mp.mix.music.stop()
+            mp.audio.stop()
             await sendcmd(ws, ["status", "loading"])
         elif r[1]=="seek":
             print(f"Seeking to {r[2]}%.")
@@ -290,7 +287,7 @@ async def receiveHandler(ws, ro):
             mp.musics.clear()
             mp.msid = 0
             mp.current_index = -1
-            mp.mix.music.stop()
+            mp.audio.stop()
             mp.playing = False
             mp.currentSong = None
             mp.save_queue()
