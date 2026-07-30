@@ -122,11 +122,28 @@ def load_selected():
         set_outputs(_selected)
 
 
+def _existing_sinks():
+    names = set()
+    for line in _run(["pactl", "list", "short", "sinks"]).splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            names.add(parts[1])
+    return names
+
+
 def _target_sink():
-    """The sink our playback should land on for the current selection."""
+    """The sink our playback should land on for the current selection.
+
+    Filters out sinks that aren't currently present: a saved choice can point at
+    a Bluetooth speaker that's switched off, and routing to (or defaulting to) a
+    non-existent sink just loses the audio. The selection is kept either way, so
+    it takes effect again as soon as the speaker comes back.
+    """
+    if not _selected:
+        return None
     if len(_selected) >= 2:
-        return COMBINE_SINK
-    return _selected[0] if len(_selected) == 1 else None
+        return COMBINE_SINK if COMBINE_SINK in _existing_sinks() else None
+    return _selected[0] if _selected[0] in _existing_sinks() else None
 
 
 def _apply_routing():
@@ -163,10 +180,10 @@ def set_outputs(names):
     else:
         target = None  # leave on default
 
-    if target:
+    if target and target in _existing_sinks():
         # Also make it the default so a stream opened later (pygame reopens the
         # device between tracks) starts on the right sink instead of racing the
-        # move below.
+        # move below. Skipped when the sink isn't there (speaker switched off).
         _run(["pactl", "set-default-sink", target])
     _apply_routing()
 
@@ -588,6 +605,13 @@ def watch_sinks():
                     now = time.monotonic()
                     if now - last > 0.8:   # debounce bursts
                         last = now
+                        # A selected speaker that just reconnected should take
+                        # over again without the user re-picking it.
+                        if "'new'" in line:
+                            try:
+                                set_outputs(_selected) if _selected else None
+                            except Exception as e:
+                                print(f"[audio] re-apply outputs failed: {e}")
                         _notify()
         except Exception as e:
             print(f"[audio] sink watch error: {e}")
