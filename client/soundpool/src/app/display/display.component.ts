@@ -272,8 +272,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
   get queueUnderThumb(): boolean { return this.showQueue && this.showLyrics && this.showPlayer; }
   /** Is there anything filling the right-hand column? */
   get hasRightCol(): boolean { return this.showLyrics || this.queueInColumn; }
-  /** Fewer entries when compact under the thumbnail, more when full-column. */
-  get queueShown() { return this.queue.slice(0, this.queueUnderThumb ? 2 : 9); }
+  /** Fewer entries when compact under the thumbnail, more when full-column.
+   *  The full column is kept short enough to always fit, so a row is never
+   *  clipped in half at the container edge. */
+  get queueShown() { return this.queue.slice(0, this.queueUnderThumb ? 2 : 5); }
   get showMessage(): boolean { return !!this.info?.show_message && !!(this.info?.message || '').trim(); }
   /** Skip-vote tally — only when enabled and at least one person has voted. */
   get showSkipVotes(): boolean { return !!this.info?.show_skipvotes && this.voteCount > 0; }

@@ -297,7 +297,11 @@
 /* Full-column queue (lyrics off) — centered like the lyrics panel */
 .disp-queue.full {
   flex: 1 1 0;
-  height: 82%;
+  /* Height follows the content (capped) rather than being fixed: a fixed height
+     meant the list could end mid-row, chopping a track in half at the container
+     edge. With a short list this always fits exactly. */
+  height: auto;
+  max-height: 82%;
   min-width: 0;
   /* Sized to its content when it's the only right-hand column, so it sits next
      to the player rather than stretching across the rest of the screen. */
@@ -311,7 +315,15 @@
   justify-content: center;
   overflow: hidden;
   .disp-queue-head { font-size: 2.4vh; }
-  .disp-queue-list { overflow-y: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+  .disp-queue-list {
+    overflow-y: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+    /* Safety net for very short screens: if it ever does overflow, fade the
+       bottom edge instead of showing a hard-cut row. */
+    -webkit-mask-image: linear-gradient(#000 88%, transparent);
+    mask-image: linear-gradient(#000 88%, transparent);
+  }
   .disp-queue-cover { width: 8vh; height: 8vh; }
   .disp-queue-title { font-size: 2.8vh; }
   .disp-queue-artist { font-size: 2vh; }
