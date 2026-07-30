@@ -1,0 +1,17 @@
+<div class="pair-root">
+  <div class="pair-card">
+    <img class="pair-logo" src="soundpool_sqrd.png" alt="SoundPool" />
+    <h1>Pair this screen</h1>
+    <p class="pair-hint">Open your room's settings on your phone or computer, then enter the 4-digit code shown under <strong>Big-screen display</strong>.</p>
+
+    <div class="pair-inputs" (paste)="$event.preventDefault(); onPaste($any($event).clipboardData?.getData('text'))">
+      <input *ngFor="let d of digits; let i = index" [id]="'d' + i" class="pair-digit"
+             type="text" inputmode="numeric" autocomplete="off" maxlength="2"
+             [value]="d" [disabled]="busy"
+             (input)="onInput(i, $event)" (keydown)="onKey(i, $event)" />
+    </div>
+
+    <div class="pair-status" *ngIf="busy">Pairing…</div>
+    <div class="pair-error" *ngIf="error">{{ error }}</div>
+  </div>
+</div>

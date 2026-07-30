@@ -245,6 +245,45 @@ def display_token(code: str, db: SessionLocal = Depends(get_db)):  # type: ignor
     return JSONResponse(content={"token": token, "room_id": room.id})
 
 
+PAIR_TTL_MINUTES = 15
+_pair_attempts = {}      # ip -> [timestamps], to blunt brute-forcing 4 digits
+
+
+def _pair_rate_limited(ip, limit=10, window=60):
+    now = datetime.utcnow().timestamp()
+    hits = [t for t in _pair_attempts.get(ip, []) if now - t < window]
+    hits.append(now)
+    _pair_attempts[ip] = hits
+    if len(_pair_attempts) > 5000:            # keep the map bounded
+        for k in [k for k, v in _pair_attempts.items() if not v or now - v[-1] > window]:
+            _pair_attempts.pop(k, None)
+    return len(hits) > limit
+
+
+@router.post("/display/pair")
+def display_pair(body: DisplayPairRequest, request: Request,
+                 db: SessionLocal = Depends(get_db)):  # type: ignore
+    """Exchange a short-lived 4-digit code for the room's real display token.
+
+    The 4-digit code only exists to save typing a long URL on a TV; it expires
+    and is never itself the credential the display page uses.
+    """
+    ip = request.client.host if request.client else "?"
+    if _pair_rate_limited(ip):
+        raise HTTPException(429, "Too many attempts — wait a minute and try again.")
+    code = (body.code or "").strip()
+    if not code.isdigit() or len(code) != 4:
+        raise HTTPException(400, "Enter the 4-digit code shown in the room settings.")
+    room = (db.query(Room)
+              .filter(Room.display_pair_code == code,
+                      Room.display_pair_expires != None,
+                      Room.display_pair_expires > datetime.utcnow())
+              .first())
+    if not room or not room.display_code:
+        raise HTTPException(404, "That code isn't valid (or has expired).")
+    return JSONResponse(content={"display_code": room.display_code, "name": room.name})
+
+
 @router.get("/display/{code}/lyrics/{song_id}")
 def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):  # type: ignore
     room = db.query(Room).filter(Room.display_code == code).first()
@@ -466,6 +505,34 @@ def enable_display(room_id: int,
         room.display_code = secrets.token_urlsafe(9)
         db.commit()
     return JSONResponse(content=_display_dict(room))
+
+
+@router.post("/{room_id}/display/paircode")
+def make_display_paircode(room_id: int,
+                          db: SessionLocal = Depends(get_db),  # type: ignore
+                          user: User = Depends(verify_token)):
+    """Mint a fresh 4-digit pairing code (and the display link if needed)."""
+    room = _require_admin(db, room_id, user)
+    if not room.display_code:
+        room.display_code = secrets.token_urlsafe(9)
+    now = datetime.utcnow()
+    # Avoid clashing with another room's live code.
+    taken = {r.display_pair_code for r in
+             db.query(Room).filter(Room.display_pair_expires > now).all()}
+    code = None
+    for _ in range(50):
+        c = f"{secrets.randbelow(10000):04d}"
+        if c not in taken:
+            code = c
+            break
+    if code is None:
+        raise HTTPException(503, "Could not allocate a code — try again.")
+    room.display_pair_code = code
+    room.display_pair_expires = now + timedelta(minutes=PAIR_TTL_MINUTES)
+    db.commit()
+    return JSONResponse(content={"pair_code": code,
+                                 "expires_in": PAIR_TTL_MINUTES * 60,
+                                 "display_code": room.display_code})
 
 
 @router.post("/{room_id}/display/config")

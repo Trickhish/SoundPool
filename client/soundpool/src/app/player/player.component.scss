@@ -1129,6 +1129,32 @@
     &.on i { transform: translateX(18px); }
 }
 
+/* Screen pairing code */
+.pair-box {
+    width: 100%;
+    text-align: center;
+    padding: 0.9rem 0.6rem;
+    margin-bottom: 0.7rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.pair-code-label { font-size: 0.8rem; color: var(--font-muted); strong { color: var(--font-color); } }
+.pair-code {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 0.35em;
+    text-indent: 0.35em;   /* keep it visually centred despite the tracking */
+    color: var(--accent);
+    margin: 0.4rem 0 0.2rem;
+    font-variant-numeric: tabular-nums;
+}
+.pair-code-expiry {
+    font-size: 0.75rem;
+    color: var(--font-muted);
+    a { color: var(--accent); cursor: pointer; }
+}
+
 .display-opts { width: 100%; margin-top: 0.4rem; }
 .display-msg { width: 100%; margin-top: 0.6rem; box-sizing: border-box; }
 

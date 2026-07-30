@@ -12,6 +12,7 @@ import { PlayerComponent } from './player/player.component';
 import { UnitSettingsComponent } from './unit-settings/unit-settings.component';
 import { PartyJoinComponent } from './party-join/party-join.component';
 import { DisplayComponent } from './display/display.component';
+import { DisplayPairComponent } from './display-pair/display-pair.component';
 
 export const routes: Routes = [
     {
@@ -30,6 +31,7 @@ export const routes: Routes = [
     {path:'login', component:LoginComponent},
     {path:'register', component:RegisterComponent},
     {path:'party/:code', component:PartyJoinComponent},
+    {path:'display', component:DisplayPairComponent},
     {path:'display/:code', component:DisplayComponent},
     {path:'**', redirectTo:'/login' }
 ];

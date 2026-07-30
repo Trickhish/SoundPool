@@ -334,6 +334,18 @@
               <button class="party-start" (click)="ensureDisplay()">Set up display</button>
             </ng-container>
             <ng-container *ngIf="displayCode">
+              <!-- Quick pairing: type a short code on the TV instead of the URL -->
+              <div class="pair-box">
+                <ng-container *ngIf="!pairCode">
+                  <button class="party-start" (click)="makePairCode()">Pair a screen</button>
+                </ng-container>
+                <ng-container *ngIf="pairCode">
+                  <div class="pair-code-label">On the screen, go to <strong>{{ pairOrigin }}</strong> and enter</div>
+                  <div class="pair-code">{{ pairCode }}</div>
+                  <div class="pair-code-expiry">Expires in {{ pairCountdown }} · <a (click)="makePairCode()">new code</a></div>
+                </ng-container>
+              </div>
+
               <div class="party-link-row">
                 <input class="party-link" [value]="displayLink" readonly (click)="$any($event.target).select()" />
                 <button class="party-copy" (click)="copyDisplayLink()" title="Copy link">

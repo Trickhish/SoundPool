@@ -129,6 +129,8 @@ export class ApiService {
   public displayToken(code:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/display/${code}/token`, {}); }
   public displayLyrics(code:string, songId:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/display/${code}/lyrics/${songId}`); }
   public enableDisplay(id:string|number) { return this.rp(id, 'display'); }
+  public makeDisplayPairCode(id:string|number) { return this.rp(id, 'display/paircode'); }
+  public pairDisplay(code:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/display/pair`, { code }); }
   public setDisplayConfig(id:string|number, cfg:any) { return this.rp(id, 'display/config', cfg); }
   public setRoomRights(id:number, body:any) {
     return this.http.post<any>(`${ApiService.apiUrl}/room/${id}/rights`, body);

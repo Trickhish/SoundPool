@@ -46,6 +46,11 @@ class Room(Base):
     display_show_qr = Column(Boolean, default=True)      # party join QR (only appears while a party is live)
     display_show_message = Column(Boolean, default=False)
     display_message = Column(String(512), nullable=True) # admin-authored message to show on screen
+    # Short-lived 4-digit code a screen types at /display to fetch display_code.
+    # Deliberately temporary: 4 digits is only 10k combinations, so it must not
+    # be a standing credential — it expires and is single-purpose.
+    display_pair_code = Column(String(8), nullable=True)
+    display_pair_expires = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class User(Base):

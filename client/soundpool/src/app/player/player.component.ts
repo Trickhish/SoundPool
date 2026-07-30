@@ -322,6 +322,33 @@ export class PlayerComponent implements OnInit, OnDestroy {
     });
   }
   openDisplay() { if (this.displayLink) window.open(this.displayLink, '_blank'); }
+
+  // ── Screen pairing (short code instead of typing the long URL on a TV) ──
+  pairCode: string | null = null;
+  pairSecondsLeft = 0;
+  private pairTimer: any = null;
+  get pairOrigin(): string { return `${window.location.host}/display`; }
+
+  makePairCode() {
+    if (!this.pid) return;
+    this.api.makeDisplayPairCode(this.pid).subscribe({
+      next: (r: any) => this.zone.run(() => {
+        this.pairCode = r.pair_code;
+        this.displayCode = r.display_code || this.displayCode;
+        this.pairSecondsLeft = r.expires_in || 0;
+        clearInterval(this.pairTimer);
+        this.pairTimer = setInterval(() => this.zone.run(() => {
+          this.pairSecondsLeft--;
+          if (this.pairSecondsLeft <= 0) { this.pairCode = null; clearInterval(this.pairTimer); }
+        }), 1000);
+      }),
+      error: () => this.toastr.error('Could not create a pairing code')
+    });
+  }
+  get pairCountdown(): string {
+    const m = Math.floor(this.pairSecondsLeft / 60), s = this.pairSecondsLeft % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
   copyDisplayLink() {
     navigator.clipboard?.writeText(this.displayLink)
       .then(() => this.toastr.success('Link copied')).catch(() => {});
