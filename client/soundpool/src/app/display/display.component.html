@@ -84,6 +84,17 @@
         <div *ngIf="lyricsLoading" class="disp-lyr-note">Loading lyrics…</div>
         <div *ngIf="!lyricsLoading && !lyrics.length && !plain" class="disp-lyr-note">No lyrics for this track</div>
 
+        <!-- Lead-in ring: fills over the last few seconds of an intro or an
+             instrumental break so singers know exactly when to come in. -->
+        <div *ngIf="leadIn !== null" class="disp-leadin">
+          <svg viewBox="0 0 100 100">
+            <circle class="li-track" cx="50" cy="50" r="46"/>
+            <circle class="li-fill" cx="50" cy="50" r="46"
+                    [attr.stroke-dasharray]="leadInCirc"
+                    [attr.stroke-dashoffset]="leadInOffset"/>
+          </svg>
+        </div>
+
         <!-- Synced -->
         <div *ngIf="lyrics.length" class="disp-lyr-scroll synced">
           <p *ngFor="let l of lyrics; let i = index" [id]="'lyric-' + i" class="disp-lyr-line"

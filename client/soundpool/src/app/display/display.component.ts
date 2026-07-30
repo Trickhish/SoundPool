@@ -317,6 +317,33 @@ export class DisplayComponent implements OnInit, OnDestroy {
   get showQueue(): boolean { return !!this.info?.show_queue; }
   /** Karaoke: lyrics fill the screen in big type, everything else steps aside. */
   get nextUp() { return this.queue.length ? this.queue[0] : null; }
+
+  // ── Lyric lead-in ────────────────────────────────────────────────────────
+  // During an intro or an instrumental break, fill a ring so singers know when
+  // to come back in (the same cue Deezer gives).
+  private static LEADIN_MIN_GAP = 4500;   // only for real gaps, not line changes
+  private static LEADIN_WINDOW  = 5000;   // how long the ring is on screen
+
+  /** 0..1 while a lead-in is running, or null when there's nothing to count in. */
+  get leadIn(): number | null {
+    if (!this.lyrics.length || !this.playing) return null;
+    const next = this.lyrics[this.activeIdx + 1];
+    if (!next) return null;
+    const prevMs = this.activeIdx >= 0 ? this.lyrics[this.activeIdx].ms : 0;
+    const gap = next.ms - prevMs;
+    if (gap < DisplayComponent.LEADIN_MIN_GAP) return null;
+    const remaining = next.ms - this.posMs;
+    if (remaining <= 0) return null;
+    const window = Math.min(gap, DisplayComponent.LEADIN_WINDOW);
+    if (remaining > window) return null;      // still early — nothing yet
+    return 1 - remaining / window;
+  }
+  /** Circumference of the ring, for the stroke-dash trick. */
+  readonly leadInCirc = 2 * Math.PI * 46;
+  get leadInOffset(): number {
+    const p = this.leadIn ?? 0;
+    return this.leadInCirc * (1 - p);
+  }
   get lyricsFull(): boolean { return !!this.info?.lyrics_full && this.showLyrics; }
   /** Queue takes the big right-hand column when lyrics aren't shown. */
   get queueInColumn(): boolean { return this.showQueue && !this.showLyrics && !this.lyricsFull; }
