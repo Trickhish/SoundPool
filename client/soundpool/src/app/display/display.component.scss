@@ -37,24 +37,85 @@
   transform: translateZ(0);
   will-change: transform;
 
-  /* Optional slow ambient drift. Movement is kept well inside the element's
-     6vw/6vh overscan so an edge can never be exposed, and it's transform-only
-     so it stays on the compositor (no repaint of a 60px-blurred layer). */
   &.animated {
-    animation: disp-bg-drift 48s ease-in-out infinite alternate;
+    animation: disp-bg-drift 20s ease-in-out infinite alternate;
   }
 }
 @keyframes disp-bg-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1.00); }
+  50%  { transform: translate3d(-2%, 2%, 0) scale(1.12); }
+  100% { transform: translate3d(2%, -1.5%, 0) scale(1.04); }
+}
+
+/* ── Moving coloured lights ──
+   Extra copies of the cover, blurred into soft colour fields and blended
+   additively, each on its own drift + hue cycle. Because they're the artwork
+   itself, the colours always match the track. Transform/filter only, so this
+   stays on the compositor. */
+.disp-lights {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  .lg {
+    position: absolute;
+    width: 90vw;
+    height: 90vh;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(90px) saturate(2.2);
+    mix-blend-mode: screen;
+    will-change: transform, filter;
+  }
+  .lg1 {
+    top: -25vh; left: -20vw;
+    opacity: 0.55;
+    animation: lg-move-1 17s ease-in-out infinite alternate,
+               lg-hue-a   23s linear infinite;
+  }
+  .lg2 {
+    bottom: -30vh; right: -25vw;
+    opacity: 0.5;
+    animation: lg-move-2 21s ease-in-out infinite alternate,
+               lg-hue-b   29s linear infinite;
+  }
+  .lg3 {
+    top: 10vh; left: 30vw;
+    width: 70vw; height: 70vh;
+    opacity: 0.42;
+    animation: lg-move-3 13s ease-in-out infinite alternate,
+               lg-hue-a   19s linear infinite reverse;
+  }
+}
+@keyframes lg-move-1 {
   0%   { transform: translate3d(0, 0, 0) scale(1); }
-  25%  { transform: translate3d(1.6%, -1.2%, 0) scale(1.06); }
-  50%  { transform: translate3d(-1.2%, 1.6%, 0) scale(1.10); }
-  75%  { transform: translate3d(-1.8%, -1.0%, 0) scale(1.05); }
-  100% { transform: translate3d(1.2%, 1.4%, 0) scale(1.02); }
+  100% { transform: translate3d(38vw, 26vh, 0) scale(1.35); }
+}
+@keyframes lg-move-2 {
+  0%   { transform: translate3d(0, 0, 0) scale(1.15); }
+  100% { transform: translate3d(-42vw, -22vh, 0) scale(0.9); }
+}
+@keyframes lg-move-3 {
+  0%   { transform: translate3d(0, 0, 0) scale(0.95); }
+  100% { transform: translate3d(-26vw, 30vh, 0) scale(1.3); }
+}
+@keyframes lg-hue-a {
+  0%   { filter: blur(90px) saturate(2.2) hue-rotate(0deg); }
+  100% { filter: blur(90px) saturate(2.2) hue-rotate(360deg); }
+}
+@keyframes lg-hue-b {
+  0%   { filter: blur(110px) saturate(2.4) hue-rotate(360deg); }
+  100% { filter: blur(110px) saturate(2.4) hue-rotate(0deg); }
 }
 
 /* Respect users/screens that ask for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .disp-bg.animated { animation: none; }
+  .disp-lights .lg { animation: none; }
 }
 .disp-scrim {
   position: fixed;

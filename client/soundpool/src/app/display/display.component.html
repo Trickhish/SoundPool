@@ -11,6 +11,15 @@
 
     <!-- Blurred cover backdrop -->
     <div class="disp-bg" [class.animated]="info.animate_bg" [style.background-image]="'url(' + cover + ')'"></div>
+
+    <!-- Moving coloured light. Extra copies of the cover, heavily blurred and
+         blended additively, each drifting and shifting hue on its own cycle —
+         so the colours come from the artwork rather than being invented. -->
+    <div class="disp-lights" *ngIf="info.animate_bg">
+      <span class="lg lg1" [style.background-image]="'url(' + cover + ')'"></span>
+      <span class="lg lg2" [style.background-image]="'url(' + cover + ')'"></span>
+      <span class="lg lg3" [style.background-image]="'url(' + cover + ')'"></span>
+    </div>
     <div class="disp-scrim"></div>
 
     <header class="disp-head">
