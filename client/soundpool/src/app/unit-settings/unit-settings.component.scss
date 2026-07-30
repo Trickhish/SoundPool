@@ -75,9 +75,12 @@
     .bt-name { color: var(--font-color); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bt-state { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
         padding: 0.1rem 0.4rem; border-radius: 6px; background: rgba(76,175,80,0.18); color: #6ddf72;
-        &.paired { background: rgba(255,255,255,0.08); color: var(--font-muted); } }
+        &.paired { background: rgba(255,255,255,0.08); color: var(--font-muted); }
+        &.warn { background: rgba(255,170,0,0.18); color: #ffb84d; } }
 }
-.bt-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+.bt-row.busy { opacity: 0.7; }
+.bt-working { font-size: 0.78rem; color: var(--font-muted); font-style: italic; }
+.bt-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
 .bt-btn {
     margin: 0; padding: 0.35rem 0.7rem; font-size: 0.78rem; border-radius: 8px;
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--font-color);

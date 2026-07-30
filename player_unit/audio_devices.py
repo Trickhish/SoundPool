@@ -12,6 +12,7 @@ COMBINE_SINK = "soundpool_out"   # our managed combine sink (multi-output)
 # Bluetooth scan results live here (mac -> {name, paired, connected, last_seen})
 _bt_seen = {}
 _bt_scanning = False
+_bt_last = None                  # outcome of the last BT action (surfaced in the UI)
 _selected = []                   # last selected sink names (persisted in-memory)
 
 
@@ -185,21 +186,65 @@ def _current_outputs():
 
 
 # ── Bluetooth ──
-def _btctl(*cmds, timeout=8):
-    """Run a sequence of bluetoothctl commands non-interactively."""
-    inp = "\n".join(cmds) + "\n"
+_ANSI = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
+
+# Human-readable meanings for the bluez errors we actually hit, so the UI can
+# say what to do instead of showing a raw D-Bus string (or, as before, silently
+# claiming success).
+_BT_ERRORS = [
+    ("br-connection-profile-unavailable",
+     "No audio profile available on the unit — its Bluetooth audio stack isn't ready."),
+    ("br-connection-page-timeout",
+     "The device didn't respond. Make sure it's powered on and in pairing mode."),
+    ("page-timeout",
+     "The device didn't respond. Make sure it's powered on and in pairing mode."),
+    ("br-connection-canceled", "The connection was canceled."),
+    ("AuthenticationFailed", "The device refused pairing."),
+    ("AuthenticationRejected", "The device rejected pairing."),
+    ("AuthenticationCanceled", "Pairing was canceled."),
+    ("ConnectionAttemptFailed", "Connection attempt failed — try again."),
+    ("NotReady", "The Bluetooth adapter is off."),
+    ("InProgress", "Another Bluetooth operation is still running — try again."),
+    ("NotAvailable", "The device is out of range or switched off."),
+    ("not available", "The device is out of range, off, or not in pairing mode."),
+    ("DoesNotExist", "The unit no longer knows this device — scan again."),
+]
+
+
+def _friendly_bt_error(out):
+    for needle, msg in _BT_ERRORS:
+        if needle.lower() in out.lower():
+            return msg
+    for line in out.splitlines():
+        line = line.strip()
+        if line.lower().startswith("failed to"):
+            return line
+    return "Bluetooth command failed."
+
+
+def _btctl(*args, timeout=25):
+    """Run ONE bluetoothctl command non-interactively.
+
+    Must be one-shot: piping several commands into an interactive session feeds
+    them before bluetoothctl has finished connecting to bluetoothd, so the agent
+    fails to register ("Failed to register agent object") and `pair` is issued
+    with no agent — then stdin closes and the process exits before the async
+    result arrives. One-shot mode waits for the operation to actually finish.
+    """
     try:
-        r = subprocess.run(["bluetoothctl"], input=inp, capture_output=True,
-                           text=True, timeout=timeout)
-        return r.stdout
+        r = subprocess.run(["bluetoothctl", *args], capture_output=True,
+                           text=True, timeout=timeout, env=_C_ENV)
+        return _ANSI.sub("", r.stdout or "") + _ANSI.sub("", r.stderr or "")
+    except subprocess.TimeoutExpired:
+        return "Failed to complete: the operation timed out."
     except Exception as e:
-        print(f"[bt] {cmds} failed: {e}")
-        return ""
+        print(f"[bt] {args} failed: {e}")
+        return f"Failed to run bluetoothctl: {e}"
 
 
 def _parse_devices(out):
     devs = {}
-    for line in out.splitlines():
+    for line in _ANSI.sub("", out).splitlines():
         m = re.match(r"Device (\S+)\s+(.*)", line.strip())
         if m:
             devs[m.group(1)] = m.group(2).strip()
@@ -267,25 +312,126 @@ def bt_scan(seconds=8):
     threading.Thread(target=worker, daemon=True).start()
 
 
+def _bt_set_last(action, mac, ok, error=""):
+    """Record the outcome of the last BT action so the UI can report it."""
+    global _bt_last
+    _bt_last = {"action": action, "mac": mac, "ok": bool(ok),
+                "error": "" if ok else (error or "Bluetooth command failed."),
+                "ts": time.time()}
+    print(f"[bt] {action} {mac}: {'ok' if ok else 'FAILED — ' + _bt_last['error']}")
+
+
+def _bt_stop_scan():
+    """Discovery in progress makes pair/connect flaky (and floods the output),
+    so always settle the adapter before an operation."""
+    global _bt_scanning
+    if _bt_scanning:
+        _bt_scanning = False
+    _btctl("scan", "off", timeout=6)
+    time.sleep(0.5)
+
+
+def _bt_is(mac, kind):
+    return mac in _parse_devices(_btctl("devices", kind, timeout=8))
+
+
+def _bt_known(mac):
+    return mac in _parse_devices(_btctl("devices", timeout=8))
+
+
+def _bt_rediscover(mac, seconds=12):
+    """Bring a device back into bluez's view.
+
+    `remove` (Forget) makes bluez drop the device completely, and a later `pair`
+    then fails with "Device not available" until it's discovered again. Rather
+    than making the user press Scan first, rediscover it inline.
+    """
+    if _bt_known(mac):
+        return True
+    proc = None
+    try:
+        proc = subprocess.Popen(["bluetoothctl", "--timeout", str(seconds), "scan", "on"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                env=_C_ENV)
+        end = time.time() + seconds
+        while time.time() < end:
+            time.sleep(1.5)
+            if _bt_known(mac):
+                return True
+    except Exception as e:
+        print(f"[bt] rediscover failed: {e}")
+    finally:
+        try:
+            if proc and proc.poll() is None:
+                proc.kill()
+        except Exception:
+            pass
+        _btctl("scan", "off", timeout=6)
+        time.sleep(0.5)
+    return _bt_known(mac)
+
+
+def _bt_do_connect(mac, attempts=2):
+    """Connect, retrying once — BR/EDR connects fail spuriously fairly often."""
+    out = ""
+    for i in range(attempts):
+        out = _btctl("--timeout", "20", "connect", mac, timeout=30)
+        if "Connection successful" in out or _bt_is(mac, "Connected"):
+            return True, ""
+        if i + 1 < attempts:
+            time.sleep(2)
+    return False, _friendly_bt_error(out)
+
+
 def bt_pair(mac):
-    _btctl("power on", "agent on", "default-agent",
-           f"pair {mac}", f"trust {mac}", timeout=25)
+    """Pair + trust + connect in one action.
+
+    Previously this only paired and trusted, so the user had to press Pair and
+    then Connect; and because no output was checked, a failed pair still
+    reported success. Trusting matters for auto-reconnect after a reboot.
+    """
+    _btctl("power", "on", timeout=8)
+    _bt_stop_scan()
+
+    if not _bt_is(mac, "Paired"):
+        if not _bt_rediscover(mac):   # e.g. straight after a Forget
+            _bt_refresh_devices()
+            return _bt_set_last("pair", mac, False,
+                                "Couldn't find the device. Make sure it's on and in pairing mode.")
+        out = _btctl("--timeout", "25", "pair", mac, timeout=35)
+        paired = ("Pairing successful" in out or "AlreadyExists" in out
+                  or "already" in out.lower() or _bt_is(mac, "Paired"))
+        if not paired:
+            _bt_refresh_devices()
+            return _bt_set_last("pair", mac, False, _friendly_bt_error(out))
+
+    _btctl("trust", mac, timeout=8)   # auto-reconnect later; failure isn't fatal
+    ok, err = _bt_do_connect(mac)
     _bt_refresh_devices()
+    _bt_set_last("pair", mac, ok, err)
 
 
 def bt_connect(mac):
-    _btctl(f"connect {mac}", timeout=15)
+    _btctl("power", "on", timeout=8)
+    _bt_stop_scan()
+    ok, err = _bt_do_connect(mac)
     _bt_refresh_devices()
+    _bt_set_last("connect", mac, ok, err)
 
 
 def bt_disconnect(mac):
-    _btctl(f"disconnect {mac}", timeout=10)
+    out = _btctl("disconnect", mac, timeout=15)
+    ok = "Successful disconnected" in out or "Disconnection successful" in out \
+        or not _bt_is(mac, "Connected")
     _bt_refresh_devices()
+    _bt_set_last("disconnect", mac, ok, _friendly_bt_error(out))
 
 
 def bt_remove(mac):
-    _btctl(f"remove {mac}", timeout=10)
+    out = _btctl("remove", mac, timeout=15)
+    ok = "has been removed" in out or not _bt_is(mac, "Paired")
     _bt_seen.pop(mac, None)
+    _bt_set_last("remove", mac, ok, _friendly_bt_error(out))
 
 
 def bt_state():
@@ -300,10 +446,16 @@ def bt_state():
             devices.append({"mac": m, "name": name,
                             "paired": d.get("paired", False),
                             "connected": d.get("connected", False)})
+    # Devices that already have an audio sink are actually usable, not just
+    # "connected" at the BR/EDR level — surface that so the UI can say so.
+    sinks = "\n".join(_run(["pactl", "list", "sinks", "short"]).splitlines())
+    for d in devices:
+        d["has_audio"] = f"bluez_output.{d['mac'].replace(':', '_')}" in sinks
     return {
         "powered": "Powered: yes" in info,
         "scanning": _bt_scanning,
         "devices": devices,
+        "last": _bt_last,
     }
 
 

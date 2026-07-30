@@ -46,17 +46,23 @@
       </button>
     </div>
     <div *ngIf="audio.bt && !audio.bt.powered" class="hint">Bluetooth adapter is off — Scan powers it on.</div>
-    <div *ngFor="let d of audio.bt.devices" class="bt-row">
+    <div *ngIf="audio.bt.scanning" class="hint">Put the speaker in pairing mode so it shows up.</div>
+    <div *ngFor="let d of audio.bt.devices" class="bt-row" [class.busy]="btBusy === d.mac">
       <div class="bt-info">
         <span class="bt-name">{{ d.name }}</span>
-        <span class="bt-state" *ngIf="d.connected">connected</span>
+        <span class="bt-state" *ngIf="d.connected && d.has_audio">ready</span>
+        <span class="bt-state warn" *ngIf="d.connected && !d.has_audio">connected, no audio</span>
         <span class="bt-state paired" *ngIf="d.paired && !d.connected">paired</span>
       </div>
       <div class="bt-actions">
-        <button *ngIf="!d.paired" class="bt-btn" (click)="bt('pair', d)">Pair</button>
-        <button *ngIf="d.paired && !d.connected" class="bt-btn primary" (click)="bt('connect', d)">Connect</button>
-        <button *ngIf="d.connected" class="bt-btn" (click)="bt('disconnect', d)">Disconnect</button>
-        <button *ngIf="d.paired" class="bt-btn ghost" (click)="bt('remove', d)">Forget</button>
+        <span *ngIf="btBusy === d.mac" class="bt-working">Working…</span>
+        <ng-container *ngIf="btBusy !== d.mac">
+          <!-- Pair does the whole job: pair + trust + connect -->
+          <button *ngIf="!d.paired" class="bt-btn primary" (click)="bt('pair', d)" [disabled]="!online">Pair &amp; connect</button>
+          <button *ngIf="d.paired && !d.connected" class="bt-btn primary" (click)="bt('connect', d)" [disabled]="!online">Connect</button>
+          <button *ngIf="d.connected" class="bt-btn" (click)="bt('disconnect', d)" [disabled]="!online">Disconnect</button>
+          <button *ngIf="d.paired" class="bt-btn ghost" (click)="bt('remove', d)" [disabled]="!online">Forget</button>
+        </ng-container>
       </div>
     </div>
     <div *ngIf="audio.bt.devices.length === 0" class="hint">No devices yet — tap Scan.</div>

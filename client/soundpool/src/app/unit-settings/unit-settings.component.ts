@@ -30,7 +30,10 @@ export class UnitSettingsComponent implements OnInit {
     if (!this.id) return;
     this.load();
     this.event.subscribe(`pu_${this.id}`, (dt: any) => this.zone.run(() => {
-      if (dt?.type === 'audio_state') { this.audio = dt.audio || this.audio; }
+      if (dt?.type === 'audio_state') {
+        this.audio = dt.audio || this.audio;
+        this.reportBtResult();
+      }
       else if (dt?.type === 'status') { this.online = dt.status !== 'offline'; this.status = dt.status; }
       try { this.cdr.detectChanges(); } catch {}
     }));
@@ -95,10 +98,36 @@ export class UnitSettingsComponent implements OnInit {
     clearTimeout(this.scanTimer);
     this.scanTimer = setTimeout(() => { this.audio.bt.scanning = false; this.cdr.detectChanges(); }, 14000);
   }
+  btBusy: string | null = null;   // mac currently being acted on
+
   bt(action: 'pair' | 'connect' | 'disconnect' | 'remove', d: any) {
+    this.btBusy = d.mac;
+    // The real outcome arrives with the next audio_state (bt.last) — the HTTP
+    // call only acknowledges that the unit accepted the command.
     this.api.btAction(this.id, action, d.mac).subscribe({
-      next: () => this.toastr.success(`${action}: ${d.name}`),
-      error: () => this.toastr.error(`Could not ${action}`)
+      error: () => this.zone.run(() => {
+        this.btBusy = null;
+        this.toastr.error(`Could not reach the unit`);
+      })
     });
+    // Safety net so the spinner can't stick if the unit never reports back.
+    clearTimeout(this.btTimer);
+    this.btTimer = setTimeout(() => { this.btBusy = null; this.cdr.detectChanges(); }, 45000);
+  }
+
+  private btTimer: any = null;
+  private lastBtTs = 0;
+  /** Toast the outcome of the unit's last Bluetooth action (once per result). */
+  private reportBtResult() {
+    const last = this.audio?.bt?.last;
+    if (!last || !last.ts || last.ts === this.lastBtTs) return;
+    this.lastBtTs = last.ts;
+    this.btBusy = null;
+    clearTimeout(this.btTimer);
+    const dev = (this.audio.bt.devices || []).find((x: any) => x.mac === last.mac);
+    const name = dev?.name || last.mac;
+    const verb: any = { pair: 'Paired', connect: 'Connected', disconnect: 'Disconnected', remove: 'Forgot' };
+    if (last.ok) this.toastr.success(name, `${verb[last.action] || last.action} ✓`);
+    else this.toastr.error(last.error || 'Failed', `Could not ${last.action} ${name}`);
   }
 }
