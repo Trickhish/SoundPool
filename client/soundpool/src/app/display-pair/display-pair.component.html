@@ -2,13 +2,24 @@
   <div class="pair-card">
     <img class="pair-logo" src="soundpool_sqrd.png" alt="SoundPool" />
     <h1>Pair this screen</h1>
-    <p class="pair-hint">Open your room's settings on your phone or computer, then enter the 4-digit code shown under <strong>Big-screen display</strong>.</p>
+    <p class="pair-hint">Open your room's settings on your phone or computer, then enter the 4-digit code shown under <strong>Big screen</strong>.</p>
 
-    <div class="pair-inputs" (paste)="$event.preventDefault(); onPaste($any($event).clipboardData?.getData('text'))">
-      <input *ngFor="let d of digits; let i = index" [id]="'d' + i" class="pair-digit"
-             type="text" inputmode="numeric" autocomplete="off" maxlength="2"
-             [value]="d" [disabled]="busy"
-             (input)="onInput(i, $event)" (keydown)="onKey(i, $event)" />
+    <!-- Four explicit inputs (no *ngFor): iterating over four identical empty
+         strings made Angular reuse/move the DOM nodes, so a digit typed in one
+         box showed up in the next. Values are read straight from the DOM. -->
+    <div class="pair-inputs">
+      <input id="d0" class="pair-digit" type="text" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="1" [disabled]="busy"
+             (input)="onInput(0, $event)" (keydown)="onKey(0, $event)" (paste)="onPaste($event)" (focus)="onFocus(0)" />
+      <input id="d1" class="pair-digit" type="text" inputmode="numeric" autocomplete="off"
+             maxlength="1" [disabled]="busy"
+             (input)="onInput(1, $event)" (keydown)="onKey(1, $event)" (paste)="onPaste($event)" (focus)="onFocus(1)" />
+      <input id="d2" class="pair-digit" type="text" inputmode="numeric" autocomplete="off"
+             maxlength="1" [disabled]="busy"
+             (input)="onInput(2, $event)" (keydown)="onKey(2, $event)" (paste)="onPaste($event)" (focus)="onFocus(2)" />
+      <input id="d3" class="pair-digit" type="text" inputmode="numeric" autocomplete="off"
+             maxlength="1" [disabled]="busy"
+             (input)="onInput(3, $event)" (keydown)="onKey(3, $event)" (paste)="onPaste($event)" (focus)="onFocus(3)" />
     </div>
 
     <div class="pair-status" *ngIf="busy">Pairing…</div>
