@@ -215,6 +215,10 @@ def _display_payload(db, room):
     q = st.get("queue") or []
     ci = st.get("current_index", -1)
     upcoming = q[ci + 1:] if ci >= 0 else q
+    # With repeat-all the queue wraps, so on the last track "up next" isn't
+    # empty — it continues from the top.
+    if st.get("repeat") == "all" and ci >= 0:
+        upcoming = upcoming + q[:ci]
     return {
         "room_id": room.id,
         "name": room.name,

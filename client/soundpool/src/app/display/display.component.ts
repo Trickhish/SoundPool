@@ -106,7 +106,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
       this.voteThreshold = dt.vote_threshold ?? 0;
       const q = dt.queue || [];
       const ci = dt.current_index ?? -1;
-      this.queue = (ci >= 0 ? q.slice(ci + 1) : q)
+      let upcoming = ci >= 0 ? q.slice(ci + 1) : q;
+      // Repeat-all wraps: on the last track the next songs come from the top,
+      // so "up next" shouldn't look empty.
+      if (dt.repeat === 'all' && ci >= 0) upcoming = upcoming.concat(q.slice(0, ci));
+      this.queue = upcoming
         .map((t: any) => ({ title: t.title, artist: t.artist, cover: t.cover, score: t.score || 0 }));
       this.preloadArtwork();
     } else if (dt.type === 'progress') {
@@ -172,8 +176,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
     // owns now_playing — otherwise this 4s snapshot would keep stamping a stale
     // track back over the live one.
     const live = this.sseLive ? this.info?.now_playing : undefined;
+    const hadLyrics = !!this.info?.show_lyrics;
     this.info = i;
     if (this.sseLive) this.info.now_playing = live;
+    // Lyrics are normally fetched on a track change, so switching the toggle on
+    // mid-song used to show nothing until the next song started.
+    if (!hadLyrics && i.show_lyrics && this.nowId && !this.lyrics.length && !this.plain) {
+      this.loadLyrics();
+    }
     this.startSse(i.room_id);
     // Seed playback from the poll until the live SSE feed takes over.
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
