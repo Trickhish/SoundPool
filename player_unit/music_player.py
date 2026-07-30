@@ -38,6 +38,8 @@ _manual_skip = False     # set by prev/next so repeat-one doesn't replay instead
 render_mode = False
 render_current = None    # song_id currently rendered
 render_seq = 0           # guards against out-of-order render downloads
+render_paused = False    # we paused the current track (so a resume can unpause)
+render_pause_ms = 0.0    # room position when we paused, to detect a plain resume
 
 class Song():
     def __init__(self, name, file, id, img_url, artist="", album="", ready=True):
