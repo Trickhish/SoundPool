@@ -103,13 +103,18 @@
   0%   { transform: translate3d(0, 0, 0) scale(0.95); }
   100% { transform: translate3d(-26vw, 30vh, 0) scale(1.3); }
 }
+/* Only a gentle swing around the artwork's own hues. A full 360° rotation sent
+   the light right through the spectrum, so it stopped looking like it came from
+   the cover at all. */
 @keyframes lg-hue-a {
-  0%   { filter: blur(90px) saturate(2.2) hue-rotate(0deg); }
-  100% { filter: blur(90px) saturate(2.2) hue-rotate(360deg); }
+  0%   { filter: blur(90px) saturate(2.2) hue-rotate(-18deg); }
+  50%  { filter: blur(90px) saturate(2.4) hue-rotate(14deg); }
+  100% { filter: blur(90px) saturate(2.2) hue-rotate(-18deg); }
 }
 @keyframes lg-hue-b {
-  0%   { filter: blur(110px) saturate(2.4) hue-rotate(360deg); }
-  100% { filter: blur(110px) saturate(2.4) hue-rotate(0deg); }
+  0%   { filter: blur(110px) saturate(2.3) hue-rotate(16deg); }
+  50%  { filter: blur(110px) saturate(2.5) hue-rotate(-12deg); }
+  100% { filter: blur(110px) saturate(2.3) hue-rotate(16deg); }
 }
 
 /* Respect users/screens that ask for reduced motion. */
