@@ -72,12 +72,31 @@
     opacity: 0.8;
   }
 }
+.disp-head-left {
+  display: flex;
+  align-items: center;
+  gap: 2vh;
+  min-width: 0;
+}
 .disp-room {
   font-size: 2vh;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   opacity: 0.7;
+}
+.disp-members {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7vh;
+  padding: 0.5vh 1.3vh;
+  border-radius: 1vh;
+  background: rgba(255,255,255,0.09);
+  font-size: 1.9vh;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  .disp-members-icon { width: 2vh; height: 2vh; flex-shrink: 0; opacity: 0.8; }
 }
 
 .disp-main {

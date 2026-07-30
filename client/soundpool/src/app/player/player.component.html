@@ -379,6 +379,13 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('show_members')">
+                  <div class="setting-text">
+                    <span class="setting-name">Show people count</span>
+                    <span class="setting-desc">How many people are in the room.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.show_members"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_activity')">
                   <div class="setting-text">
                     <span class="setting-name">Show activity feed</span>

@@ -114,6 +114,7 @@ def room_dict(db, room, user):
             "show_queue": bool(room.display_show_queue),
             "show_skipvotes": bool(room.display_show_skipvotes),
             "show_activity": bool(room.display_show_activity),
+            "show_members": bool(room.display_show_members),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -190,6 +191,7 @@ _lyrics_cache = {}   # song_id -> {"synced": [...], "plain": str}
 def _display_payload(db, room):
     rp = room_player.ensure_loaded(room.id)
     st = rp.state()
+    member_count = db.query(RoomMember).filter(RoomMember.room_id == room.id).count()
     q = st.get("queue") or []
     ci = st.get("current_index", -1)
     upcoming = q[ci + 1:] if ci >= 0 else q
@@ -198,6 +200,7 @@ def _display_payload(db, room):
         "name": room.name,
         "party_active": bool(room.party_active),
         "party_code": room.party_code if room.party_active else None,
+        "member_count": member_count,
         "now_playing": st.get("now_playing"),
         "position": st.get("position", 0),
         "playing": st.get("playing", False),
@@ -212,6 +215,7 @@ def _display_payload(db, room):
         "show_queue": bool(room.display_show_queue),
         "show_skipvotes": bool(room.display_show_skipvotes),
         "show_activity": bool(room.display_show_activity),
+        "show_members": bool(room.display_show_members),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -479,6 +483,7 @@ def _display_dict(room):
         "show_queue": bool(room.display_show_queue),
         "show_skipvotes": bool(room.display_show_skipvotes),
         "show_activity": bool(room.display_show_activity),
+        "show_members": bool(room.display_show_members),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -547,6 +552,7 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_queue is not None:   room.display_show_queue = body.show_queue
     if body.show_skipvotes is not None: room.display_show_skipvotes = body.show_skipvotes
     if body.show_activity is not None: room.display_show_activity = body.show_activity
+    if body.show_members is not None:  room.display_show_members = body.show_members
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]
