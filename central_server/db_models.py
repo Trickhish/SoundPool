@@ -44,7 +44,8 @@ class Room(Base):
     display_show_skipvotes = Column(Boolean, default=True)  # skip-vote tally (only appears when someone has voted)
     display_show_activity = Column(Boolean, default=True)   # live activity ticker (joins/adds/votes/etc.)
     display_show_members = Column(Boolean, default=True)    # how many people are in the room
-    display_animate_bg = Column(Boolean, default=False)     # slow drift on the blurred cover backdrop
+    display_animate_bg = Column(Boolean, default=False)     # moving coloured light from the cover art
+    display_mascot = Column(Boolean, default=False)         # wandering mascot that reacts to room events
     display_show_qr = Column(Boolean, default=True)      # party join QR (only appears while a party is live)
     display_show_message = Column(Boolean, default=False)
     display_message = Column(String(512), nullable=True) # admin-authored message to show on screen

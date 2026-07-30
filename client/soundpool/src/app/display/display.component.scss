@@ -117,10 +117,168 @@
   100% { filter: blur(110px) saturate(2.3) hue-rotate(16deg); }
 }
 
+/* ── Event bursts ──
+   Emoji thrown outward from a point, driven by real room events. */
+.disp-bursts {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.burst-p {
+  position: absolute;
+  left: 0;
+  top: 0;
+  line-height: 1;
+  animation: burst-fly 2.2s cubic-bezier(0.12, 0.75, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+@keyframes burst-fly {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.4); opacity: 0; }
+  12%  { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1.1); }
+  100% {
+    transform: translate3d(var(--dx), calc(var(--dy) + 14vh), 0) rotate(var(--rot)) scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* ── Mascot ──
+   A small character that strolls along the bottom and reacts to room events.
+   Kept low and small so it never covers the cover art, lyrics or the queue. */
+.disp-mascot {
+  position: fixed;
+  bottom: 3.5vh;
+  z-index: 4;
+  pointer-events: none;
+  /* The wander sets `left` and CSS eases it, so movement is a slow stroll. */
+  transition: left 7s cubic-bezier(0.45, 0, 0.55, 1);
+  &.flip .ms-body { transform: scaleX(-1); }
+}
+.ms-body {
+  position: relative;
+  width: 9vh;
+  height: 9vh;
+  border-radius: 42% 42% 46% 46%;
+  background: linear-gradient(160deg, var(--accent, #ff2b6d), #8d1440);
+  box-shadow: 0 1.4vh 3vh rgba(0,0,0,0.45), inset 0 -0.8vh 1.6vh rgba(0,0,0,0.25);
+  animation: ms-bob 1.6s ease-in-out infinite;
+}
+.ms-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vh;
+}
+.ms-eye {
+  width: 1.05vh;
+  height: 1.5vh;
+  border-radius: 50%;
+  background: #fff;
+  margin-top: -1vh;
+  animation: ms-blink 5s infinite;
+}
+.ms-mouth {
+  position: absolute;
+  bottom: 2.4vh;
+  width: 2.4vh;
+  height: 1.2vh;
+  border-bottom: 0.45vh solid rgba(255,255,255,0.9);
+  border-radius: 0 0 2.4vh 2.4vh;
+}
+.ms-arm {
+  position: absolute;
+  right: -1.2vh;
+  top: 3.4vh;
+  width: 2.6vh;
+  height: 0.85vh;
+  border-radius: 1vh;
+  background: linear-gradient(90deg, var(--accent, #ff2b6d), #8d1440);
+  transform-origin: left center;
+  opacity: 0;
+}
+.ms-shadow {
+  width: 8vh;
+  height: 1.2vh;
+  margin: 0.5vh auto 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.4);
+  filter: blur(0.7vh);
+}
+.ms-bubble {
+  position: absolute;
+  bottom: 10.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.7vh 1.5vh;
+  border-radius: 1.4vh;
+  background: rgba(255,255,255,0.94);
+  color: #14141c;
+  font-size: 2vh;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: ms-pop 0.3s ease-out both;
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -0.8vh; left: 50%;
+    transform: translateX(-50%);
+    border: 0.8vh solid transparent;
+    border-top-color: rgba(255,255,255,0.94);
+    border-bottom: 0;
+  }
+}
+
+/* Moods */
+.ms-body[data-mood="wave"]  { .ms-arm { opacity: 1; animation: ms-wave 0.5s ease-in-out infinite; } }
+.ms-body[data-mood="party"] { animation: ms-dance 0.45s ease-in-out infinite; }
+.ms-body[data-mood="note"]  { animation: ms-bob 0.6s ease-in-out infinite; }
+.ms-body[data-mood="heart"] { animation: ms-bob 0.9s ease-in-out infinite;
+  .ms-mouth { height: 1.6vh; border-bottom-width: 0.55vh; } }
+.ms-body[data-mood="sad"] {
+  animation: none;
+  .ms-mouth { bottom: 1.9vh; border-bottom: 0; border-top: 0.45vh solid rgba(255,255,255,0.85);
+              border-radius: 2.4vh 2.4vh 0 0; }
+  .ms-eye { height: 0.5vh; }
+}
+.ms-body[data-mood="robot"] {
+  .ms-eye { border-radius: 0.2vh; background: #9ef; }
+}
+
+@keyframes ms-bob {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -0.9vh; }
+}
+@keyframes ms-dance {
+  0%, 100% { translate: 0 0;      rotate: -9deg; }
+  50%      { translate: 0 -1.4vh; rotate: 9deg; }
+}
+@keyframes ms-wave {
+  0%, 100% { rotate: -12deg; }
+  50%      { rotate: -55deg; }
+}
+@keyframes ms-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(0.1); }
+}
+@keyframes ms-pop {
+  from { opacity: 0; transform: translateX(-50%) translateY(0.8vh) scale(0.85); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
 /* Respect users/screens that ask for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .disp-bg.animated { animation: none; }
   .disp-lights .lg { animation: none; }
+  .disp-mascot .ms-body, .disp-mascot .ms-arm, .disp-mascot .ms-eye { animation: none; }
+  .disp-mascot { transition: none; }
+  .burst-p { animation-duration: 0.01s; }
 }
 .disp-scrim {
   position: fixed;

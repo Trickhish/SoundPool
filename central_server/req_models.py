@@ -86,6 +86,7 @@ class DisplayConfigRequest(BaseModel):
     show_activity: Optional[bool] = None
     show_members: Optional[bool] = None
     animate_bg: Optional[bool] = None
+    mascot: Optional[bool] = None
     show_qr: Optional[bool] = None
     show_message: Optional[bool] = None
     message: Optional[str] = None

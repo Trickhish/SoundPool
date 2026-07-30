@@ -118,6 +118,30 @@
 
     </div>
 
+    <!-- ── Event bursts (ride the activity feed toggle) ── -->
+    <div class="disp-bursts">
+      <div *ngFor="let b of bursts; trackBy: trackBurst" class="burst"
+           [style.left.%]="b.x" [style.top.%]="b.y">
+        <span *ngFor="let p of b.parts" class="burst-p"
+              [style.--dx]="p.dx" [style.--dy]="p.dy" [style.--rot]="p.rot"
+              [style.animation-delay]="p.delay" [style.font-size]="p.size">{{ p.icon }}</span>
+      </div>
+    </div>
+
+    <!-- ── Mascot ── -->
+    <div *ngIf="info.mascot" class="disp-mascot" [style.left.%]="mascotX" [class.flip]="mascotFlip">
+      <div class="ms-bubble" *ngIf="mascotSays">{{ mascotSays }}</div>
+      <div class="ms-body" [attr.data-mood]="mascotMood">
+        <div class="ms-face">
+          <span class="ms-eye l"></span>
+          <span class="ms-eye r"></span>
+          <span class="ms-mouth"></span>
+        </div>
+        <span class="ms-arm"></span>
+      </div>
+      <div class="ms-shadow"></div>
+    </div>
+
     <!-- ── Activity ticker ── -->
     <aside *ngIf="info.show_activity && activity.length" class="disp-activity">
       <div *ngFor="let a of activity; trackBy: trackAct" class="disp-act">

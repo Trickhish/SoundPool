@@ -379,6 +379,13 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('mascot')">
+                  <div class="setting-text">
+                    <span class="setting-name">Mascot</span>
+                    <span class="setting-desc">A character strolls along the bottom and reacts to what people do — waves on a join, bops when a song is added.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.mascot"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('animate_bg')">
                   <div class="setting-text">
                     <span class="setting-name">Animate background</span>
@@ -396,7 +403,7 @@
                 <div class="setting-row" (click)="toggleDisplayFlag('show_activity')">
                   <div class="setting-text">
                     <span class="setting-name">Show activity feed</span>
-                    <span class="setting-desc">Live one-liners: joins, songs added, likes, skip votes, auto-mix…</span>
+                    <span class="setting-desc">Live one-liners plus confetti bursts on joins, adds and likes.</span>
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_activity"><i></i></span>
                 </div>
