@@ -79,6 +79,44 @@ async def handle_audio(r):
     await emit_audio_state()
 
 
+def _render_path(song):
+    """Where a rendered track lives on disk. Shared by render and prefetch so a
+    prefetched file is actually found when the track starts."""
+    return os.path.join(config["download_dirs"]["songs"],
+                        song["ART_NAME"] + " - " + song["SNG_TITLE"] + ".mp3")
+
+
+_prefetching = set()
+
+
+async def do_prefetch(song, url, key):
+    """Download the upcoming track ahead of time.
+
+    Without this the unit downloaded the whole MP3 only when the track started
+    (measured 4-20s), and because the room's clock kept running it then had to
+    start that far into the song.
+    """
+    path = _render_path(song)
+    sid = song.get("SNG_ID", "")
+    if os.path.exists(path) or sid in _prefetching:
+        return
+    _prefetching.add(sid)
+    try:
+        await dz.downloadSong(song, url, key, path,
+                              config["player_unit"]["download_covers"].lower() == "true",
+                              config["player_unit"]["cover_size"])
+        print(f"⏭️  Prefetched: {song['SNG_TITLE']}")
+    except Exception as ex:
+        print(f"    ✖ Prefetch failed for {song.get('SNG_TITLE')}: {ex}")
+        try:
+            if os.path.exists(path):
+                os.remove(path)      # don't leave a truncated file to be played
+        except Exception:
+            pass
+    finally:
+        _prefetching.discard(sid)
+
+
 async def do_render(song, url, key, pos_ms, playing, vol=None):
     """Act as a room output: play exactly what the server's room conductor
     dictates (track + position + playing + master volume), downloading on demand."""
@@ -101,8 +139,16 @@ async def do_render(song, url, key, pos_ms, playing, vol=None):
     song_name = song["SNG_TITLE"]
     artist = song["ART_NAME"]
     song_id = song.get("SNG_ID", "")
-    path = os.path.join(config["download_dirs"]["songs"], artist + " - " + song_name + ".mp3")
+    path = _render_path(song)
     t_recv = time.monotonic()
+
+    # If a prefetch of this track is still running, wait for it instead of
+    # starting a second download of the same file.
+    if song_id in _prefetching:
+        for _ in range(600):                 # up to ~60s
+            await asyncio.sleep(0.1)
+            if song_id not in _prefetching:
+                break
 
     if song_id != mp.render_current or not os.path.exists(path):
         if not os.path.exists(path):
@@ -318,6 +364,9 @@ async def receiveHandler(ws, ro):
         _,song,url,key,pos_ms,playing,*rest = r
         vol = rest[0] if rest else None
         asyncio.create_task(do_render(song, url, key, pos_ms, playing, vol))
+    elif r[0]=="prefetch":
+        _,song,url,key = r
+        asyncio.create_task(do_prefetch(song, url, key))
     elif r[0]=="stop":
         print("⏹ Detached from room — stopping.")
         mp.render_stop()

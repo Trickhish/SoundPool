@@ -215,13 +215,34 @@ class RoomPlayer:
                 self._prefetching.add(nid)
                 async def _run():
                     try:
-                        await self._resolve_for(nid)
+                        dl = await self._resolve_for(nid)
+                        # Resolving only warms OUR cache; the unit still had to
+                        # download the whole MP3 when the track changed (~4-20s,
+                        # during which the room clock ran on, so playback then
+                        # started that far into the song). Push the data to the
+                        # units so they can fetch the file ahead of time.
+                        if dl:
+                            await self._push_prefetch(*dl)
                     finally:
                         self._prefetching.discard(nid)
                 asyncio.create_task(_run())
         for sid in list(self._dl_cache):
             if sid not in keep:
                 del self._dl_cache[sid]
+
+    async def _push_prefetch(self, song, url, key):
+        """Ask attached units to download the upcoming track now, so the switch
+        is instant and starts at the right position instead of catching up."""
+        if not self.outputs:
+            return
+        import pu_connection as puc
+        for uid in list(self.outputs):
+            u = puc.getUnitById(uid)
+            if u:
+                try:
+                    await u.send(["prefetch", song, url, key])
+                except Exception as e:
+                    print(f"[room_player] prefetch push to {uid} failed: {e}")
 
     async def _render_outputs(self, force=False):
         if not self.outputs:
