@@ -625,8 +625,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
   settingsOpen = false;
   settingsTab: 'party' | 'playback' | 'display' | 'members' = 'party';
 
-  /** Only show tabs the user can actually use (party managers aren't admins). */
-  get settingsTabs(): { id: any, label: string }[] {
+  /** Tabs the user can actually use (party managers aren't admins).
+   *  Held in a field, NOT a getter: a getter returns a new array on every
+   *  change-detection pass, and this component runs detectChanges() on each SSE
+   *  event plus a 250ms ticker — so *ngFor rebuilt the buttons constantly,
+   *  making them flicker and swallow clicks. */
+  settingsTabs: { id: any, label: string }[] = [];
+  trackTab = (_: number, t: { id: any }) => t.id;
+
+  private buildSettingsTabs() {
     const tabs: { id: any, label: string }[] = [];
     if (this.can('can_manage_party')) tabs.push({ id: 'party', label: 'Party' });
     if (this.isAdmin) {
@@ -634,7 +641,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       tabs.push({ id: 'display', label: 'Big screen' });
       tabs.push({ id: 'members', label: 'Members' });
     }
-    return tabs;
+    this.settingsTabs = tabs;
   }
   setSettingsTab(tab: any) {
     this.settingsTab = tab;
@@ -646,6 +653,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
   openSettings() {
     this.settingsOpen = true;
+    this.buildSettingsTabs();
     const tabs = this.settingsTabs;
     // Land on the first tab this user actually has.
     if (!tabs.some(t => t.id === this.settingsTab)) this.settingsTab = tabs.length ? tabs[0].id : 'party';

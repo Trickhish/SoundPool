@@ -290,7 +290,7 @@
         </button>
       </div>
       <div class="settings-tabs">
-        <button *ngFor="let t of settingsTabs" class="settings-tab"
+        <button *ngFor="let t of settingsTabs; trackBy: trackTab" type="button" class="settings-tab"
                 [class.active]="settingsTab === t.id" (click)="setSettingsTab(t.id)">{{ t.label }}</button>
       </div>
 
