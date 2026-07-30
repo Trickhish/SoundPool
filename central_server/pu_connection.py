@@ -193,6 +193,14 @@ class PlayerUnit():
 
             await sse.triggerEvent(f"pu_{self.id}", {"type":"progress", "progress":pos, "duration":dur})
 
+        elif r[0]=="ready":
+            # Unit has the track loaded and is paused at the start position.
+            import room_player
+            rid = room_player._unit_room.get(self.id)
+            rp = room_player._rooms.get(rid) if rid is not None else None
+            if rp is not None:
+                await rp.on_unit_ready(self.id, r[1] if len(r) > 1 else None)
+
         elif r[0]=="audio_state":
             self.audio = r[1]
             evt = {"type": "audio_state", "audio": r[1]}

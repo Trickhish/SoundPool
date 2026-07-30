@@ -40,6 +40,14 @@ class RoomPlayer:
         self._prefetching = set()  # song_ids currently being resolved (dedup)
         self._failed = set()       # song_ids that failed to resolve (unavailable) — skip them
         self._last_render = None   # (song_id, playing) last pushed to outputs
+        # Two-phase start: when units are attached, a new track is first loaded
+        # by every unit (paused), and the room clock only starts once they all
+        # report ready. Otherwise a unit that took 20s to download would begin
+        # 20s into the song to catch up with a clock that had run without it.
+        self.loading = False
+        self._waiting_for = set()   # unit ids we still expect a "ready" from
+        self._pending_song = None   # song id being loaded
+        self._load_started = 0.0    # monotonic, for the safety timeout
         self.votes = set()         # user ids who voted to skip the current track
         self.vote_threshold = 0    # votes needed to skip (updated on each vote)
         self._hb = 0               # heartbeat counter (conductor ticks)
@@ -110,7 +118,10 @@ class RoomPlayer:
                              "album": c.get("album", ""), "cover": c["cover"],
                              "duration": c["duration"]} if c else None),
             "position": self.position(),
-            "playing": self.playing,
+            # While units are loading nothing is actually audible yet, so report
+            # paused: browser outputs then wait too and the UI can show it.
+            "playing": self.playing and not self.loading,
+            "loading": self.loading,
             "current_index": self.current_index,
             "msid": (self.current_index + 1) if self.current_index >= 0 else 0,
             "volume": self.volume,
@@ -257,7 +268,10 @@ class RoomPlayer:
                         await u.send(["stop"])
                 self._last_render = None
             return
-        sig = (cur["id"], self.playing)
+        # While loading, units are told to sit paused at the start position;
+        # they're released together once everyone reports ready.
+        play_flag = self.playing and not self.loading
+        sig = (cur["id"], play_flag)
         if not force and sig == self._last_render:
             return
         dl = await self._resolve_dl()
@@ -268,7 +282,7 @@ class RoomPlayer:
         for uid in list(self.outputs):
             u = puc.getUnitById(uid)
             if u:
-                await u.send(["render", song, url, key, pos, self.playing, self.volume])
+                await u.send(["render", song, url, key, pos, play_flag, self.volume])
         self._last_render = sig
 
     async def attach(self, unit_id):
@@ -325,6 +339,42 @@ class RoomPlayer:
                 await u.send(["stop"])
         self._last_render = None   # force the next render to re-send
 
+    LOAD_TIMEOUT = 25.0     # never let one stuck unit freeze the room
+
+    def _online_outputs(self):
+        import pu_connection as puc
+        return {uid for uid in self.outputs if puc.getUnitById(uid) is not None}
+
+    async def on_unit_ready(self, unit_id, song_id):
+        """A unit has the track loaded and is paused at the start position."""
+        if not self.loading or song_id != self._pending_song:
+            return
+        self._waiting_for.discard(unit_id)
+        if not self._waiting_for:
+            await self._release_load()
+
+    async def _release_load(self):
+        """Everyone's ready — start the clock and let the units play together."""
+        if not self.loading:
+            return
+        self.loading = False
+        self._waiting_for = set()
+        self._pending_song = None
+        await self.broadcast(force_render=True)   # sends playing=True -> unpause
+        if self.playing:
+            self._t0 = time.monotonic()
+
+    async def _abort_load(self, reason):
+        print(f"[room_player] room {self.room_id}: starting without all units ({reason})")
+        await self._release_load()
+
+    def unit_gone(self, unit_id):
+        """Stop waiting on a unit that dropped off mid-load."""
+        if self.loading and unit_id in self._waiting_for:
+            self._waiting_for.discard(unit_id)
+            if not self._waiting_for:
+                asyncio.create_task(self._release_load())
+
     async def _dispatch_start(self):
         """Render the freshly-started track, THEN start the clock. _start_track
         leaves _t0 unset so position() stays at 0 while the (possibly slow)
@@ -334,9 +384,28 @@ class RoomPlayer:
         stops right away and playback pauses while the new one loads."""
         await self._ensure_playable()   # skip unplayable tracks so we don't stall
         await self._halt_outputs()
-        await self.broadcast(force_render=True)
-        if self.playing:
-            self._t0 = time.monotonic()
+
+        cur = self.cur()
+        units = self._online_outputs()
+        if self.playing and cur and units:
+            # Hold the clock until every attached unit has the track loaded, so
+            # a slow download doesn't make it start part-way in (and multiple
+            # units start together). Browser outputs buffer themselves and don't
+            # gate the room.
+            self.loading = True
+            self._waiting_for = set(units)
+            self._pending_song = cur["id"]
+            self._load_started = time.monotonic()
+            self._t0 = None
+            await self.broadcast(force_render=True)   # units load, stay paused
+        else:
+            self.loading = False
+            self._waiting_for = set()
+            self._pending_song = None
+            await self.broadcast(force_render=True)
+            if self.playing:
+                self._t0 = time.monotonic()
+
         self._autoplay_topup()          # refill the queue with a radio if it's running low
         persist_position(self.room_id)  # capture the new current track
 
@@ -558,6 +627,21 @@ class RoomPlayer:
     async def tick(self):
         """Called ~1/s by the conductor loop."""
         self._hb += 1
+        if self.loading:
+            # Don't wait forever on a unit that never reports ready.
+            if time.monotonic() - self._load_started > self.LOAD_TIMEOUT:
+                await self._abort_load("timed out")
+            else:
+                # Drop units that went offline while we were waiting.
+                for uid in list(self._waiting_for):
+                    if uid not in self._online_outputs():
+                        self._waiting_for.discard(uid)
+                if not self._waiting_for:
+                    await self._release_load()
+                else:
+                    await sse.triggerEvent(f"room_{self.room_id}",
+                                           {**self.state(), "type": "state"})
+                    return
         if self.playing and self.cur():
             pos = self.position()
             dur = self.cur()["duration"]

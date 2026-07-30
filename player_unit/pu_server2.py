@@ -182,6 +182,14 @@ async def do_render(song, url, key, pos_ms, playing, vol=None):
             print(f"    ✖ Render play failed: {ex}")
             return
         print(f"🔊 Rendering: {song_name} @ {int(max(0.0, start)*1000)}ms playing={playing}")
+        # Tell the room we have this track loaded. While units are loading the
+        # server holds the clock, so it only starts once every unit is ready —
+        # that's what stops a slow download starting the song part-way in.
+        try:
+            if mp.sws is not None:
+                await sendcmd(mp.sws, ["ready", song_id])
+        except Exception as ex:
+            print(f"    ✖ ready report failed: {ex}")
     else:
         # Same track already loaded — resume/seek/pause.
         try:
