@@ -110,6 +110,14 @@
   padding: 0 5vw;
   box-sizing: border-box;
   &.two-col { justify-content: space-between; }
+  /* Lyrics genuinely fill their column, so space-between suits them. The queue
+     doesn't: its rows are short, so stretching it left a wide dead area on the
+     right and made the pair look shoved into the left of the screen. Centre the
+     two as a group instead and let the queue size to its content. */
+  &.two-col.queue-col {
+    justify-content: center;
+    gap: 7vw;
+  }
 }
 
 /* ── Player ── */
@@ -291,6 +299,13 @@
   flex: 1 1 0;
   height: 82%;
   min-width: 0;
+  /* Sized to its content when it's the only right-hand column, so it sits next
+     to the player rather than stretching across the rest of the screen. */
+  .disp-main.queue-col & {
+    flex: 0 1 auto;
+    min-width: 26vw;
+    max-width: 40vw;
+  }
   display: flex;
   flex-direction: column;
   justify-content: center;

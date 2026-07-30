@@ -28,7 +28,7 @@
       </div>
     </header>
 
-    <div class="disp-main" [class.two-col]="showPlayer && hasRightCol">
+    <div class="disp-main" [class.two-col]="showPlayer && hasRightCol" [class.queue-col]="queueInColumn">
 
       <!-- ── Player ── -->
       <section *ngIf="showPlayer" class="disp-player">
