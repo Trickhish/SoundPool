@@ -115,6 +115,7 @@ def room_dict(db, room, user):
             "show_skipvotes": bool(room.display_show_skipvotes),
             "show_activity": bool(room.display_show_activity),
             "show_members": bool(room.display_show_members),
+            "animate_bg": bool(room.display_animate_bg),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -240,6 +241,7 @@ def _display_payload(db, room):
         "show_skipvotes": bool(room.display_show_skipvotes),
         "show_activity": bool(room.display_show_activity),
         "show_members": bool(room.display_show_members),
+        "animate_bg": bool(room.display_animate_bg),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -521,6 +523,7 @@ def _display_dict(room):
         "show_skipvotes": bool(room.display_show_skipvotes),
         "show_activity": bool(room.display_show_activity),
         "show_members": bool(room.display_show_members),
+        "animate_bg": bool(room.display_animate_bg),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -590,6 +593,7 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_skipvotes is not None: room.display_show_skipvotes = body.show_skipvotes
     if body.show_activity is not None: room.display_show_activity = body.show_activity
     if body.show_members is not None:  room.display_show_members = body.show_members
+    if body.animate_bg is not None:    room.display_animate_bg = body.animate_bg
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]

@@ -10,7 +10,7 @@
   <ng-container *ngIf="info && !notFound">
 
     <!-- Blurred cover backdrop -->
-    <div class="disp-bg" [style.background-image]="'url(' + cover + ')'"></div>
+    <div class="disp-bg" [class.animated]="info.animate_bg" [style.background-image]="'url(' + cover + ')'"></div>
     <div class="disp-scrim"></div>
 
     <header class="disp-head">

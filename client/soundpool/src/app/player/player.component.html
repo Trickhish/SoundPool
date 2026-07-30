@@ -379,6 +379,13 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('animate_bg')">
+                  <div class="setting-text">
+                    <span class="setting-name">Animate background</span>
+                    <span class="setting-desc">Slowly drifts the blurred cover behind everything.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.animate_bg"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_members')">
                   <div class="setting-text">
                     <span class="setting-name">Show people count</span>

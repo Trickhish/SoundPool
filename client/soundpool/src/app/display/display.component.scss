@@ -36,6 +36,25 @@
   filter: blur(60px) saturate(1.4);
   transform: translateZ(0);
   will-change: transform;
+
+  /* Optional slow ambient drift. Movement is kept well inside the element's
+     6vw/6vh overscan so an edge can never be exposed, and it's transform-only
+     so it stays on the compositor (no repaint of a 60px-blurred layer). */
+  &.animated {
+    animation: disp-bg-drift 48s ease-in-out infinite alternate;
+  }
+}
+@keyframes disp-bg-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  25%  { transform: translate3d(1.6%, -1.2%, 0) scale(1.06); }
+  50%  { transform: translate3d(-1.2%, 1.6%, 0) scale(1.10); }
+  75%  { transform: translate3d(-1.8%, -1.0%, 0) scale(1.05); }
+  100% { transform: translate3d(1.2%, 1.4%, 0) scale(1.02); }
+}
+
+/* Respect users/screens that ask for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .disp-bg.animated { animation: none; }
 }
 .disp-scrim {
   position: fixed;
