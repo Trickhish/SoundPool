@@ -117,10 +117,53 @@
   100% { filter: blur(110px) saturate(2.3) hue-rotate(16deg); }
 }
 
+/* ── Edge waves ──
+   Soft bands rolling along the top and bottom edges. Each SVG is twice the
+   screen width and scrolls by exactly half, so the loop is seamless. Blended
+   additively (screen) with a white-ish fill so they brighten whatever colour is
+   behind them, which keeps them tied to the artwork. */
+.disp-waves {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  .wv {
+    position: absolute;
+    left: 0;
+    width: 200vw;          /* two copies side by side */
+    height: 22vh;
+    mix-blend-mode: screen;
+    will-change: transform;
+    path { fill: rgba(255,255,255,0.16); }
+  }
+  .wv-bottom { bottom: 0; }
+  .wv-top    { top: 0; }
+
+  .wv-a { animation: wv-roll 14s linear infinite; }
+  .wv-b {
+    height: 16vh;
+    animation: wv-roll 22s linear infinite reverse;
+    path { fill: rgba(255,255,255,0.11); }
+  }
+  .wv-c {
+    height: 18vh;
+    animation: wv-roll 18s linear infinite;
+    path { fill: rgba(255,255,255,0.10); }
+  }
+}
+@keyframes wv-roll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }   /* exactly one copy = seamless */
+}
+
 /* Respect users/screens that ask for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .disp-bg.animated { animation: none; }
   .disp-lights .lg { animation: none; }
+  .disp-waves .wv { animation: none; }
 }
 .disp-scrim {
   position: fixed;

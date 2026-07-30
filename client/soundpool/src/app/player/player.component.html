@@ -379,6 +379,13 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
                 </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('edge_waves')">
+                  <div class="setting-text">
+                    <span class="setting-name">Edge waves</span>
+                    <span class="setting-desc">Waves rolling along the top and bottom edges.</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.edge_waves"><i></i></span>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('animate_bg')">
                   <div class="setting-text">
                     <span class="setting-name">Animate background</span>
