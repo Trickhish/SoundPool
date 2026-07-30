@@ -108,6 +108,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       const ci = dt.current_index ?? -1;
       this.queue = (ci >= 0 ? q.slice(ci + 1) : q)
         .map((t: any) => ({ title: t.title, artist: t.artist, cover: t.cover, score: t.score || 0 }));
+      this.preloadArtwork();
     } else if (dt.type === 'progress') {
       this.durMs = parseFloat(dt.duration) || this.durMs;
       this.lastPos = parseFloat(dt.progress) || 0;
@@ -149,6 +150,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
     this.durMs = np?.duration || 0;
     this.lastPos = position || 0;
     this.lastAt = Date.now();
+    // Title, cover and backdrop all read from `info.now_playing`. That used to
+    // be refreshed only by the 4s poll, while the progress bar followed SSE —
+    // so the track's text and artwork lagged seconds behind the bar. Keep them
+    // on the live feed too.
+    if (this.info) this.info.now_playing = np;
     if ((np?.id || null) !== this.nowId) {
       this.nowId = np?.id || null;
       // Snap the progress + lyric highlight to the new track immediately so we
@@ -162,11 +168,16 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
   private applyInfo(i: any) {
     this.notFound = false;
+    // The poll is for config (what to show, message, party). Once SSE is live it
+    // owns now_playing — otherwise this 4s snapshot would keep stamping a stale
+    // track back over the live one.
+    const live = this.sseLive ? this.info?.now_playing : undefined;
     this.info = i;
+    if (this.sseLive) this.info.now_playing = live;
     this.startSse(i.room_id);
     // Seed playback from the poll until the live SSE feed takes over.
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
-    if (Array.isArray(i.queue)) this.queue = i.queue;
+    if (Array.isArray(i.queue)) { this.queue = i.queue; this.preloadArtwork(); }
     this.votingEnabled = !!i.voting_enabled;
     this.voteCount = i.vote_count ?? 0;
     this.voteThreshold = i.vote_threshold ?? 0;
@@ -257,6 +268,22 @@ export class DisplayComponent implements OnInit, OnDestroy {
   /** Skip-vote tally — only when enabled and at least one person has voted. */
   get showSkipVotes(): boolean { return !!this.info?.show_skipvotes && this.voteCount > 0; }
   get cover(): string { return this.info?.now_playing?.cover || 'soundpool_sqrd.png'; }
+  /** Warm the browser cache with upcoming artwork so the cover and the blurred
+   *  backdrop appear the instant the track changes instead of being fetched
+   *  from Deezer's CDN at that moment. */
+  private preloaded = new Set<string>();
+  private preloadArtwork() {
+    const urls = this.queue.slice(0, 3).map(q => q.cover).filter(Boolean);
+    for (const u of urls) {
+      if (this.preloaded.has(u)) continue;
+      this.preloaded.add(u);
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = u;
+    }
+    if (this.preloaded.size > 60) this.preloaded.clear();   // keep it bounded
+  }
+
   trackAct = (_: number, a: { id: number }) => a.id;
   fmt(ms: number): string {
     const s = Math.max(0, Math.floor((ms || 0) / 1000));
