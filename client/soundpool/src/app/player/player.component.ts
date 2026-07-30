@@ -623,9 +623,33 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   // ── Room settings (admin) ──
   settingsOpen = false;
+  settingsTab: 'party' | 'playback' | 'display' | 'members' = 'party';
+
+  /** Only show tabs the user can actually use (party managers aren't admins). */
+  get settingsTabs(): { id: any, label: string }[] {
+    const tabs: { id: any, label: string }[] = [];
+    if (this.can('can_manage_party')) tabs.push({ id: 'party', label: 'Party' });
+    if (this.isAdmin) {
+      tabs.push({ id: 'playback', label: 'Playback' });
+      tabs.push({ id: 'display', label: 'Big screen' });
+      tabs.push({ id: 'members', label: 'Members' });
+    }
+    return tabs;
+  }
+  setSettingsTab(tab: any) {
+    this.settingsTab = tab;
+    if (tab === 'members' && this.pid) this.loadMembers();
+  }
+  private loadMembers() {
+    if (!this.pid) return;
+    this.api.roomMembers(+this.pid).subscribe({ next: (m) => this.members = m });
+  }
   openSettings() {
     this.settingsOpen = true;
-    if (this.pid) this.api.roomMembers(+this.pid).subscribe({ next: (m) => this.members = m });
+    const tabs = this.settingsTabs;
+    // Land on the first tab this user actually has.
+    if (!tabs.some(t => t.id === this.settingsTab)) this.settingsTab = tabs.length ? tabs[0].id : 'party';
+    if (this.settingsTab === 'members') this.loadMembers();
   }
   closeSettings() { this.settingsOpen = false; }
   toggleVoting() {

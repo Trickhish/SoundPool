@@ -1076,7 +1076,32 @@
 
 /* ── Party mode modal ── */
 /* ── Room settings ── */
-.settings-modal { max-width: 420px; }
+.settings-modal { max-width: 460px; }
+.settings-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0 0.8rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+}
+.settings-tab {
+    margin: 0;
+    padding: 0.65rem 0.85rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    color: var(--font-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
+    &:hover { color: var(--font-color); }
+    &.active { color: var(--accent); border-bottom-color: var(--accent); }
+}
 .settings-section {
     font-size: 0.72rem;
     font-weight: 700;

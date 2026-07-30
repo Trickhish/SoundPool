@@ -289,11 +289,15 @@
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
       </div>
+      <div class="settings-tabs">
+        <button *ngFor="let t of settingsTabs" class="settings-tab"
+                [class.active]="settingsTab === t.id" (click)="setSettingsTab(t.id)">{{ t.label }}</button>
+      </div>
+
       <div class="library-body">
 
         <!-- Party mode -->
-        <ng-container *ngIf="can('can_manage_party')">
-          <div class="settings-section">Party mode</div>
+        <ng-container *ngIf="settingsTab === 'party' && can('can_manage_party')">
           <div class="party-body">
             <ng-container *ngIf="!partyActive">
               <p class="party-hint">Let guests scan a code to add songs and vote — no account needed.</p>
@@ -314,8 +318,7 @@
         </ng-container>
 
         <!-- Playback -->
-        <ng-container *ngIf="isAdmin">
-          <div class="settings-section">Playback</div>
+        <ng-container *ngIf="settingsTab === 'playback' && isAdmin">
           <div class="setting-row" (click)="toggleVoting()">
             <div class="setting-text">
               <span class="setting-name">Up / down voting</span>
@@ -326,8 +329,7 @@
         </ng-container>
 
         <!-- Big-screen display -->
-        <ng-container *ngIf="isAdmin">
-          <div class="settings-section">Big-screen display</div>
+        <ng-container *ngIf="settingsTab === 'display' && isAdmin">
           <div class="party-body">
             <p class="party-hint">Open this link on a TV or projector to show the player, lyrics and a party join code.</p>
             <ng-container *ngIf="!displayCode">
@@ -404,8 +406,7 @@
         </ng-container>
 
         <!-- Members & rights -->
-        <ng-container *ngIf="isAdmin">
-          <div class="settings-section">Members &amp; rights</div>
+        <ng-container *ngIf="settingsTab === 'members' && isAdmin">
           <div *ngFor="let m of members" class="member-row">
             <div class="member-head">
               <span class="member-name">{{ m.username }}</span>
