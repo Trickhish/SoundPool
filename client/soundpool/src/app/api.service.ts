@@ -157,6 +157,7 @@ export class ApiService {
   public roomQueueShuffle(id:string|number) { return this.rp(id, 'queue/shuffle'); }
   public roomQueuePlaylist(id:string|number, playlistId:number) { return this.rp(id, `queue/playlist/${playlistId}`); }
   public roomVoteSkip(id:string|number) { return this.rp(id, 'vote_skip'); }
+  public roomPing(id:string|number) { return this.rp(id, 'ping'); }
   public roomQueueVote(id:string|number, uid:number, direction:number) { return this.rp(id, 'queue/vote', { uid, direction }); }
   public roomSetVoting(id:string|number, on:boolean) { return this.rp(id, 'voting', { on }); }
   public getRoomSong(id:string|number, songId:string) {

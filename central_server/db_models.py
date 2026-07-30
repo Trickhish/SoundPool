@@ -122,6 +122,9 @@ class RoomMember(Base):
     can_manage_speakers = Column(Boolean, default=False)
     can_manage_party = Column(Boolean, default=False)
     joined_at = Column(DateTime, default=datetime.utcnow)
+    # Last time this member was actually present (client heartbeat). Used for
+    # the "people here" count and to expire guests who just closed the tab.
+    last_seen = Column(DateTime, default=datetime.utcnow)
 
 class PlayHistory(Base):
     __tablename__ = "play_history"

@@ -554,6 +554,66 @@ class RoomPlayer:
             persist_position(self.room_id)
 
 
+GUEST_STALE_MINUTES = 30      # no heartbeat for this long -> the guest left
+
+
+def cleanup_stale_guests():
+    """Delete party guests who have gone away, with their throwaway accounts.
+
+    Guest members used to be removed only when the party ended, so anyone who
+    joined once stayed a member forever and inflated the room's people count.
+    Only touches `is_guest` accounts — real users are never removed.
+    Returns the number of guests reaped.
+    """
+    from datetime import datetime, timedelta
+    from db_models import RoomMember, Token
+    cutoff = datetime.utcnow() - timedelta(minutes=GUEST_STALE_MINUTES)
+    db = SessionLocal()
+    removed = 0
+    try:
+        rows = (db.query(RoomMember, User)
+                  .join(User, User.id == RoomMember.user_id)
+                  .filter(User.is_guest == True)
+                  .all())
+        for member, guest in rows:
+            seen = member.last_seen or member.joined_at
+            if seen is not None and seen > cutoff:
+                continue                      # still around
+            db.query(Token).filter(Token.user_id == guest.id).delete()
+            db.delete(member)
+            db.delete(guest)
+            removed += 1
+        # Throwaway accounts minted for big-screen pairing aren't room members,
+        # so the loop above never sees them. Reap the ones whose tokens have all
+        # expired — a screen still holding a valid token keeps working.
+        try:
+            from configuration import config as _cfg
+            expiry_h = int(_cfg["server"]["token_expiry_hours"])
+        except Exception:
+            expiry_h = 24
+        tok_cutoff = datetime.utcnow() - timedelta(hours=expiry_h)
+        member_ids = {m.user_id for m in db.query(RoomMember).all()}
+        for u in db.query(User).filter(User.is_guest == True).all():
+            if u.id in member_ids:
+                continue
+            toks = db.query(Token).filter(Token.user_id == u.id).all()
+            if any((t.creation_date or datetime.min) > tok_cutoff for t in toks):
+                continue                      # still has a live token
+            for t in toks:
+                db.delete(t)
+            db.delete(u)
+            removed += 1
+        if removed:
+            db.commit()
+            print(f"[cleanup] removed {removed} stale guest/display account(s)")
+    except Exception as e:
+        db.rollback()
+        print(f"[cleanup] guest cleanup failed: {e}")
+    finally:
+        db.close()
+    return removed
+
+
 async def broadcast_activity(room_id, text, icon="🎵"):
     """Push a one-off activity message to the room's SSE channel (for the
     big-screen ticker). Best-effort — swallowed on failure so a broken
@@ -733,10 +793,17 @@ async def conductor():
                 print(f"[room_player] restore room {rid} failed: {e}")
     except Exception as e:
         print(f"[room_player] startup restore failed: {e}")
+    ticks = 0
     while True:
         for rp in list(_rooms.values()):
             try:
                 await rp.tick()
             except Exception as e:
                 print(f"[room_player] tick error room {rp.room_id}: {e}")
+        ticks += 1
+        if ticks % 300 == 0:       # every ~5 min, off the event loop
+            try:
+                await asyncio.to_thread(cleanup_stale_guests)
+            except Exception as e:
+                print(f"[cleanup] scheduling failed: {e}")
         await asyncio.sleep(1)

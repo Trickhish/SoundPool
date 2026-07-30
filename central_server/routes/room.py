@@ -188,10 +188,30 @@ async def party_join(code: str, body: PartyJoinRequest,
 _lyrics_cache = {}   # song_id -> {"synced": [...], "plain": str}
 
 
+# How recently a member must have checked in to count as "here". The client
+# heartbeats every 45s, so this tolerates a couple of missed beats.
+PRESENCE_WINDOW = timedelta(minutes=3)
+
+
+def present_count(db, room_id):
+    """People actually in the room right now.
+
+    Not the raw member count: party guests are real rows that stick around
+    after someone closes the tab, so counting members showed everyone who had
+    ever joined.
+    """
+    cutoff = datetime.utcnow() - PRESENCE_WINDOW
+    return (db.query(RoomMember)
+              .filter(RoomMember.room_id == room_id,
+                      RoomMember.last_seen != None,
+                      RoomMember.last_seen > cutoff)
+              .count())
+
+
 def _display_payload(db, room):
     rp = room_player.ensure_loaded(room.id)
     st = rp.state()
-    member_count = db.query(RoomMember).filter(RoomMember.room_id == room.id).count()
+    member_count = present_count(db, room.id)
     q = st.get("queue") or []
     ci = st.get("current_index", -1)
     upcoming = q[ci + 1:] if ci >= 0 else q
@@ -364,6 +384,19 @@ def _require(db, room_id, user, right):
     if not (member.is_admin or getattr(member, right, False)):
         raise HTTPException(403, f"Missing right: {right}")
     return room, room_player.ensure_loaded(room_id)
+
+
+@router.post("/{room_id}/ping")
+def room_ping(room_id: int,
+              db: SessionLocal = Depends(get_db),  # type: ignore
+              user: User = Depends(verify_token)):
+    """Heartbeat: 'I'm still in this room'. Drives the people-here count."""
+    member = get_member(db, room_id, user.id)
+    if member is None:
+        raise HTTPException(403, "Not a member of this room")
+    member.last_seen = datetime.utcnow()
+    db.commit()
+    return JSONResponse(content={"status": "ok", "present": present_count(db, room_id)})
 
 
 @router.post("/{room_id}/queue/add")

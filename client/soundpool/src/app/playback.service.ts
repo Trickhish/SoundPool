@@ -31,6 +31,19 @@ export class PlaybackService {
     setInterval(() => {
       if (this.playing && this.durationMs) this.zone.run(() => { this.progress = this.computeProgress(); });
     }, 250);
+    // Presence heartbeat: tells the server we're still in the room, which is
+    // what the big screen's people count is based on and what stops party
+    // guests lingering forever once they close the tab. Skipped while the tab
+    // is hidden so a forgotten background tab doesn't count as someone present.
+    setInterval(() => this.ping(), 45000);
+    this.ping();
+  }
+
+  private ping() {
+    if (this.activeRoomId == null) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (!localStorage.getItem('token')) return;
+    this.api.roomPing(this.activeRoomId).subscribe({ error: () => {} });
   }
 
   private computeProgress(): number {
@@ -136,6 +149,7 @@ export class PlaybackService {
         this.zone.run(() => { if (this.activeRoomId === id) this.onEvent(dt); }));
     }
 
+    this.ping();   // count us as present straight away, not in 45s
     this.api.getRoom(id).subscribe({
       next: (r: any) => this.zone.run(() => {
         this.roomName = r.name;
