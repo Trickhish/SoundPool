@@ -22,21 +22,14 @@
     </div>
     <div class="disp-scrim"></div>
 
-    <!-- Waves along the top and bottom edges. Each path is drawn twice at 50%
-         width, so scrolling it by half loops seamlessly. Blended additively so
-         they take their colour from the artwork behind them. -->
-    <div class="disp-waves" *ngIf="info.edge_waves">
-      <svg class="wv wv-bottom wv-a" viewBox="0 0 1200 200" preserveAspectRatio="none">
-        <path d="M0,110 C100,60 200,160 300,110 C400,60 500,160 600,110 C700,60 800,160 900,110 C1000,60 1100,160 1200,110 L1200,200 L0,200 Z"/>
-      </svg>
-      <!-- 2 periods of 600 -->
-      <svg class="wv wv-bottom wv-b" viewBox="0 0 1200 200" preserveAspectRatio="none">
-        <path d="M0,130 C150,85 450,175 600,130 C750,85 1050,175 1200,130 L1200,200 L0,200 Z"/>
-      </svg>
-      <!-- 6 periods of 200 -->
-      <svg class="wv wv-top wv-c" viewBox="0 0 1200 200" preserveAspectRatio="none">
-        <path d="M0,90 C50,130 150,50 200,90 C250,130 350,50 400,90 C450,130 550,50 600,90 C650,130 750,50 800,90 C850,130 950,50 1000,90 C1050,130 1150,50 1200,90 L1200,0 L0,0 Z"/>
-      </svg>
+    <!-- Colour bleeding in from the edges, breathing. Each strip is the cover
+         itself, blurred and masked so it fades inward — so the glow is always
+         the artwork's colour rather than a tint we invented. -->
+    <div class="disp-glow" *ngIf="info.edge_waves">
+      <span class="gw gw-t" [style.background-image]="'url(' + cover + ')'"></span>
+      <span class="gw gw-b" [style.background-image]="'url(' + cover + ')'"></span>
+      <span class="gw gw-l" [style.background-image]="'url(' + cover + ')'"></span>
+      <span class="gw gw-r" [style.background-image]="'url(' + cover + ')'"></span>
     </div>
 
     <header class="disp-head">

@@ -117,12 +117,13 @@
   100% { filter: blur(110px) saturate(2.3) hue-rotate(16deg); }
 }
 
-/* ── Edge waves ──
-   Soft bands rolling along the top and bottom edges. Each SVG is twice the
-   screen width and scrolls by exactly half, so the loop is seamless. Blended
-   additively (screen) with a white-ish fill so they brighten whatever colour is
-   behind them, which keeps them tied to the artwork. */
-.disp-waves {
+/* ── Edge glow ──
+   Colour bleeding inwards from each edge, breathing on its own cycle. The
+   strips are the cover art itself (blurred, saturated, masked to fade inward),
+   so the colour always matches the track. An earlier attempt filled wave shapes
+   with translucent white and screen-blended them, which over a dark scrim just
+   produced grey — the colour has to come from the image. */
+.disp-glow {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -130,40 +131,57 @@
   overflow: hidden;
   pointer-events: none;
   z-index: 1;
-  .wv {
+  .gw {
     position: absolute;
-    left: 0;
-    width: 200vw;          /* two copies side by side */
-    height: 22vh;
+    background-size: cover;
+    background-position: center;
+    filter: blur(55px) saturate(2.6);
     mix-blend-mode: screen;
-    will-change: transform;
-    path { fill: rgba(255,255,255,0.16); }
+    will-change: opacity, transform;
   }
-  .wv-bottom { bottom: 0; }
-  .wv-top    { top: 0; }
+  .gw-t, .gw-b { left: -10vw; width: 120vw; height: 34vh; }
+  .gw-l, .gw-r { top: -10vh; height: 120dvh; width: 26vw; }
 
-  .wv-a { animation: wv-roll 14s linear infinite; }
-  .wv-b {
-    height: 16vh;
-    animation: wv-roll 22s linear infinite reverse;
-    path { fill: rgba(255,255,255,0.11); }
+  .gw-t {
+    top: -8vh;
+    -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+    mask-image: linear-gradient(to bottom, #000, transparent);
+    animation: gw-breathe-a 9s ease-in-out infinite alternate;
   }
-  .wv-c {
-    height: 18vh;
-    animation: wv-roll 18s linear infinite;
-    path { fill: rgba(255,255,255,0.10); }
+  .gw-b {
+    bottom: -8vh;
+    -webkit-mask-image: linear-gradient(to top, #000, transparent);
+    mask-image: linear-gradient(to top, #000, transparent);
+    animation: gw-breathe-b 11s ease-in-out infinite alternate;
+  }
+  .gw-l {
+    left: -6vw;
+    -webkit-mask-image: linear-gradient(to right, #000, transparent);
+    mask-image: linear-gradient(to right, #000, transparent);
+    animation: gw-breathe-b 13s ease-in-out infinite alternate;
+  }
+  .gw-r {
+    right: -6vw;
+    -webkit-mask-image: linear-gradient(to left, #000, transparent);
+    mask-image: linear-gradient(to left, #000, transparent);
+    animation: gw-breathe-a 15s ease-in-out infinite alternate;
   }
 }
-@keyframes wv-roll {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }   /* exactly one copy = seamless */
+/* Two cycles so opposite edges breathe out of step with each other. */
+@keyframes gw-breathe-a {
+  0%   { opacity: 0.34; transform: scale(1) translate3d(0, 0, 0); }
+  100% { opacity: 0.72; transform: scale(1.12) translate3d(0, 0, 0); }
+}
+@keyframes gw-breathe-b {
+  0%   { opacity: 0.66; transform: scale(1.1) translate3d(0, 0, 0); }
+  100% { opacity: 0.30; transform: scale(1) translate3d(0, 0, 0); }
 }
 
 /* Respect users/screens that ask for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .disp-bg.animated { animation: none; }
   .disp-lights .lg { animation: none; }
-  .disp-waves .wv { animation: none; }
+  .disp-glow .gw { animation: none; }
 }
 .disp-scrim {
   position: fixed;
