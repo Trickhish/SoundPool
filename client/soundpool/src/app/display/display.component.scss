@@ -117,71 +117,10 @@
   100% { filter: blur(110px) saturate(2.3) hue-rotate(16deg); }
 }
 
-/* ── Edge glow ──
-   Colour bleeding inwards from each edge, breathing on its own cycle. The
-   strips are the cover art itself (blurred, saturated, masked to fade inward),
-   so the colour always matches the track. An earlier attempt filled wave shapes
-   with translucent white and screen-blended them, which over a dark scrim just
-   produced grey — the colour has to come from the image. */
-.disp-glow {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-  .gw {
-    position: absolute;
-    background-size: cover;
-    background-position: center;
-    filter: blur(55px) saturate(2.6);
-    mix-blend-mode: screen;
-    will-change: opacity, transform;
-  }
-  .gw-t, .gw-b { left: -10vw; width: 120vw; height: 34vh; }
-  .gw-l, .gw-r { top: -10vh; height: 120dvh; width: 26vw; }
-
-  .gw-t {
-    top: -8vh;
-    -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
-    mask-image: linear-gradient(to bottom, #000, transparent);
-    animation: gw-breathe-a 9s ease-in-out infinite alternate;
-  }
-  .gw-b {
-    bottom: -8vh;
-    -webkit-mask-image: linear-gradient(to top, #000, transparent);
-    mask-image: linear-gradient(to top, #000, transparent);
-    animation: gw-breathe-b 11s ease-in-out infinite alternate;
-  }
-  .gw-l {
-    left: -6vw;
-    -webkit-mask-image: linear-gradient(to right, #000, transparent);
-    mask-image: linear-gradient(to right, #000, transparent);
-    animation: gw-breathe-b 13s ease-in-out infinite alternate;
-  }
-  .gw-r {
-    right: -6vw;
-    -webkit-mask-image: linear-gradient(to left, #000, transparent);
-    mask-image: linear-gradient(to left, #000, transparent);
-    animation: gw-breathe-a 15s ease-in-out infinite alternate;
-  }
-}
-/* Two cycles so opposite edges breathe out of step with each other. */
-@keyframes gw-breathe-a {
-  0%   { opacity: 0.34; transform: scale(1) translate3d(0, 0, 0); }
-  100% { opacity: 0.72; transform: scale(1.12) translate3d(0, 0, 0); }
-}
-@keyframes gw-breathe-b {
-  0%   { opacity: 0.66; transform: scale(1.1) translate3d(0, 0, 0); }
-  100% { opacity: 0.30; transform: scale(1) translate3d(0, 0, 0); }
-}
-
 /* Respect users/screens that ask for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .disp-bg.animated { animation: none; }
   .disp-lights .lg { animation: none; }
-  .disp-glow .gw { animation: none; }
 }
 .disp-scrim {
   position: fixed;

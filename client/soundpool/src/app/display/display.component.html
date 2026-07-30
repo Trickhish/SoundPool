@@ -22,15 +22,6 @@
     </div>
     <div class="disp-scrim"></div>
 
-    <!-- Colour bleeding in from the edges, breathing. Each strip is the cover
-         itself, blurred and masked so it fades inward — so the glow is always
-         the artwork's colour rather than a tint we invented. -->
-    <div class="disp-glow" *ngIf="info.edge_waves">
-      <span class="gw gw-t" [style.background-image]="'url(' + cover + ')'"></span>
-      <span class="gw gw-b" [style.background-image]="'url(' + cover + ')'"></span>
-      <span class="gw gw-l" [style.background-image]="'url(' + cover + ')'"></span>
-      <span class="gw gw-r" [style.background-image]="'url(' + cover + ')'"></span>
-    </div>
 
     <header class="disp-head">
       <div class="disp-head-left">
