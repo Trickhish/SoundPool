@@ -1,6 +1,7 @@
 """Audio-interface management for the player unit, via pactl (PipeWire/Pulse)
 and bluetoothctl. Lets a unit play to one or several sinks at once (combine
 sink) and manage Bluetooth speakers."""
+import json
 import os
 import re
 import subprocess
@@ -93,11 +94,63 @@ def _unload_combine():
             _run(["pactl", "unload-module", mod])
 
 
+_SELECTED_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".selected_outputs")
+
+
+def _save_selected():
+    try:
+        with open(_SELECTED_FILE, "w") as f:
+            json.dump(_selected, f)
+    except Exception as e:
+        print(f"[audio] could not save output selection: {e}")
+
+
+def load_selected():
+    """Restore the chosen output(s) after a restart and re-apply the routing —
+    otherwise the unit silently falls back to the system default sink."""
+    global _selected
+    try:
+        with open(_SELECTED_FILE) as f:
+            _selected = [n for n in (json.load(f) or []) if n]
+    except FileNotFoundError:
+        return
+    except Exception as e:
+        print(f"[audio] could not load output selection: {e}")
+        return
+    if _selected:
+        print(f"[audio] restoring outputs: {_selected}")
+        set_outputs(_selected)
+
+
+def _target_sink():
+    """The sink our playback should land on for the current selection."""
+    if len(_selected) >= 2:
+        return COMBINE_SINK
+    return _selected[0] if len(_selected) == 1 else None
+
+
+def _apply_routing():
+    """Point our playback stream at the selected sink.
+
+    Called both when the selection changes and whenever a new stream appears:
+    `set_outputs` alone only moved a stream that already existed, so choosing an
+    output while nothing was playing did nothing, and the next track opened on
+    the default sink instead.
+    """
+    target = _target_sink()
+    if not target:
+        return
+    si = own_sink_input()
+    if si:
+        _run(["pactl", "move-sink-input", si, target])
+
+
 def set_outputs(names):
     """Route the unit's playback to the given sink name(s)."""
     global _selected
     names = [n for n in (names or []) if n]
     _selected = names
+    _save_selected()
     _unload_combine()
 
     if len(names) >= 2:
@@ -110,9 +163,12 @@ def set_outputs(names):
     else:
         target = None  # leave on default
 
-    si = own_sink_input()
-    if target and si:
-        _run(["pactl", "move-sink-input", si, target])
+    if target:
+        # Also make it the default so a stream opened later (pygame reopens the
+        # device between tracks) starts on the right sink instead of racing the
+        # move below.
+        _run(["pactl", "set-default-sink", target])
+    _apply_routing()
 
 
 def set_sink_volume(name, level):
@@ -519,6 +575,15 @@ def watch_sinks():
         try:
             proc = subprocess.Popen(["pactl", "subscribe"], stdout=subprocess.PIPE, text=True)
             for line in proc.stdout:
+                # A new playback stream (pygame starting a track) must be routed
+                # to the selected output — otherwise it plays on whatever sink
+                # it happened to open on.
+                if "on sink-input #" in line and "'new'" in line:
+                    try:
+                        _apply_routing()
+                    except Exception as e:
+                        print(f"[audio] re-route failed: {e}")
+                    continue
                 if "on sink #" in line and ("'new'" in line or "'remove'" in line):
                     now = time.monotonic()
                     if now - last > 0.8:   # debounce bursts

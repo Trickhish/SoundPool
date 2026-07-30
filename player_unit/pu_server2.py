@@ -400,6 +400,12 @@ async def main():
     # let async audio events (e.g. BT scan completion, USB plug/unplug) push fresh state
     loop = asyncio.get_running_loop()
     ad.set_notify(lambda: asyncio.run_coroutine_threadsafe(emit_audio_state(), loop))
+    # Re-apply the saved output choice: it used to be in-memory only, so after a
+    # restart the unit quietly played to the system default sink instead.
+    try:
+        await asyncio.to_thread(ad.load_selected)
+    except Exception as ex:
+        print(f"[audio] restoring outputs failed: {ex}")
     threading.Thread(target=ad.watch_sinks, daemon=True).start()
 
     workers = [asyncio.create_task(download_worker()) for _ in range(DOWNLOAD_WORKERS)]
