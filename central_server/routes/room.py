@@ -117,7 +117,6 @@ def room_dict(db, room, user):
             "show_members": bool(room.display_show_members),
             "lyrics_full": bool(room.display_lyrics_full),
             "animate_bg": bool(room.display_animate_bg),
-            "mascot": bool(room.display_mascot),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -245,7 +244,6 @@ def _display_payload(db, room):
         "show_members": bool(room.display_show_members),
         "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
-        "mascot": bool(room.display_mascot),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -529,7 +527,6 @@ def _display_dict(room):
         "show_members": bool(room.display_show_members),
         "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
-        "mascot": bool(room.display_mascot),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -593,23 +590,23 @@ def make_display_paircode(room_id: int,
 DISPLAY_MODES = {
     "default": {"show_player": True,  "show_lyrics": True,  "lyrics_full": False,
                 "show_queue": True, "show_skipvotes": True, "show_activity": True,
-                "show_members": True, "show_qr": True, "mascot": False, "animate_bg": False},
+                "show_members": True, "show_qr": True, "animate_bg": False},
     "karaoke": {"show_player": False, "show_lyrics": True,  "lyrics_full": True,
                 "show_queue": False, "show_skipvotes": True, "show_activity": False,
-                "show_members": False, "show_qr": False, "mascot": False, "animate_bg": True},
+                "show_members": False, "show_qr": False, "animate_bg": True},
     "party":   {"show_player": True,  "show_lyrics": False, "lyrics_full": False,
                 "show_queue": True, "show_skipvotes": True, "show_activity": True,
-                "show_members": True, "show_qr": True, "mascot": True, "animate_bg": True},
+                "show_members": True, "show_qr": True, "animate_bg": True},
     "minimal": {"show_player": True,  "show_lyrics": False, "lyrics_full": False,
                 "show_queue": False, "show_skipvotes": False, "show_activity": False,
-                "show_members": False, "show_qr": False, "mascot": False, "animate_bg": False},
+                "show_members": False, "show_qr": False, "animate_bg": False},
 }
 
 _MODE_FIELD = {
     "show_player": "display_show_player", "show_lyrics": "display_show_lyrics",
     "show_queue": "display_show_queue", "show_skipvotes": "display_show_skipvotes",
     "show_activity": "display_show_activity", "show_members": "display_show_members",
-    "show_qr": "display_show_qr", "mascot": "display_mascot",
+    "show_qr": "display_show_qr",
     "lyrics_full": "display_lyrics_full",
     "animate_bg": "display_animate_bg",
 }
@@ -646,7 +643,6 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_members is not None:  room.display_show_members = body.show_members
     if body.lyrics_full is not None:   room.display_lyrics_full = body.lyrics_full
     if body.animate_bg is not None:    room.display_animate_bg = body.animate_bg
-    if body.mascot is not None:        room.display_mascot = body.mascot
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]

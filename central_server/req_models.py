@@ -90,7 +90,6 @@ class DisplayConfigRequest(BaseModel):
     show_members: Optional[bool] = None
     lyrics_full: Optional[bool] = None
     animate_bg: Optional[bool] = None
-    mascot: Optional[bool] = None
     show_qr: Optional[bool] = None
     show_message: Optional[bool] = None
     message: Optional[str] = None

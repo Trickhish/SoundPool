@@ -129,18 +129,18 @@
       </div>
     </div>
 
-    <!-- ── Mascot ── -->
-    <div *ngIf="info.mascot" class="disp-mascot" [style.left.%]="mascotX" [class.flip]="mascotFlip">
-      <div class="ms-bubble" *ngIf="mascotSays">{{ mascotSays }}</div>
-      <div class="ms-body" [attr.data-mood]="mascotMood">
-        <div class="ms-face">
-          <span class="ms-eye l"></span>
-          <span class="ms-eye r"></span>
-          <span class="ms-mouth"></span>
-        </div>
-        <span class="ms-arm"></span>
+    <!-- Karaoke hides the player panel, so name the track (and what's next) here. -->
+    <div *ngIf="lyricsFull" class="disp-krbar">
+      <div class="kr-item" *ngIf="info.now_playing">
+        <span class="kr-label">Now</span>
+        <span class="kr-title">{{ info.now_playing.title }}</span>
+        <span class="kr-artist">{{ info.now_playing.artist }}</span>
       </div>
-      <div class="ms-shadow"></div>
+      <div class="kr-item next" *ngIf="nextUp">
+        <span class="kr-label">Next</span>
+        <span class="kr-title">{{ nextUp.title }}</span>
+        <span class="kr-artist">{{ nextUp.artist }}</span>
+      </div>
     </div>
 
     <!-- ── Activity ticker ── -->

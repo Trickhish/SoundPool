@@ -70,8 +70,6 @@ export class DisplayComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.tickTimer) clearInterval(this.tickTimer);
-    if (this.wanderTimer) clearTimeout(this.wanderTimer);
-    if (this.moodTimer) clearTimeout(this.moodTimer);
   }
 
   private poll() {
@@ -130,54 +128,23 @@ export class DisplayComponent implements OnInit, OnDestroy {
   // ── Mascot + event bursts ────────────────────────────────────────────────
   // Both are driven by the same activity events as the ticker, so the screen
   // visibly reacts to what people are actually doing in the room.
-  mascotX = 20;                 // % across the screen
-  mascotFlip = false;           // facing left?
-  mascotMood: 'idle' | 'wave' | 'note' | 'heart' | 'sad' | 'party' | 'robot' = 'idle';
-  mascotSays = '';
   bursts: { id: number; icon: string; x: number; y: number; parts: any[] }[] = [];
   private nextBurstId = 0;
-  private moodTimer: any = null;
-  private wanderTimer: any = null;
 
-  /** What each activity icon means for the mascot and the burst. */
+  /** What each activity icon throws on screen. */
   private static REACTIONS: any = {
-    '👋': { mood: 'wave',  say: 'hey!',    burst: ['🎉', '✨', '🎊'] },
-    '➕': { mood: 'note',  say: '♪',       burst: ['♪', '♫', '♬'] },
-    '📀': { mood: 'note',  say: '♫',       burst: ['♪', '♫', '💿'] },
-    '❤️': { mood: 'heart', say: '<3',      burst: ['❤️', '💖', '✨'] },
-    '🙅': { mood: 'sad',   say: 'aw…',     burst: [] },
-    '⏭️': { mood: 'sad',   say: 'bye…',    burst: [] },
-    '🎉': { mood: 'party', say: 'party!',  burst: ['🎉', '🎊', '✨', '🥳'] },
-    '🤖': { mood: 'robot', say: 'beep',    burst: ['🎵'] },
-    '🔀': { mood: 'party', say: 'shuffle', burst: ['🔀', '✨'] },
+    '👋': ['🎉', '✨', '🎊'],
+    '➕': ['♪', '♫', '♬'],
+    '📀': ['♪', '♫', '💿'],
+    '❤️': ['❤️', '💖', '✨'],
+    '🎉': ['🎉', '🎊', '✨', '🥳'],
+    '🤖': ['🎵'],
+    '🔀': ['🔀', '✨'],
   };
 
-  private startWander() {
-    if (this.wanderTimer) return;
-    const step = () => {
-      const target = 8 + Math.random() * 78;         // stay clear of the edges
-      this.mascotFlip = target < this.mascotX;
-      this.mascotX = target;
-      // Re-time to roughly match the CSS travel duration plus a pause.
-      this.wanderTimer = setTimeout(() => this.zone.run(step), 6000 + Math.random() * 6000);
-    };
-    this.wanderTimer = setTimeout(() => this.zone.run(step), 1500);
-  }
-
-  private react(icon: string, text: string) {
-    const r = DisplayComponent.REACTIONS[icon];
-    if (!r) return;
-    if (this.info?.mascot) {
-      this.mascotMood = r.mood;
-      // Prefer the person's name when the message starts with one.
-      this.mascotSays = r.say;
-      clearTimeout(this.moodTimer);
-      this.moodTimer = setTimeout(() => this.zone.run(() => {
-        this.mascotMood = 'idle';
-        this.mascotSays = '';
-      }), 4000);
-    }
-    if (this.info?.show_activity && r.burst.length) this.spawnBurst(r.burst);
+  private react(icon: string, _text: string) {
+    const burst = DisplayComponent.REACTIONS[icon];
+    if (burst && this.info?.show_activity) this.spawnBurst(burst);
   }
 
   /** Confetti-style burst of emoji flying out from a random spot. */
@@ -208,9 +175,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private recentActivity = new Map<string, number>();   // key -> last-seen ms
   private pushActivity(icon: string, text: string) {
     if (!text) return;
-    // The mascot reacts even when the text ticker is hidden, so handle the
-    // dedupe here and let react() decide what each toggle actually shows.
-    if (!this.info?.show_activity && !this.info?.mascot) return;
+    if (!this.info?.show_activity) return;
     // Dedupe: the SSE delivery layer can hand the same event to a tab more than
     // once when a prior stale server-side client is still fanned into (a real
     // duplicate action wouldn't fire the exact same icon+text within 1.5s).
@@ -224,7 +189,6 @@ export class DisplayComponent implements OnInit, OnDestroy {
       for (const [k, t] of this.recentActivity) if (t < cutoff) this.recentActivity.delete(k);
     }
     this.react(icon, text);   // after the dedupe check, so bursts fire once
-    if (!this.info?.show_activity) return;   // mascot-only mode: no text lines
     const id = ++this.nextActId;
     this.activity = [...this.activity, { id, icon, text }];
     if (this.activity.length > 4) this.activity = this.activity.slice(-4);   // keep it tidy
@@ -273,7 +237,6 @@ export class DisplayComponent implements OnInit, OnDestroy {
     // Seed playback from the poll until the live SSE feed takes over.
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
     if (Array.isArray(i.queue)) { this.queue = i.queue; this.preloadArtwork(); }
-    if (i.mascot) this.startWander();
     this.votingEnabled = !!i.voting_enabled;
     this.voteCount = i.vote_count ?? 0;
     this.voteThreshold = i.vote_threshold ?? 0;
@@ -353,6 +316,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   get showLyrics(): boolean { return !!this.info?.show_lyrics; }
   get showQueue(): boolean { return !!this.info?.show_queue; }
   /** Karaoke: lyrics fill the screen in big type, everything else steps aside. */
+  get nextUp() { return this.queue.length ? this.queue[0] : null; }
   get lyricsFull(): boolean { return !!this.info?.lyrics_full && this.showLyrics; }
   /** Queue takes the big right-hand column when lyrics aren't shown. */
   get queueInColumn(): boolean { return this.showQueue && !this.showLyrics && !this.lyricsFull; }
