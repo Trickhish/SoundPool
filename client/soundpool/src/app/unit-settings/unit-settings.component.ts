@@ -98,7 +98,16 @@ export class UnitSettingsComponent implements OnInit {
     clearTimeout(this.scanTimer);
     this.scanTimer = setTimeout(() => { this.audio.bt.scanning = false; this.cdr.detectChanges(); }, 14000);
   }
-  btBusy: string | null = null;   // mac currently being acted on
+  btBusy: string | null = null;   // optimistic, until the unit reports its own phase
+
+  /** Live phase for a device ("Pairing…", "Connecting…"), preferring what the
+   *  unit actually reports over our optimistic local guess. */
+  btPhaseFor(mac: string): string | null {
+    const b = this.audio?.bt?.busy;
+    if (b && b.mac === mac) return b.phase || 'Working…';
+    return this.btBusy === mac ? 'Working…' : null;
+  }
+  isBtBusy(mac: string): boolean { return !!this.btPhaseFor(mac); }
 
   bt(action: 'pair' | 'connect' | 'disconnect' | 'remove', d: any) {
     this.btBusy = d.mac;
