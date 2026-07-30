@@ -477,6 +477,21 @@
 }
 .disp-main:not(.two-col) .disp-lyrics { max-width: 70vw; }
 
+/* Karaoke: lyrics take the whole screen in much larger type. */
+.disp-main.lyrics-full {
+  padding: 0 4vw;
+  .disp-lyrics { max-width: none; width: 100%; height: 100%; }
+  .disp-lyr-line {
+    font-size: 6.4vh;
+    line-height: 1.22;
+    margin: 2.4vh 0;
+    &.active { transform: scale(1.04); }
+  }
+  .disp-lyr-scroll { padding: 34vh 4%; }
+  .disp-lyr-scroll.plain pre { font-size: 5vh; }
+  .disp-lyr-note { font-size: 4vh; }
+}
+
 /* ── Queue ── */
 .disp-queue-head {
   font-size: 1.9vh;

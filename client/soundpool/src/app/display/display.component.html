@@ -38,10 +38,11 @@
       </div>
     </header>
 
-    <div class="disp-main" [class.two-col]="showPlayer && hasRightCol" [class.queue-col]="queueInColumn">
+    <div class="disp-main" [class.two-col]="showPlayer && hasRightCol" [class.queue-col]="queueInColumn"
+         [class.lyrics-full]="lyricsFull">
 
       <!-- ── Player ── -->
-      <section *ngIf="showPlayer" class="disp-player">
+      <section *ngIf="showPlayer && !lyricsFull" class="disp-player">
         <div class="disp-cover-wrap">
           <img class="disp-cover" [src]="cover" />
         </div>

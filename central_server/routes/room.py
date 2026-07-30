@@ -115,6 +115,7 @@ def room_dict(db, room, user):
             "show_skipvotes": bool(room.display_show_skipvotes),
             "show_activity": bool(room.display_show_activity),
             "show_members": bool(room.display_show_members),
+            "lyrics_full": bool(room.display_lyrics_full),
             "animate_bg": bool(room.display_animate_bg),
             "mascot": bool(room.display_mascot),
             "show_qr": bool(room.display_show_qr),
@@ -242,6 +243,7 @@ def _display_payload(db, room):
         "show_skipvotes": bool(room.display_show_skipvotes),
         "show_activity": bool(room.display_show_activity),
         "show_members": bool(room.display_show_members),
+        "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
         "mascot": bool(room.display_mascot),
         "show_qr": bool(room.display_show_qr),
@@ -525,6 +527,7 @@ def _display_dict(room):
         "show_skipvotes": bool(room.display_show_skipvotes),
         "show_activity": bool(room.display_show_activity),
         "show_members": bool(room.display_show_members),
+        "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
         "mascot": bool(room.display_mascot),
         "show_qr": bool(room.display_show_qr),
@@ -583,6 +586,51 @@ def make_display_paircode(room_id: int,
                                  "display_code": room.display_code})
 
 
+# Big-screen presets. Selecting one stamps these flags onto the room, so every
+# switch stays individually editable afterwards (same idea as the role presets).
+# `karaoke` also changes the layout on the display itself — lyrics go fullscreen,
+# which no combination of flags could express.
+DISPLAY_MODES = {
+    "default": {"show_player": True,  "show_lyrics": True,  "lyrics_full": False,
+                "show_queue": True, "show_skipvotes": True, "show_activity": True,
+                "show_members": True, "show_qr": True, "mascot": False, "animate_bg": False},
+    "karaoke": {"show_player": False, "show_lyrics": True,  "lyrics_full": True,
+                "show_queue": False, "show_skipvotes": True, "show_activity": False,
+                "show_members": False, "show_qr": False, "mascot": False, "animate_bg": True},
+    "party":   {"show_player": True,  "show_lyrics": False, "lyrics_full": False,
+                "show_queue": True, "show_skipvotes": True, "show_activity": True,
+                "show_members": True, "show_qr": True, "mascot": True, "animate_bg": True},
+    "minimal": {"show_player": True,  "show_lyrics": False, "lyrics_full": False,
+                "show_queue": False, "show_skipvotes": False, "show_activity": False,
+                "show_members": False, "show_qr": False, "mascot": False, "animate_bg": False},
+}
+
+_MODE_FIELD = {
+    "show_player": "display_show_player", "show_lyrics": "display_show_lyrics",
+    "show_queue": "display_show_queue", "show_skipvotes": "display_show_skipvotes",
+    "show_activity": "display_show_activity", "show_members": "display_show_members",
+    "show_qr": "display_show_qr", "mascot": "display_mascot",
+    "lyrics_full": "display_lyrics_full",
+    "animate_bg": "display_animate_bg",
+}
+
+
+@router.post("/{room_id}/display/mode")
+def set_display_mode(room_id: int, body: DisplayModeRequest,
+                     db: SessionLocal = Depends(get_db),  # type: ignore
+                     user: User = Depends(verify_token)):
+    room = _require_admin(db, room_id, user)
+    preset = DISPLAY_MODES.get(body.mode)
+    if preset is None:
+        raise HTTPException(400, f"Unknown display mode: {body.mode}")
+    if not room.display_code:
+        room.display_code = secrets.token_urlsafe(9)
+    for key, val in preset.items():
+        setattr(room, _MODE_FIELD[key], val)
+    db.commit()
+    return JSONResponse(content=_display_dict(room))
+
+
 @router.post("/{room_id}/display/config")
 def set_display_config(room_id: int, body: DisplayConfigRequest,
                        db: SessionLocal = Depends(get_db),  # type: ignore
@@ -596,6 +644,7 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_skipvotes is not None: room.display_show_skipvotes = body.show_skipvotes
     if body.show_activity is not None: room.display_show_activity = body.show_activity
     if body.show_members is not None:  room.display_show_members = body.show_members
+    if body.lyrics_full is not None:   room.display_lyrics_full = body.lyrics_full
     if body.animate_bg is not None:    room.display_animate_bg = body.animate_bg
     if body.mascot is not None:        room.display_mascot = body.mascot
     if body.show_qr is not None:      room.display_show_qr = body.show_qr

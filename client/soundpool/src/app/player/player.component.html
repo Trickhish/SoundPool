@@ -357,6 +357,13 @@
               <button class="party-start" (click)="openDisplay()">Open display</button>
 
               <div class="display-opts" *ngIf="displayCfg">
+                <div class="mode-label">Mode</div>
+                <div class="mode-row">
+                  <button *ngFor="let m of displayModes" type="button" class="mode-btn"
+                          [class.on]="isDisplayMode(m.id)" [title]="m.desc"
+                          (click)="setDisplayMode(m.id)">{{ m.label }}</button>
+                </div>
+                <div class="mode-hint">Presets just set the switches below — tweak any of them afterwards.</div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_player')">
                   <div class="setting-text"><span class="setting-name">Show player</span></div>
                   <span class="toggle" [class.on]="displayCfg.show_player"><i></i></span>
@@ -364,6 +371,13 @@
                 <div class="setting-row" (click)="toggleDisplayFlag('show_lyrics')">
                   <div class="setting-text"><span class="setting-name">Show lyrics</span></div>
                   <span class="toggle" [class.on]="displayCfg.show_lyrics"><i></i></span>
+                </div>
+                <div class="setting-row" (click)="toggleDisplayFlag('lyrics_full')">
+                  <div class="setting-text">
+                    <span class="setting-name">Fullscreen lyrics</span>
+                    <span class="setting-desc">Lyrics fill the screen in big text (karaoke).</span>
+                  </div>
+                  <span class="toggle" [class.on]="displayCfg.lyrics_full"><i></i></span>
                 </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('show_queue')">
                   <div class="setting-text">

@@ -78,6 +78,9 @@ class QueueVoteRequest(BaseModel):
 class DisplayPairRequest(BaseModel):
     code: str
 
+class DisplayModeRequest(BaseModel):
+    mode: str
+
 class DisplayConfigRequest(BaseModel):
     show_player: Optional[bool] = None
     show_lyrics: Optional[bool] = None
@@ -85,6 +88,7 @@ class DisplayConfigRequest(BaseModel):
     show_skipvotes: Optional[bool] = None
     show_activity: Optional[bool] = None
     show_members: Optional[bool] = None
+    lyrics_full: Optional[bool] = None
     animate_bg: Optional[bool] = None
     mascot: Optional[bool] = None
     show_qr: Optional[bool] = None

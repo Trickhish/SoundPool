@@ -352,12 +352,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
   get showPlayer(): boolean { return !!this.info?.show_player; }
   get showLyrics(): boolean { return !!this.info?.show_lyrics; }
   get showQueue(): boolean { return !!this.info?.show_queue; }
+  /** Karaoke: lyrics fill the screen in big type, everything else steps aside. */
+  get lyricsFull(): boolean { return !!this.info?.lyrics_full && this.showLyrics; }
   /** Queue takes the big right-hand column when lyrics aren't shown. */
-  get queueInColumn(): boolean { return this.showQueue && !this.showLyrics; }
+  get queueInColumn(): boolean { return this.showQueue && !this.showLyrics && !this.lyricsFull; }
   /** Compact queue under the thumbnail when lyrics occupy the column. */
-  get queueUnderThumb(): boolean { return this.showQueue && this.showLyrics && this.showPlayer; }
+  get queueUnderThumb(): boolean { return this.showQueue && this.showLyrics && this.showPlayer && !this.lyricsFull; }
   /** Is there anything filling the right-hand column? */
-  get hasRightCol(): boolean { return this.showLyrics || this.queueInColumn; }
+  get hasRightCol(): boolean { return (this.showLyrics && !this.lyricsFull) || this.queueInColumn; }
   /** Fewer entries when compact under the thumbnail, more when full-column.
    *  The full column is kept short enough to always fit, so a row is never
    *  clipped in half at the container edge. */

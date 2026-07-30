@@ -323,6 +323,43 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
   openDisplay() { if (this.displayLink) window.open(this.displayLink, '_blank'); }
 
+  // ── Big-screen presets ──
+  displayModes = [
+    { id: 'default', label: 'Default', desc: 'Player, lyrics and queue' },
+    { id: 'karaoke', label: 'Karaoke', desc: 'Fullscreen lyrics, nothing else' },
+    { id: 'party',   label: 'Party',   desc: 'Queue, QR, activity and mascot' },
+    { id: 'minimal', label: 'Minimal', desc: 'Just the track' },
+  ];
+  /** Presets are only shortcuts for the switches below, so the active one is
+   *  derived by comparing them rather than stored — flip any switch by hand and
+   *  no preset is highlighted. Must match DISPLAY_MODES on the server. */
+  private static MODE_PRESETS: any = {
+    default: { show_player: true,  show_lyrics: true,  lyrics_full: false, show_queue: true,
+               show_skipvotes: true, show_activity: true, show_members: true,
+               show_qr: true, mascot: false, animate_bg: false },
+    karaoke: { show_player: false, show_lyrics: true,  lyrics_full: true,  show_queue: false,
+               show_skipvotes: true, show_activity: false, show_members: false,
+               show_qr: false, mascot: false, animate_bg: true },
+    party:   { show_player: true,  show_lyrics: false, lyrics_full: false, show_queue: true,
+               show_skipvotes: true, show_activity: true, show_members: true,
+               show_qr: true, mascot: true, animate_bg: true },
+    minimal: { show_player: true,  show_lyrics: false, lyrics_full: false, show_queue: false,
+               show_skipvotes: false, show_activity: false, show_members: false,
+               show_qr: false, mascot: false, animate_bg: false },
+  };
+  isDisplayMode(mode: string): boolean {
+    const p = PlayerComponent.MODE_PRESETS[mode];
+    if (!p || !this.displayCfg) return false;
+    return Object.keys(p).every(k => !!this.displayCfg[k] === !!p[k]);
+  }
+  setDisplayMode(mode: string) {
+    if (!this.pid) return;
+    this.api.setDisplayMode(this.pid, mode).subscribe({
+      next: (r: any) => this.zone.run(() => { this.displayCfg = r; this.displayCode = r.display_code; }),
+      error: () => this.toastr.error('Could not change the mode')
+    });
+  }
+
   // ── Screen pairing (short code instead of typing the long URL on a TV) ──
   pairCode: string | null = null;
   pairSecondsLeft = 0;

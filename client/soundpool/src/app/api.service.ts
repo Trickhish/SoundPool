@@ -132,6 +132,7 @@ export class ApiService {
   public makeDisplayPairCode(id:string|number) { return this.rp(id, 'display/paircode'); }
   public pairDisplay(code:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/display/pair`, { code }); }
   public setDisplayConfig(id:string|number, cfg:any) { return this.rp(id, 'display/config', cfg); }
+  public setDisplayMode(id:string|number, mode:string) { return this.rp(id, 'display/mode', { mode }); }
   public setRoomRights(id:number, body:any) {
     return this.http.post<any>(`${ApiService.apiUrl}/room/${id}/rights`, body);
   }
