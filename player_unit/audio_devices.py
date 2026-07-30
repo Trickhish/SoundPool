@@ -273,6 +273,14 @@ _BT_ERRORS = [
      "The device didn't respond. Make sure it's powered on and in pairing mode."),
     ("page-timeout",
      "The device didn't respond. Make sure it's powered on and in pairing mode."),
+    # The adapter can hold only one A2DP audio stream at a time: a second
+    # speaker links up but never gets an audio profile.
+    ("br-connection-busy",
+     "Another Bluetooth speaker is already playing. Disconnect it first — this "
+     "unit can only use one Bluetooth speaker at a time."),
+    ("Device or resource busy",
+     "Another Bluetooth speaker is already playing. Disconnect it first — this "
+     "unit can only use one Bluetooth speaker at a time."),
     ("br-connection-canceled", "The connection was canceled."),
     ("AuthenticationFailed", "The device refused pairing."),
     ("AuthenticationRejected", "The device rejected pairing."),
@@ -457,12 +465,35 @@ def _bt_rediscover(mac, seconds=12):
     return _bt_known(mac)
 
 
+def _other_bt_audio_holder(mac):
+    """MAC of a different Bluetooth device that already holds the audio profile.
+
+    The adapter supports only one A2DP stream at a time: a second speaker links
+    up at the ACL level but never gets an audio sink, and bluez reports this
+    inconsistently (br-connection-busy, br-connection-unknown, "Device or
+    resource busy"), so detect it from the sinks rather than the error text.
+    """
+    want = mac.replace(":", "_").upper()
+    for name in _existing_sinks():
+        if name.startswith("bluez_output."):
+            other = name.split(".")[1] if "." in name else ""
+            if other and other.upper() != want:
+                return other.replace("_", ":")
+    return None
+
+
 def _bt_do_connect(mac, attempts=2):
     """Connect, retrying once — BR/EDR connects fail spuriously fairly often.
     A good connect lands in a few seconds; the timeout only bites on failure,
     so keep it short enough that a doomed attempt doesn't stall the UI."""
     if _bt_is(mac, "Connected"):
         return True, ""          # nothing to do — don't spend 20s "reconnecting"
+    busy = _other_bt_audio_holder(mac)
+    if busy:
+        name = (_bt_seen.get(busy) or {}).get("name") or busy
+        return False, (f"“{name}” is already using Bluetooth audio. Disconnect it "
+                       f"first — this unit can only play to one Bluetooth speaker "
+                       f"at a time.")
     out = ""
     for i in range(attempts):
         _bt_phase(mac, "Connecting…" if i == 0 else "Connecting… (retry)")
