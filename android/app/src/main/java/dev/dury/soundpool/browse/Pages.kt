@@ -10,6 +10,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -166,6 +170,124 @@ fun QueuePage(ui: BrowseUi) {
                         Text(q.artist, fontSize = 13.sp, color = Sp.Muted, maxLines = 1,
                              overflow = TextOverflow.Ellipsis)
                     }
+                }
+            }
+        }
+    }
+}
+
+// ── playlists ───────────────────────────────────────────────────────────────
+
+@Composable
+fun PlaylistsPage(ui: BrowseUi, vm: BrowseViewModel) {
+    LaunchedEffect(Unit) { vm.loadPlaylists() }
+    // Back out of a drilled-in playlist before leaving the page.
+    BackHandler(enabled = ui.openPlaylist != null) { vm.closePlaylist() }
+
+    if (ui.openPlaylist != null) {
+        PlaylistDetail(ui, vm)
+    } else {
+        PlaylistGrid(ui, vm)
+    }
+}
+
+@Composable
+private fun PlaylistGrid(ui: BrowseUi, vm: BrowseViewModel) {
+    val first = remember { FocusRequester() }
+    LaunchedEffect(ui.playlists) {
+        if (ui.playlists.isNotEmpty()) runCatching { first.requestFocus() }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Text("Your playlists", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Sp.Text)
+        Spacer(Modifier.height(16.dp))
+        when {
+            ui.playlistsLoading -> CircularProgressIndicator(color = Sp.Accent)
+            ui.playlists.isEmpty() -> Text(
+                ui.error ?: "No playlists on your Deezer account.",
+                fontSize = 16.sp, color = Sp.Muted,
+            )
+            else -> LazyVerticalGrid(
+                // Fixed 5-wide keeps the cards a sensible size; Adaptive(220)
+                // made each one huge on a 1080p TV.
+                columns = GridCells.Fixed(5),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(bottom = 14.dp),
+            ) {
+                items(ui.playlists.size) { i ->
+                    PlaylistCard(
+                        ui.playlists[i],
+                        onClick = { vm.openPlaylist(ui.playlists[i]) },
+                        modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistCard(p: Playlist, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        modifier.fillMaxWidth()      // one grid cell — the column sizes the card
+            .tvFocus(shape, scale = 1.05f)
+            .clip(shape)
+            .background(Sp.Surface1)
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+    ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))
+                .background(Sp.Surface2), contentAlignment = Alignment.Center) {
+            if (p.cover.isNotEmpty()) {
+                AsyncImage(model = p.cover, contentDescription = null,
+                           modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Icon(Icons.Filled.QueueMusic, contentDescription = null, tint = Sp.Faint,
+                     modifier = Modifier.size(36.dp))
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(p.title, fontSize = 14.sp, color = Sp.Text, maxLines = 1,
+             fontWeight = FontWeight.SemiBold, overflow = TextOverflow.Ellipsis)
+        Text("${p.trackCount} tracks", fontSize = 12.sp, color = Sp.Muted)
+    }
+}
+
+@Composable
+private fun PlaylistDetail(ui: BrowseUi, vm: BrowseViewModel) {
+    val p = ui.openPlaylist ?: return
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (p.cover.isNotEmpty()) {
+                AsyncImage(model = p.cover, contentDescription = null,
+                           modifier = Modifier.size(72.dp).clip(RoundedCornerShape(10.dp)),
+                           contentScale = ContentScale.Crop)
+                Spacer(Modifier.width(16.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(p.title, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Sp.Text,
+                     maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${p.trackCount} tracks", fontSize = 14.sp, color = Sp.Muted)
+            }
+            PillButton("Queue all", onClick = { vm.queueWholePlaylist(p) },
+                       modifier = Modifier.focusRequester(first))
+        }
+        Spacer(Modifier.height(16.dp))
+
+        when {
+            ui.playlistTracksLoading -> CircularProgressIndicator(color = Sp.Accent)
+            else -> LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 12.dp),
+            ) {
+                items(ui.playlistTracks.size) { i ->
+                    TrackRow(ui.playlistTracks[i],
+                             onClick = { vm.addToQueue(ui.playlistTracks[i]) })
                 }
             }
         }

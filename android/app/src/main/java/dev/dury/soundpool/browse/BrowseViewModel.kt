@@ -164,6 +164,70 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun loadPlaylists(force: Boolean = false) {
+        if (_ui.value.playlistsLoaded && !force) return
+        _ui.update { it.copy(playlistsLoading = true, error = null) }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val arr = api().playlists()
+                val list = (0 until arr.length()).map { i ->
+                    val o = arr.getJSONObject(i)
+                    Playlist(o.optLong("id"), o.optString("title"),
+                             o.optInt("nb_tracks"), o.optString("picture"))
+                }
+                _ui.update { it.copy(playlists = list, playlistsLoading = false,
+                                     playlistsLoaded = true) }
+            } catch (e: Exception) {
+                // 403 here means no Deezer linked; say so plainly rather than
+                // leaving an empty list that looks like "no playlists".
+                _ui.update { it.copy(playlistsLoading = false, playlistsLoaded = true,
+                                     error = deezerError(e)) }
+            }
+        }
+    }
+
+    fun openPlaylist(p: Playlist) {
+        _ui.update { it.copy(openPlaylist = p, playlistTracks = emptyList(),
+                             playlistTracksLoading = true) }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val arr = api().playlistTracks(p.id)
+                val list = (0 until arr.length()).map { i ->
+                    val o = arr.getJSONObject(i)
+                    Track(o.optString("id"), o.optString("title"),
+                          o.optString("artist"), o.optString("img_url"))
+                }
+                _ui.update { it.copy(playlistTracks = list, playlistTracksLoading = false) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(playlistTracksLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun closePlaylist() {
+        _ui.update { it.copy(openPlaylist = null, playlistTracks = emptyList()) }
+    }
+
+    /** Queue every track in a playlist through the server's one-shot endpoint. */
+    fun queueWholePlaylist(p: Playlist) {
+        val room = _ui.value.roomId
+        if (room == 0) return
+        flash("Adding ${p.title}…")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                api().queuePlaylist(room, p.id)
+                flash("Added ${p.title}")
+            } catch (e: Exception) {
+                flash("Could not add that playlist")
+            }
+        }
+    }
+
+    private fun deezerError(e: Exception): String =
+        if ((e as? dev.dury.soundpool.net.ApiException)?.code == 403)
+            "Connect a Deezer account on the web app to see your playlists."
+        else e.message ?: "Could not load playlists"
+
     fun setQuery(q: String) {
         _ui.update { it.copy(query = q) }
     }

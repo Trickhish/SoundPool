@@ -45,6 +45,16 @@ class RoomApi(private val host: String, private val token: String,
             .execute().use { JSONArray(body(it)) }
     }
 
+    /** The signed-in user's Deezer playlists. */
+    fun playlists(): JSONArray = getObject("/deezer/playlists").optJSONArray("playlists") ?: JSONArray()
+
+    fun playlistTracks(playlistId: Long): JSONArray =
+        getObject("/deezer/playlist/$playlistId/tracks").optJSONArray("tracks") ?: JSONArray()
+
+    /** Queue a whole playlist into the room in one call (server expands it). */
+    fun queuePlaylist(roomId: Int, playlistId: Long) =
+        post("/room/$roomId/queue/playlist/$playlistId")
+
     /** Attach this box's unit as an output of the room. */
     fun attachOutput(roomId: Int, unitId: String) =
         post("/room/$roomId/output", JSONObject().put("unit_id", unitId))

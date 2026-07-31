@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -36,6 +37,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +57,7 @@ import kotlinx.coroutines.delay
 private enum class Page(val label: String, val icon: ImageVector) {
     NowPlaying("Now playing", Icons.Filled.MusicNote),
     Search("Search", Icons.Filled.Search),
+    Playlists("Playlists", Icons.Filled.LibraryMusic),
     Queue("Queue", Icons.Filled.QueueMusic),
     Settings("Settings", Icons.Filled.Settings),
 }
@@ -67,7 +74,11 @@ fun PlayerScreen(vm: BrowseViewModel, onSignOut: () -> Unit, onOpenDisplay: () -
     var page by remember { mutableStateOf(Page.NowPlaying) }
 
     LaunchedEffect(Unit) { vm.enterBrowse() }
-    BackHandler(enabled = page != Page.NowPlaying) { page = Page.NowPlaying }
+    // Disabled while a playlist is drilled in, so that page's own BACK (which
+    // closes the playlist) runs first instead of both firing.
+    BackHandler(enabled = page != Page.NowPlaying && ui.openPlaylist == null) {
+        page = Page.NowPlaying
+    }
 
     SpBackground {
         // The artwork tints the whole screen, the way Deezer's player does.
@@ -91,16 +102,19 @@ fun PlayerScreen(vm: BrowseViewModel, onSignOut: () -> Unit, onOpenDisplay: () -
             return@SpBackground
         }
 
+        val railFocus = remember { FocusRequester() }
+
         Row(Modifier.fillMaxSize()) {
-            NavRail(page, onSelect = { page = it })
+            NavRail(page, selectedFocus = railFocus, onSelect = { page = it })
 
             Column(
                 Modifier.weight(1f).padding(end = Sp.SafeH, top = Sp.SafeV, bottom = 18.dp)
             ) {
                 Box(Modifier.weight(1f)) {
                     when (page) {
-                        Page.NowPlaying -> NowPlayingPage(ui, vm)
+                        Page.NowPlaying -> NowPlayingPage(ui, vm, railFocus)
                         Page.Search -> SearchPage(ui, vm)
+                        Page.Playlists -> PlaylistsPage(ui, vm)
                         Page.Queue -> QueuePage(ui)
                         Page.Settings -> SettingsPage(ui, vm, onSignOut, onOpenDisplay, onOpenUnit)
                     }
@@ -136,7 +150,7 @@ fun PlayerScreen(vm: BrowseViewModel, onSignOut: () -> Unit, onOpenDisplay: () -
  * space that the content wants.
  */
 @Composable
-private fun NavRail(current: Page, onSelect: (Page) -> Unit) {
+private fun NavRail(current: Page, selectedFocus: FocusRequester, onSelect: (Page) -> Unit) {
     var railFocused by remember { mutableStateOf(false) }
     val width by animateDpAsState(if (railFocused) 208.dp else 76.dp, label = "rail")
 
@@ -154,18 +168,22 @@ private fun NavRail(current: Page, onSelect: (Page) -> Unit) {
         }
         Spacer(Modifier.height(26.dp))
         Page.entries.forEach { p ->
+            // Coming back from content lands on the current page's item.
             NavItem(p, selected = p == current, expanded = railFocused,
-                    onClick = { onSelect(p) })
+                    onClick = { onSelect(p) },
+                    modifier = if (p == current) Modifier.focusRequester(selectedFocus)
+                               else Modifier)
             Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun NavItem(page: Page, selected: Boolean, expanded: Boolean, onClick: () -> Unit) {
+private fun NavItem(page: Page, selected: Boolean, expanded: Boolean, onClick: () -> Unit,
+                    modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth().height(48.dp)
+        modifier.fillMaxWidth().height(48.dp)
             .tvFocus(shape, scale = 1.03f)
             .clip(shape)
             .background(if (selected) Sp.Accent.copy(alpha = 0.20f) else Color.Transparent)
@@ -188,7 +206,7 @@ private fun NavItem(page: Page, selected: Boolean, expanded: Boolean, onClick: (
 // ── now playing ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel) {
+private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel, railFocus: FocusRequester) {
     var pos by remember { mutableStateOf(0L) }
     LaunchedEffect(Unit) { while (true) { pos = vm.positionMs(); delay(250) } }
 
@@ -213,7 +231,16 @@ private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel) {
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                CircleIcon(Icons.Filled.SkipPrevious, "Previous", vm::prev)
+                // LEFT off the first control returns to the rail. The cover art
+                // sits between them so 2D focus search finds nothing, and a
+                // declarative `left =` didn't fire — hop imperatively instead.
+                CircleIcon(Icons.Filled.SkipPrevious, "Previous", vm::prev,
+                           modifier = Modifier.onKeyEvent { e ->
+                               if (e.type == KeyEventType.KeyDown &&
+                                   e.key == Key.DirectionLeft) {
+                                   runCatching { railFocus.requestFocus() }.isSuccess
+                               } else false
+                           })
                 CircleIcon(
                     if (ui.player.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     if (ui.player.playing) "Pause" else "Play",
