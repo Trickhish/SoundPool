@@ -1,5 +1,5 @@
 import bcrypt
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -150,3 +150,98 @@ async def register_handler(req: RegisterRequest,
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# ── Device-code sign-in (TV / set-top boxes) ──────────────────────────────
+# A D-pad and an on-screen keyboard make typing a password miserable, and it
+# puts the password on a screen everyone in the room can see. Instead the
+# device shows a short code, the user approves it from an already-signed-in
+# browser, and the device polls until a token appears.
+#
+# In-memory on purpose: the server is single-worker (the room conductor keeps
+# its state here too), and these entries live for minutes. A restart just means
+# re-showing the code; the token it produces is a normal DB row.
+
+import secrets as _secrets
+
+DEVICE_CODE_TTL = timedelta(minutes=10)
+_device_codes = {}          # user_code -> {device_code, user_id, created}
+_device_attempts = {}       # ip -> [timestamps]
+
+# No I/O/0/1 — they're the characters people misread off a TV across a room.
+_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def _prune_device_codes():
+    now = datetime.utcnow()
+    for k in [k for k, v in _device_codes.items() if now - v["created"] > DEVICE_CODE_TTL]:
+        _device_codes.pop(k, None)
+
+
+@router.post("/device/start")
+async def device_start():
+    """Called by the device. Returns the code to display and a secret to poll with."""
+    _prune_device_codes()
+    if len(_device_codes) > 500:
+        raise HTTPException(503, "Too many pending sign-ins, try again shortly")
+    for _ in range(20):
+        user_code = "".join(_secrets.choice(_CODE_ALPHABET) for _ in range(6))
+        if user_code not in _device_codes:
+            break
+    else:
+        raise HTTPException(503, "Could not allocate a code")
+    device_code = _secrets.token_urlsafe(32)
+    _device_codes[user_code] = {"device_code": device_code, "user_id": None,
+                                "created": datetime.utcnow()}
+    return JSONResponse(content={
+        "user_code": user_code,
+        "device_code": device_code,
+        "expires_in": int(DEVICE_CODE_TTL.total_seconds()),
+    })
+
+
+@router.get("/device/poll")
+async def device_poll(device_code: str, db: SessionLocal = Depends(get_db)):  # type: ignore
+    """Called by the device every few seconds until the user approves."""
+    _prune_device_codes()
+    entry = next((e for e in _device_codes.values() if e["device_code"] == device_code), None)
+    if entry is None:
+        raise HTTPException(410, "This code has expired — start again")
+    if entry["user_id"] is None:
+        return JSONResponse(content={"status": "pending"})
+
+    user: User = db.query(User).filter(User.id == entry["user_id"]).first()
+    if not user:
+        raise HTTPException(410, "This code has expired — start again")
+    token_value = create_access_token(user.id)
+    db.add(Token(value=token_value, user_id=user.id, creation_date=datetime.utcnow()))
+    db.commit()
+    # Single use: the token is issued exactly once per approved code.
+    _device_codes.pop(next(k for k, v in _device_codes.items() if v is entry), None)
+    return JSONResponse(content={"status": "approved", "token": token_value,
+                                 "username": user.username, "email": user.email})
+
+
+@router.post("/device/approve")
+async def device_approve(body: DeviceApproveRequest, request: Request,
+                         user: User = Depends(verify_token)):
+    """Called from a signed-in browser to hand this account to the device."""
+    ip = request.client.host if request.client else "?"
+    now = datetime.utcnow().timestamp()
+    hits = [t for t in _device_attempts.get(ip, []) if now - t < 60]
+    hits.append(now)
+    _device_attempts[ip] = hits
+    if len(_device_attempts) > 5000:
+        for k in [k for k, v in _device_attempts.items() if not v or now - v[-1] > 60]:
+            _device_attempts.pop(k, None)
+    if len(hits) > 10:
+        raise HTTPException(429, "Too many attempts — wait a minute and try again.")
+
+    _prune_device_codes()
+    code = (body.user_code or "").strip().upper().replace("-", "").replace(" ", "")
+    entry = _device_codes.get(code)
+    if entry is None:
+        raise HTTPException(404, "That code isn't valid (or has expired).")
+    if entry["user_id"] is not None:
+        raise HTTPException(409, "That code has already been used.")
+    entry["user_id"] = user.id
+    return JSONResponse(content={"status": "ok"})

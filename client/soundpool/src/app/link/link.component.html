@@ -1,0 +1,23 @@
+<div class="link-wrap">
+  <div class="link-card">
+    <h1>Link a device</h1>
+
+    <ng-container *ngIf="!done">
+      <p class="link-hint" *ngIf="!scanned">Enter the 6-character code shown on your TV.</p>
+      <p class="link-hint" *ngIf="scanned">Allow this device to sign in to your account?</p>
+      <input class="link-input" [(ngModel)]="code" (keyup.enter)="submit()"
+             maxlength="9" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" placeholder="ABC123" />
+      <button class="link-btn" (click)="submit()" [disabled]="clean.length !== 6 || busy">
+        {{ busy ? 'Linking…' : 'Link device' }}
+      </button>
+      <p class="link-error" *ngIf="error">{{ error }}</p>
+    </ng-container>
+
+    <ng-container *ngIf="done">
+      <p class="link-ok">✓ Device linked</p>
+      <p class="link-hint">It should sign in within a few seconds.</p>
+      <button class="link-btn ghost" (click)="again()">Link another</button>
+    </ng-container>
+  </div>
+</div>

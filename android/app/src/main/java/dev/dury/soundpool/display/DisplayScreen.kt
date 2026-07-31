@@ -24,8 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
+import dev.dury.soundpool.net.qrBitmap
 import kotlinx.coroutines.delay
 
 private val BG = Color(0xFF0E0B14)
@@ -355,15 +354,6 @@ private fun PartyQr(partyCode: String, mod: Modifier) {
         Spacer(Modifier.height(8.dp))
         Text("Scan to add songs", fontSize = 15.sp, color = MUTED)
     }
-}
-
-private fun qrBitmap(text: String, size: Int = 512): Bitmap {
-    val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size)
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    for (x in 0 until size) for (y in 0 until size) {
-        bmp.setPixel(x, y, if (matrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
-    }
-    return bmp
 }
 
 private fun fmt(ms: Long): String {

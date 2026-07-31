@@ -56,6 +56,23 @@ class Config(ctx: Context) {
         get() = sp.getString("start_mode", "status")!!
         set(v) = sp.edit().putString("start_mode", v).apply()
 
+    // ── account (standalone browse) ──
+    /** Session token from device-code sign-in. Empty when signed out. */
+    var authToken: String
+        get() = sp.getString("auth_token", "")!!
+        set(v) = sp.edit().putString("auth_token", v).apply()
+
+    var accountName: String
+        get() = sp.getString("account_name", "")!!
+        set(v) = sp.edit().putString("account_name", v).apply()
+
+    /** Room this box browses and plays into. */
+    var roomId: Int
+        get() = sp.getInt("room_id", 0)
+        set(v) = sp.edit().putInt("room_id", v).apply()
+
+    val signedIn: Boolean get() = authToken.isNotEmpty()
+
     val wsUrl: String
         get() = "${if (secure) "wss" else "ws"}://$host:$port/unit"
 }

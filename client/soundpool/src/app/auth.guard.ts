@@ -16,7 +16,10 @@ export const authGuard: CanActivateFn = (route, state) => {
     
     return true;
   } else {
-    router.navigate(['/login']);
+    // Remember where they were headed. Scanning a TV's sign-in QR lands on
+    // /link?code=… — bouncing to the login page would otherwise throw the code
+    // away and the QR would be useless to anyone not already signed in here.
+    router.navigate(['/login'], { queryParams: { redirect: state.url } });
     return false;
   }
 };

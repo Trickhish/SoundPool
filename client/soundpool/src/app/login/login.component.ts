@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 import { TranslateService,TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../api.service';
 import { DisplayService } from '../display.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LivefbService } from '../livefb.service';
 
 @Component({
@@ -27,6 +27,7 @@ export class LoginComponent {
     private auth: AuthService,
     private disp: DisplayService,
     private router: Router,
+    private aroute: ActivatedRoute,
     private livefb: LivefbService
   ) {
     library.addIcons(faEye, fasEye, faEyeSlash);
@@ -83,7 +84,8 @@ export class LoginComponent {
         this.api.user.username = r["username"];
         localStorage.setItem("token", r["token"]);
         this.livefb.launch();
-        this.router.navigate(['/']);
+        const back = this.aroute.snapshot.queryParamMap.get('redirect');
+        this.router.navigateByUrl(back || '/');
       },
       error: (err)=> {
         if (err.status==401) { // wrong credentials

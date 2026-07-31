@@ -123,3 +123,5 @@ class FavoriteRequest(BaseModel):
     artist: str = ""
     img_url: str = ""
     room_id: Optional[int] = None   # for a heads-up on the big-screen activity feed
+class DeviceApproveRequest(BaseModel):
+    user_code: str
