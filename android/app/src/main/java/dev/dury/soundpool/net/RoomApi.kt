@@ -34,6 +34,9 @@ class RoomApi(private val host: String, private val token: String,
         http.newCall(req(path).post((payload?.toString() ?: "{}").toRequestBody(json)).build())
             .execute().use { body(it) }
 
+    private fun delete(path: String): String =
+        http.newCall(req(path).delete().build()).execute().use { body(it) }
+
     fun rooms(): JSONArray = getArray("/room")
 
     fun room(id: Int): JSONObject = getObject("/room/$id")
@@ -54,6 +57,11 @@ class RoomApi(private val host: String, private val token: String,
     /** Queue a whole playlist into the room in one call (server expands it). */
     fun queuePlaylist(roomId: Int, playlistId: Long) =
         post("/room/$roomId/queue/playlist/$playlistId")
+
+    fun clearQueue(roomId: Int) = delete("/room/$roomId/queue/clear")
+    fun shuffleQueue(roomId: Int) = post("/room/$roomId/queue/shuffle")
+    fun jump(roomId: Int, index: Int) =
+        post("/room/$roomId/queue/jump", JSONObject().put("index", index))
 
     /** Attach this box's unit as an output of the room. */
     fun attachOutput(roomId: Int, unitId: String) =

@@ -223,6 +223,29 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Replace the queue with this playlist and start it — optionally shuffled.
+     *  This is the Deezer/Spotify "Play" gesture: it takes over the room rather
+     *  than appending, so the current queue is cleared first. */
+    fun playPlaylist(p: Playlist, shuffle: Boolean) {
+        val room = _ui.value.roomId
+        if (room == 0) return
+        flash(if (shuffle) "Shuffling ${p.title}…" else "Playing ${p.title}…")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val api = api()
+                api.clearQueue(room)
+                api.queuePlaylist(room, p.id)
+                // Shuffle before starting so the first track is random too;
+                // shuffle_queue pins the *playing* track, and nothing is playing
+                // yet at this point.
+                if (shuffle) api.shuffleQueue(room)
+                api.jump(room, 0)          // play from the top of the new queue
+            } catch (e: Exception) {
+                flash("Could not play that playlist")
+            }
+        }
+    }
+
     private fun deezerError(e: Exception): String =
         if ((e as? dev.dury.soundpool.net.ApiException)?.code == 403)
             "Connect a Deezer account on the web app to see your playlists."

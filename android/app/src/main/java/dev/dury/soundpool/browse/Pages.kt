@@ -14,6 +14,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -274,8 +277,18 @@ private fun PlaylistDetail(ui: BrowseUi, vm: BrowseViewModel) {
                      maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${p.trackCount} tracks", fontSize = 14.sp, color = Sp.Muted)
             }
-            PillButton("Queue all", onClick = { vm.queueWholePlaylist(p) },
-                       modifier = Modifier.focusRequester(first))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                // Play and Shuffle replace the queue with the playlist; Queue all
+                // appends. Play is primary and takes initial focus.
+                IconPill(Icons.Filled.PlayArrow, "Play",
+                         onClick = { vm.playPlaylist(p, shuffle = false) },
+                         primary = true, modifier = Modifier.focusRequester(first))
+                IconPill(Icons.Filled.Shuffle, "Shuffle",
+                         onClick = { vm.playPlaylist(p, shuffle = true) })
+                IconPill(Icons.Filled.Add, "Queue all",
+                         onClick = { vm.queueWholePlaylist(p) })
+            }
         }
         Spacer(Modifier.height(16.dp))
 
@@ -370,6 +383,26 @@ fun RoomPicker(ui: BrowseUi, onPick: (Int) -> Unit, onReload: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun IconPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String,
+             onClick: () -> Unit, primary: Boolean = false, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(999.dp)
+    val fg = if (primary) Color.White else Sp.Text
+    Row(
+        modifier
+            .tvFocus(shape, scale = 1.06f)
+            .clip(shape)
+            .background(if (primary) Sp.Accent else Color(0x1FFFFFFF))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = fg)
     }
 }
 
