@@ -151,7 +151,7 @@
    A rAF loop writes --beat (1 on the hit, decaying to 0) onto .display-root.
    Everything here is transform/opacity driven by that variable, so no layout
    work happens 60 times a second. */
-.display-root { --beat: 0; }
+.display-root { --beat: 0; --energy: 1; }
 
 /* Subtle: the cover swells and its glow lifts on each beat. Scoped to the mode
    so nothing reacts unless that effect is actually selected. */
@@ -174,7 +174,7 @@
   background:
     radial-gradient(ellipse at center, rgba(255,255,255,0.10), transparent 65%),
     linear-gradient(90deg, rgba(255,43,109,0.35), transparent 12%, transparent 88%, rgba(255,43,109,0.35));
-  opacity: var(--beat);
+  opacity: var(--beat);   /* already scaled by --energy in the loop */
   mix-blend-mode: screen;
 }
 

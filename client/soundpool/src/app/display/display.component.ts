@@ -182,11 +182,37 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private beatIdx = 0;
   private rafId: any = null;
   private beatSongId: string | null = null;
+  private energy = 1;          // 0..1, smoothed — how hard the effect hits
+  private energyIdx = 0;
+
+  /** Are we under the vocals right now, or in an instrumental stretch?
+   *  Reuses the same evidence as the lead-in dots: explicit empty-line break
+   *  markers, or real per-line durations. With no synced lyrics we can't tell,
+   *  so everything counts as instrumental and the effect behaves as before. */
+  private targetEnergy(pos: number): number {
+    const L = this.lyrics;
+    if (!L.length) return 1;
+    while (this.energyIdx > 0 && L[this.energyIdx].ms > pos) this.energyIdx--;
+    while (this.energyIdx + 1 < L.length && L[this.energyIdx + 1].ms <= pos) this.energyIdx++;
+    const cur = L[this.energyIdx];
+    if (!cur || cur.ms > pos) return 1;              // intro, before the first line
+    if (!cur.line.trim()) return 1;                  // marked instrumental break
+    const next = L[this.energyIdx + 1];
+    // How long this line is actually sung. Without durations, assume a line
+    // runs until the next one but cap it, rather than guessing from the text —
+    // that guess was wrong enough on slow songs to break the lead-in dots.
+    const end = cur.dur && cur.dur > 0
+      ? cur.ms + cur.dur
+      : Math.min(next ? next.ms : cur.ms + 4000, cur.ms + 4000);
+    return pos <= end ? 0.4 : 1;                     // singing -> hold back
+  }
 
   private loadBeats() {
     this.beats = [];
     this.beatUsable = false;
     this.beatIdx = 0;
+    this.energyIdx = 0;
+    this.energy = 1;
     const sid = this.nowId;
     if (!sid || !this.info?.beat_effect || this.info.beat_effect === 'off') return;
     this.beatSongId = sid;
@@ -230,7 +256,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
       const period = next ? next - this.beats[this.beatIdx] : 500;
       // Sharp attack then decay, so each beat reads as a hit rather than a wobble.
       const v = since < 0 ? 0 : Math.max(0, 1 - since / (period * 0.55));
-      el.style.setProperty('--beat', (v * v).toFixed(3));
+
+      // Follow the song's structure: hold back under the vocals so the effect
+      // doesn't fight the lyrics, and open up during instrumental stretches.
+      // Eased rather than switched, or the change lands as a jolt mid-phrase.
+      const target = this.targetEnergy(pos);
+      this.energy += (target - this.energy) * 0.04;
+      el.style.setProperty('--energy', this.energy.toFixed(3));
+      el.style.setProperty('--beat', (v * v * this.energy).toFixed(3));
     };
     this.zone.runOutsideAngular(() => { this.rafId = requestAnimationFrame(step); });
   }
