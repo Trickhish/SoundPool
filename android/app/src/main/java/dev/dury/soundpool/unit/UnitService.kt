@@ -15,7 +15,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.session.MediaSession
+import dev.dury.soundpool.net.RoomControl
 import dev.dury.soundpool.Config
 import dev.dury.soundpool.MainActivity
 import dev.dury.soundpool.net.DeezerDataSource
@@ -52,6 +55,8 @@ class UnitService : Service() {
 
     private lateinit var cfg: Config
     private lateinit var player: ExoPlayer
+    private var session: MediaSession? = null
+    private lateinit var control: RoomControl
     private var socket: UnitSocket? = null
     private val main = Handler(Looper.getMainLooper())
 
@@ -86,6 +91,43 @@ class UnitService : Service() {
                 /* handleAudioFocus = */ true,
             )
             .build()
+
+        control = RoomControl(this)
+
+        // A MediaSession is what makes the remote's play/pause, next and
+        // previous keys reach us at all — including while another app is in
+        // front — and it puts the track in the system's now-playing UI.
+        //
+        // The transport is forwarded to the room, not to this player: as an
+        // output we don't own the timeline, so acting locally would desync us
+        // until the conductor's next render undid it. Everything else passes
+        // straight through so the session still reports real position/state.
+        val remote = object : ForwardingPlayer(player) {
+            override fun play() { if (control.available()) control.play() else super.play() }
+            override fun pause() { if (control.available()) control.pause() else super.pause() }
+            override fun seekToNext() { if (control.available()) control.next() else super.seekToNext() }
+            override fun seekToPrevious() { if (control.available()) control.prev() else super.seekToPrevious() }
+            override fun seekToNextMediaItem() = seekToNext()
+            override fun seekToPreviousMediaItem() = seekToPrevious()
+
+            // The room decides what's next, so the queue here is always a
+            // single item and these commands would otherwise be reported as
+            // unavailable and the keys ignored.
+            override fun getAvailableCommands(): Player.Commands =
+                super.getAvailableCommands().buildUpon()
+                    .addAll(
+                        Player.COMMAND_PLAY_PAUSE,
+                        Player.COMMAND_SEEK_TO_NEXT,
+                        Player.COMMAND_SEEK_TO_PREVIOUS,
+                        Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                        Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                    )
+                    .build()
+
+            override fun isCommandAvailable(command: Int): Boolean =
+                availableCommands.contains(command)
+        }
+        session = MediaSession.Builder(this, remote).build()
 
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -126,6 +168,8 @@ class UnitService : Service() {
     override fun onDestroy() {
         main.removeCallbacks(progressTick)
         socket?.close()
+        session?.release()
+        session = null
         player.release()
         super.onDestroy()
     }
