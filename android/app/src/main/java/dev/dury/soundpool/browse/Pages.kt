@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -236,7 +238,8 @@ fun RoomPicker(ui: BrowseUi, onPick: (Int) -> Unit, onReload: () -> Unit) {
                     ) {
                         Box(Modifier.size(38.dp).clip(CircleShape).background(Sp.Surface2),
                             contentAlignment = Alignment.Center) {
-                            Text("♪", fontSize = 17.sp, color = Sp.Accent)
+                            Icon(Icons.Filled.Speaker, contentDescription = null,
+                                 tint = Sp.Accent, modifier = Modifier.size(20.dp))
                         }
                         Spacer(Modifier.width(16.dp))
                         Text(r.name, fontSize = 21.sp, fontWeight = FontWeight.SemiBold,

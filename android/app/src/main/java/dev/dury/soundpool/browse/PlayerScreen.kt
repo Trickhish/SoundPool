@@ -1,16 +1,28 @@
 package dev.dury.soundpool.browse
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -35,11 +48,11 @@ import dev.dury.soundpool.ui.SpBackground
 import dev.dury.soundpool.ui.tvFocus
 import kotlinx.coroutines.delay
 
-private enum class Page(val label: String, val glyph: String) {
-    NowPlaying("Now playing", "♪"),
-    Search("Search", "⌕"),
-    Queue("Queue", "☰"),
-    Settings("Settings", "⚙"),
+private enum class Page(val label: String, val icon: ImageVector) {
+    NowPlaying("Now playing", Icons.Filled.MusicNote),
+    Search("Search", Icons.Filled.Search),
+    Queue("Queue", Icons.Filled.QueueMusic),
+    Settings("Settings", Icons.Filled.Settings),
 }
 
 /**
@@ -117,39 +130,58 @@ fun PlayerScreen(vm: BrowseViewModel, onSignOut: () -> Unit, onOpenDisplay: () -
 
 // ── nav rail ────────────────────────────────────────────────────────────────
 
+/**
+ * Icon-only rail that widens to show labels while it has focus — the pattern
+ * Netflix and Spotify use on TV. Permanently expanded it just ate horizontal
+ * space that the content wants.
+ */
 @Composable
 private fun NavRail(current: Page, onSelect: (Page) -> Unit) {
+    var railFocused by remember { mutableStateOf(false) }
+    val width by animateDpAsState(if (railFocused) 208.dp else 76.dp, label = "rail")
+
     Column(
-        Modifier.width(196.dp).fillMaxHeight()
-            .background(Color(0x66000000))
-            .padding(start = 24.dp, top = Sp.SafeV, end = 12.dp, bottom = 18.dp),
+        Modifier.width(width).fillMaxHeight()
+            .background(if (railFocused) Color(0x8A000000) else Color.Transparent)
+            .onFocusChanged { railFocused = it.hasFocus }
+            .focusGroup()
+            .padding(top = Sp.SafeV, bottom = 18.dp, start = 14.dp, end = 14.dp),
+        horizontalAlignment = Alignment.Start,
     ) {
-        Text("SoundPool", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Sp.Text)
-        Spacer(Modifier.height(28.dp))
+        Box(Modifier.size(30.dp).clip(CircleShape).background(Sp.Accent),
+            contentAlignment = Alignment.Center) {
+            Text("S", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+        }
+        Spacer(Modifier.height(26.dp))
         Page.entries.forEach { p ->
-            NavItem(p, selected = p == current, onClick = { onSelect(p) })
-            Spacer(Modifier.height(6.dp))
+            NavItem(p, selected = p == current, expanded = railFocused,
+                    onClick = { onSelect(p) })
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun NavItem(page: Page, selected: Boolean, onClick: () -> Unit) {
+private fun NavItem(page: Page, selected: Boolean, expanded: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth()
+        Modifier.fillMaxWidth().height(48.dp)
             .tvFocus(shape, scale = 1.03f)
             .clip(shape)
-            .background(if (selected) Sp.Accent.copy(alpha = 0.18f) else Color.Transparent)
+            .background(if (selected) Sp.Accent.copy(alpha = 0.20f) else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(page.glyph, fontSize = 17.sp, color = if (selected) Sp.Accent else Sp.Muted)
-        Spacer(Modifier.width(12.dp))
-        Text(page.label, fontSize = 15.sp,
-             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-             color = if (selected) Sp.Text else Sp.Muted)
+        Icon(page.icon, contentDescription = page.label,
+             tint = if (selected) Sp.Accent else Sp.Muted,
+             modifier = Modifier.size(22.dp))
+        if (expanded) {
+            Spacer(Modifier.width(14.dp))
+            Text(page.label, fontSize = 15.sp, maxLines = 1,
+                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                 color = if (selected) Sp.Text else Sp.Muted)
+        }
     }
 }
 
@@ -181,10 +213,14 @@ private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel) {
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                CircleIcon("⏮", vm::prev)
-                CircleIcon(if (ui.player.playing) "⏸" else "▶", vm::playPause, primary = true,
-                           modifier = Modifier.focusRequester(playFocus))
-                CircleIcon("⏭", vm::next)
+                CircleIcon(Icons.Filled.SkipPrevious, "Previous", vm::prev)
+                CircleIcon(
+                    if (ui.player.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    if (ui.player.playing) "Pause" else "Play",
+                    vm::playPause, primary = true,
+                    modifier = Modifier.focusRequester(playFocus),
+                )
+                CircleIcon(Icons.Filled.SkipNext, "Next", vm::next)
             }
 
             ui.player.queue.firstOrNull()?.let {
@@ -209,7 +245,8 @@ private fun Cover(url: String, size: Dp, glyph: Int = 40) {
             AsyncImage(model = url, contentDescription = null,
                        modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
-            Text("♪", fontSize = glyph.sp, color = Sp.Faint)
+            Icon(Icons.Filled.MusicNote, contentDescription = null, tint = Sp.Faint,
+                 modifier = Modifier.size((glyph * 1.4).dp))
         }
     }
 }
@@ -233,8 +270,8 @@ private fun Progress(pos: Long, dur: Long) {
 }
 
 @Composable
-private fun CircleIcon(glyph: String, onClick: () -> Unit, primary: Boolean = false,
-                       modifier: Modifier = Modifier) {
+private fun CircleIcon(icon: ImageVector, label: String, onClick: () -> Unit,
+                       primary: Boolean = false, modifier: Modifier = Modifier) {
     val size = if (primary) 72.dp else 56.dp
     Box(
         modifier.size(size)
@@ -244,8 +281,9 @@ private fun CircleIcon(glyph: String, onClick: () -> Unit, primary: Boolean = fa
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(glyph, fontSize = if (primary) 26.sp else 20.sp,
-             color = if (primary) Color.White else Sp.Text)
+        Icon(icon, contentDescription = label,
+             tint = if (primary) Color.White else Sp.Text,
+             modifier = Modifier.size(if (primary) 34.dp else 26.dp))
     }
 }
 
@@ -274,9 +312,13 @@ private fun MiniBar(ui: BrowseUi, vm: BrowseViewModel) {
             }
             Spacer(Modifier.width(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallIcon("⏮", vm::prev)
-                SmallIcon(if (ui.player.playing) "⏸" else "▶", vm::playPause, primary = true)
-                SmallIcon("⏭", vm::next)
+                SmallIcon(Icons.Filled.SkipPrevious, "Previous", vm::prev)
+                SmallIcon(
+                    if (ui.player.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    if (ui.player.playing) "Pause" else "Play",
+                    vm::playPause, primary = true,
+                )
+                SmallIcon(Icons.Filled.SkipNext, "Next", vm::next)
             }
         }
         Spacer(Modifier.height(10.dp))
@@ -288,7 +330,8 @@ private fun MiniBar(ui: BrowseUi, vm: BrowseViewModel) {
 }
 
 @Composable
-private fun SmallIcon(glyph: String, onClick: () -> Unit, primary: Boolean = false) {
+private fun SmallIcon(icon: ImageVector, label: String, onClick: () -> Unit,
+                      primary: Boolean = false) {
     Box(
         Modifier.size(if (primary) 44.dp else 38.dp)
             .tvFocus(RoundedCornerShape(50), scale = 1.12f)
@@ -297,8 +340,9 @@ private fun SmallIcon(glyph: String, onClick: () -> Unit, primary: Boolean = fal
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(glyph, fontSize = if (primary) 16.sp else 14.sp,
-             color = if (primary) Color.White else Sp.Text)
+        Icon(icon, contentDescription = label,
+             tint = if (primary) Color.White else Sp.Text,
+             modifier = Modifier.size(if (primary) 22.dp else 19.dp))
     }
 }
 
