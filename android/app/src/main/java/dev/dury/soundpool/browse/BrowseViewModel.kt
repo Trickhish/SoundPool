@@ -309,8 +309,19 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private fun loadAvatar() {
+        if (_ui.value.avatarUrl.isNotEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val url = api().user().optString("deezer_picture")
+                if (url.isNotEmpty()) _ui.update { it.copy(avatarUrl = url) }
+            }
+        }
+    }
+
     /** Called when the browse screen opens. */
     fun enterBrowse() {
+        loadAvatar()
         if (cfg.roomId != 0) {
             openFeed(cfg.roomId)
             // Re-opening straight into a saved room means we never saw the

@@ -21,10 +21,22 @@ async def test_handler(
         user: User = Depends(verify_token)
     ):
 
+    # Include the linked Deezer profile (name + avatar) so clients can show it.
+    # Best-effort: never fail the whole call if Deezer is unreachable.
+    deezer = {"name": "", "picture": ""}
+    if getattr(user, "deezer_arl", None):
+        try:
+            import tracks_manager as tmg
+            deezer = tmg.get_deezer_profile(user.deezer_arl)
+        except Exception as e:
+            print(f"[user] deezer profile failed: {e}")
+
     return JSONResponse(content={
         "username": user.username,
         "email": user.email,
         "is_guest": bool(getattr(user, "is_guest", False)),
+        "deezer_name": deezer["name"],
+        "deezer_picture": deezer["picture"],
     })
 
 @router.get("/units")

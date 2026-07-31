@@ -42,6 +42,7 @@ data class BrowseUi(
     val playlistTracksLoading: Boolean = false,
 
     val player: PlayerState = PlayerState(),
+    val avatarUrl: String = "",   // linked Deezer profile picture, for the rail
     val toast: String? = null,
     val error: String? = null,
 )

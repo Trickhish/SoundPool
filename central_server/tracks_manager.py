@@ -305,6 +305,32 @@ def get_deezer_playlist_tracks_gw(playlist_id: int, arl: str) -> list:
     return tracks
 
 
+_profile_cache = {}   # arl -> {name, picture}
+
+
+def get_deezer_profile(arl: str) -> dict:
+    """The linked Deezer account's display name and avatar URL.
+    Cached per arl — it never changes within a session and getUserData is slow."""
+    if not arl:
+        return {"name": "", "picture": ""}
+    if arl in _profile_cache:
+        return _profile_cache[arl]
+    _init_session(arl)
+    dz.session.cookies.set('arl', arl, domain='.deezer.com')
+    resp = dz.session.post('https://www.deezer.com/ajax/gw-light.php', params={
+        'method': 'deezer.getUserData', 'input': '3',
+        'api_version': '1.0', 'api_token': '',
+    }, json={})
+    user = resp.json()['results']['USER']
+    pic = user.get('USER_PICTURE', '')
+    profile = {
+        "name": user.get('BLOG_NAME') or user.get('FIRSTNAME', ''),
+        "picture": f"https://e-cdns-images.dzcdn.net/images/user/{pic}/250x250-000000-80-0-0.jpg" if pic else "",
+    }
+    _profile_cache[arl] = profile
+    return profile
+
+
 def get_deezer_playlists(arl: str):
     _init_session(arl)
     # Ensure cookie is scoped to .deezer.com so it's sent to api.deezer.com

@@ -39,6 +39,9 @@ class RoomApi(private val host: String, private val token: String,
 
     fun rooms(): JSONArray = getArray("/room")
 
+    /** Account info incl. the linked Deezer name + avatar URL. */
+    fun user(): JSONObject = getObject("/user")
+
     fun room(id: Int): JSONObject = getObject("/room/$id")
 
     fun search(query: String): JSONArray {

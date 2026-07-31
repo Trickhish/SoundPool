@@ -130,7 +130,8 @@ internal fun PlayerShell(
         val railFocus = remember { FocusRequester() }
 
         Row(Modifier.fillMaxSize()) {
-            NavRail(page, selectedFocus = railFocus, onSelect = onSelectPage)
+            NavRail(page, selectedFocus = railFocus, avatarUrl = ui.avatarUrl,
+                    onSelect = onSelectPage)
 
             Column(
                 Modifier.weight(1f).padding(end = Sp.SafeH, top = Sp.SafeV, bottom = 18.dp)
@@ -175,7 +176,8 @@ internal fun PlayerShell(
  * space that the content wants.
  */
 @Composable
-private fun NavRail(current: Page, selectedFocus: FocusRequester, onSelect: (Page) -> Unit) {
+private fun NavRail(current: Page, selectedFocus: FocusRequester, avatarUrl: String,
+                    onSelect: (Page) -> Unit) {
     var railFocused by remember { mutableStateOf(false) }
     val width by animateDpAsState(if (railFocused) 208.dp else 76.dp, label = "rail")
 
@@ -187,9 +189,18 @@ private fun NavRail(current: Page, selectedFocus: FocusRequester, onSelect: (Pag
             .padding(top = Sp.SafeV, bottom = 18.dp, start = 14.dp, end = 14.dp),
         horizontalAlignment = Alignment.Start,
     ) {
-        Box(Modifier.size(30.dp).clip(CircleShape).background(Sp.Accent),
+        // The linked Deezer account's avatar; falls back to the app monogram
+        // until it loads or if no Deezer is connected.
+        Box(Modifier.size(34.dp).clip(CircleShape).background(Sp.Surface2),
             contentAlignment = Alignment.Center) {
-            Text("S", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+            if (avatarUrl.isNotEmpty()) {
+                AsyncImage(model = avatarUrl, contentDescription = "Account",
+                           modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Box(Modifier.fillMaxSize().background(Sp.Accent), contentAlignment = Alignment.Center) {
+                    Text("S", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                }
+            }
         }
         Spacer(Modifier.height(26.dp))
         Page.entries.forEach { p ->
