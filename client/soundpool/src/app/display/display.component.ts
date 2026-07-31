@@ -257,6 +257,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private loadLyrics() {
     this.lyrics = [];
     this.plain = '';
+    this.plainLines = [];
+    this.plainIdx = -1;
     this.activeIdx = -1;
     if (!this.nowId || !this.info?.show_lyrics) return;
     this.lyricsLoading = true;
@@ -264,6 +266,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       next: (r) => this.zone.run(() => {
         this.lyrics = r?.synced || [];
         this.plain = r?.plain || '';
+        this.buildPlainLines();
         this.lyricsLoading = false;
         this.activeIdx = -1;   // start fresh so the first tick picks the new song's line, not the old index
         this.kickBg();         // lyrics rendering can leave the blur layer stale — nudge it
@@ -294,8 +297,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.activeIdx = idx;
         this.scrollActive();
       }
-    } else if (this.plain) {
-      this.scrollPlain();
+    } else if (this.plainLines.length) {
+      this.updatePlainIdx();
     }
   }
 
@@ -303,13 +306,34 @@ export class DisplayComponent implements OnInit, OnDestroy {
    *  on screen. Without timings the best we can do is map position to scroll
    *  linearly — it drifts around intros and outros, which is why it's labelled
    *  approximate rather than pretending to be synced. */
-  private scrollPlain() {
-    const el = document.querySelector('.disp-lyr-scroll.plain') as HTMLElement | null;
-    if (!el || !this.durMs) return;
-    const max = el.scrollHeight - el.clientHeight;
-    if (max <= 0) return;
-    const p = Math.max(0, Math.min(1, this.posMs / this.durMs));
-    el.scrollTop = max * p;
+  /** Plain lyrics split into lines, so the estimated current one can be
+   *  highlighted and centred exactly like a synced line. Rendering them as one
+   *  block meant nothing stood out — you couldn't tell which part was being
+   *  sung even when the scroll position was right. */
+  plainLines: string[] = [];
+  plainIdx = -1;
+  private buildPlainLines() {
+    this.plainLines = (this.plain || '')
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+    this.plainIdx = -1;
+  }
+
+  /** Estimated current line from playback progress. */
+  private updatePlainIdx() {
+    if (!this.plainLines.length || !this.durMs) return;
+    const p = Math.max(0, Math.min(0.999, this.posMs / this.durMs));
+    const idx = Math.floor(p * this.plainLines.length);
+    if (idx !== this.plainIdx) {
+      this.plainIdx = idx;
+      setTimeout(() => {
+        const scroll = document.querySelector('.disp-lyr-scroll.plain') as HTMLElement | null;
+        const el = document.querySelector('#pline-' + idx) as HTMLElement | null;
+        if (!scroll || !el) return;
+        scroll.scrollTop = el.offsetTop - scroll.clientHeight / 2 + el.offsetHeight / 2;
+      }, 0);
+    }
   }
 
   private scrollActive() {

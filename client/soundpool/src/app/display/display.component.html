@@ -108,12 +108,15 @@
           </ng-container>
         </div>
 
-        <!-- Plain fallback: no timings, so it's scrolled by playback progress
-             and labelled as approximate. -->
-        <div *ngIf="!lyrics.length && plain" class="disp-lyr-scroll plain">
-          <pre>{{ plain }}</pre>
+        <!-- Plain fallback: no timings, so the current line is estimated from
+             playback progress. Rendered line-by-line like the synced view so the
+             estimated line is highlighted and centred — as one block nothing
+             stood out and you couldn't tell where you were. -->
+        <div *ngIf="!lyrics.length && plainLines.length" class="disp-lyr-scroll plain">
+          <p *ngFor="let l of plainLines; let i = index" [id]="'pline-' + i" class="disp-lyr-line"
+             [class.active]="i === plainIdx" [class.past]="i < plainIdx">{{ l }}</p>
         </div>
-        <div *ngIf="!lyrics.length && plain" class="disp-lyr-approx">approximate timing</div>
+        <div *ngIf="!lyrics.length && plainLines.length" class="disp-lyr-approx">approximate timing</div>
       </section>
 
       <!-- ── Queue (full column, when lyrics are off) ── -->

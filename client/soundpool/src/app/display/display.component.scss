@@ -422,21 +422,9 @@
   &::-webkit-scrollbar { display: none; }
 }
 .disp-lyr-scroll.plain {
-  /* Half-panel padding top and bottom so the auto-scrolled position sits in the
-     middle rather than at the very top. In vh, not %, because percentage
-     padding resolves against WIDTH — which differs hugely between the
-     two-column and fullscreen-karaoke layouts. */
-  padding: 34vh 4%;
-  scroll-behavior: auto;   /* driven every 250ms; smooth would fight it */
-  pre {
-    font-family: inherit;
-    white-space: pre-wrap;
-    font-size: 3vh;
-    line-height: 1.6;
-    opacity: 0.8;
-    text-align: center;
-    margin: 0;
-  }
+  /* Inherits the padding and line styling of the synced view, so the estimated
+     current line is highlighted and centred the same way. */
+  scroll-behavior: smooth;
 }
 .disp-lyr-line {
   font-size: 3.4vh;
@@ -466,7 +454,6 @@
     &.active { transform: scale(1.04); }
   }
   .disp-lyr-scroll { padding: 34vh 4%; }
-  .disp-lyr-scroll.plain pre { font-size: 5vh; }
   .disp-lyr-note { font-size: 4vh; }
 }
 
