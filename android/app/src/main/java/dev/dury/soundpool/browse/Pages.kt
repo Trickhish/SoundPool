@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import dev.dury.soundpool.ui.Sp
+import dev.dury.soundpool.ui.spClickable
 import dev.dury.soundpool.ui.tvFocus
 
 // ── search ──────────────────────────────────────────────────────────────────
@@ -117,7 +118,7 @@ private fun TrackRow(t: Track, onClick: () -> Unit, modifier: Modifier = Modifie
             .tvFocus(shape)
             .clip(shape)
             .background(Sp.Surface1)
-            .clickable(onClick = onClick)
+            .spClickable(onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -238,7 +239,7 @@ private fun PlaylistCard(p: Playlist, onClick: () -> Unit, modifier: Modifier = 
             .tvFocus(shape, scale = 1.05f)
             .clip(shape)
             .background(Sp.Surface1)
-            .clickable(onClick = onClick)
+            .spClickable(onClick)
             .padding(8.dp),
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))
@@ -367,7 +368,7 @@ fun RoomPicker(ui: BrowseUi, onPick: (Int) -> Unit, onReload: () -> Unit) {
                             .tvFocus(shape)
                             .clip(shape)
                             .background(Sp.Surface1)
-                            .clickable { onPick(r.id) }
+                            .spClickable { onPick(r.id) }
                             .padding(horizontal = 22.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -396,7 +397,7 @@ fun IconPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Strin
             .tvFocus(shape, scale = 1.06f)
             .clip(shape)
             .background(if (primary) Sp.Accent else Color(0x1FFFFFFF))
-            .clickable(onClick = onClick)
+            .spClickable(onClick)
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -415,7 +416,7 @@ fun PillButton(label: String, onClick: () -> Unit, primary: Boolean = true,
             .tvFocus(shape, scale = 1.06f)
             .clip(shape)
             .background(if (primary) Sp.Accent else Color(0x1FFFFFFF))
-            .clickable(onClick = onClick)
+            .spClickable(onClick)
             .padding(horizontal = 26.dp, vertical = 13.dp),
         contentAlignment = Alignment.Center,
     ) {

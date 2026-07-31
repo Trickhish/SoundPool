@@ -5,6 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -78,6 +79,17 @@ fun SpBackground(content: @Composable () -> Unit) {
 }
 
 /**
+ * Clickable without the Material ripple/hover indication. On TV the ripple
+ * shows up as a stray grey disc when an element is focused, and tvFocus already
+ * conveys focus (ring + scale + glow), so the indication is pure noise.
+ */
+@Composable
+fun Modifier.spClickable(onClick: () -> Unit): Modifier {
+    val interaction = remember { MutableInteractionSource() }
+    return this.clickable(interactionSource = interaction, indication = null, onClick = onClick)
+}
+
+/**
  * Focus treatment for TV. Across a room you need more than a subtle tint to see
  * where you are, so focus lifts the element, rings it in the accent colour and
  * casts a glow.
@@ -90,10 +102,11 @@ fun Modifier.tvFocus(
     var focused by remember { mutableStateOf(false) }
     val s by animateFloatAsState(if (focused) scale else 1f, spring(), label = "focusScale")
     val ring by animateDpAsState(if (focused) 2.dp else 1.dp, label = "focusRing")
+    // Deliberately no elevation shadow: on API 29 (the KM6) a colored
+    // spot/ambient shadow renders as a black blob offset downward instead of a
+    // tint. Scale + accent ring already read clearly across a room.
     return this
         .onFocusChanged { focused = it.isFocused }
         .scale(s)
-        .shadow(if (focused) 18.dp else 0.dp, shape, ambientColor = Sp.Accent,
-                spotColor = Sp.Accent)
         .border(ring, if (focused) Sp.Accent else Color(0x1AFFFFFF), shape)
 }

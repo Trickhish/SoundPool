@@ -30,11 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import dev.dury.soundpool.ui.Sp
 import dev.dury.soundpool.ui.SpBackground
+import dev.dury.soundpool.ui.spClickable
 import dev.dury.soundpool.ui.tvFocus
 import kotlinx.coroutines.delay
 
@@ -223,7 +225,7 @@ private fun NavItem(page: Page, selected: Boolean, expanded: Boolean, onClick: (
             .tvFocus(shape, scale = 1.03f)
             .clip(shape)
             .background(if (selected) Sp.Accent.copy(alpha = 0.20f) else Color.Transparent)
-            .clickable(onClick = onClick)
+            .spClickable(onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -250,9 +252,20 @@ private fun NowPlayingPage(ui: BrowseUi, actions: PlayerActions, railFocus: Focu
     LaunchedEffect(Unit) { runCatching { playFocus.requestFocus() } }
 
     Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        // A soft accent glow behind the artwork, like Deezer's player.
-        Box(Modifier.shadow(46.dp, RoundedCornerShape(24.dp), spotColor = Sp.Accent,
-                            ambientColor = Sp.Accent)) {
+        // A soft accent glow behind the artwork, drawn (not an elevation
+        // shadow, which renders black on API 29).
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                Modifier.size(340.dp).drawBehind {
+                    drawRoundRect(
+                        brush = Brush.radialGradient(
+                            listOf(Sp.Accent.copy(alpha = 0.28f), Color.Transparent),
+                            radius = size.minDimension * 0.72f,
+                        ),
+                        cornerRadius = CornerRadius(60f, 60f),
+                    )
+                }
+            )
             Cover(ui.player.cover, 320.dp, glyph = 60)
         }
         Spacer(Modifier.width(52.dp))
@@ -350,7 +363,7 @@ private fun CircleIcon(icon: ImageVector, label: String, onClick: () -> Unit,
             .tvFocus(RoundedCornerShape(50), scale = 1.10f)
             .clip(CircleShape)
             .background(if (primary) Sp.Accent else Color(0x1FFFFFFF))
-            .clickable(onClick = onClick),
+            .spClickable(onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label,
@@ -409,7 +422,7 @@ private fun SmallIcon(icon: ImageVector, label: String, onClick: () -> Unit,
             .tvFocus(RoundedCornerShape(50), scale = 1.12f)
             .clip(CircleShape)
             .background(if (primary) Sp.Accent else Color(0x1FFFFFFF))
-            .clickable(onClick = onClick),
+            .spClickable(onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label,
