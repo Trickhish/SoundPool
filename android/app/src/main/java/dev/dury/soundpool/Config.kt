@@ -36,6 +36,26 @@ class Config(ctx: Context) {
         get() = sp.getString("uid", "")!!
         set(v) = sp.edit().putString("uid", v).apply()
 
+    // ── display role ──
+    /** Durable code identifying the room's display, from the 4-digit pairing. */
+    var displayCode: String
+        get() = sp.getString("display_code", "")!!
+        set(v) = sp.edit().putString("display_code", v).apply()
+
+    /** Throwaway guest token this screen uses for the live feed. */
+    var displayToken: String
+        get() = sp.getString("display_token", "")!!
+        set(v) = sp.edit().putString("display_token", v).apply()
+
+    var displayRoomId: Int
+        get() = sp.getInt("display_room_id", 0)
+        set(v) = sp.edit().putInt("display_room_id", v).apply()
+
+    /** Which screen the app opens on: "status" or "display". */
+    var startMode: String
+        get() = sp.getString("start_mode", "status")!!
+        set(v) = sp.edit().putString("start_mode", v).apply()
+
     val wsUrl: String
         get() = "${if (secure) "wss" else "ws"}://$host:$port/unit"
 }

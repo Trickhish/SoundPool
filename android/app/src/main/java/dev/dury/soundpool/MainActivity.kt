@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
+import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.dury.soundpool.display.DisplayScreen
 import dev.dury.soundpool.unit.UnitService
 import kotlinx.coroutines.delay
 
@@ -43,14 +45,30 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(Modifier.fillMaxSize(), color = Color(0xFF0E0B14)) {
-                    UnitScreen(
-                        cfg = cfg,
-                        onStart = { startUnit() },
-                        onStop = { stopService(Intent(this, UnitService::class.java)) },
-                    )
+                    // The unit role is a background service, so the TV can be a
+                    // speaker and a screen at once; this only picks what's shown.
+                    var screen by remember { mutableStateOf(cfg.startMode) }
+                    when (screen) {
+                        "display" -> DisplayScreen(
+                            vm = viewModel(),
+                            onExit = { cfg.startMode = "status"; screen = "status" },
+                        )
+                        else -> UnitScreen(
+                            cfg = cfg,
+                            onStart = { startUnit() },
+                            onStop = { stopService(Intent(this, UnitService::class.java)) },
+                            onDisplay = { cfg.startMode = "display"; screen = "display" },
+                        )
+                    }
                 }
             }
         }
+    }
+
+    /** Keep the screen awake — a display that blanks after 30s is useless. */
+    override fun onResume() {
+        super.onResume()
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     @OptIn(UnstableApi::class)
@@ -66,7 +84,8 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(UnstableApi::class)
 @Composable
-private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit) {
+private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit,
+                       onDisplay: () -> Unit) {
     var host by remember { mutableStateOf(cfg.host) }
     var name by remember { mutableStateOf(cfg.name) }
     var mail by remember { mutableStateOf(cfg.ownerMail) }
@@ -124,6 +143,7 @@ private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit) {
                 Text("Restart unit")
             }
             OutlinedButton(onClick = onStop) { Text("Stop") }
+            Button(onClick = onDisplay) { Text("Big screen display") }
         }
 
         Spacer(Modifier.height(24.dp))

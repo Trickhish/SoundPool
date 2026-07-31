@@ -41,6 +41,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
     // TV-specific Compose surfaces. Used from the display/browse milestones on;
     // pulled in now so the theme and focus handling are consistent from the start.
@@ -53,6 +54,11 @@ dependencies {
     // org.json is part of the Android platform — deliberately not pulled from
     // Maven, which would duplicate those classes at dex time.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // QR for the party-join code. `core` only — the android artifact drags in
+    // camera/scanning we have no use for.
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
