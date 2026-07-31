@@ -1,4 +1,5 @@
 import asyncio
+import os
 import secrets
 import requests
 from datetime import datetime, timedelta
@@ -12,6 +13,7 @@ from database import *
 from routes.auth import verify_token, create_access_token, hash_password
 from configuration import config
 import room_player
+import beat_track
 import tracks_manager as tmg
 import deezer as dz
 
@@ -117,6 +119,7 @@ def room_dict(db, room, user):
             "show_members": bool(room.display_show_members),
             "lyrics_full": bool(room.display_lyrics_full),
             "animate_bg": bool(room.display_animate_bg),
+            "beat_effect": room.display_beat_effect or "off",
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -244,6 +247,7 @@ def _display_payload(db, room):
         "show_members": bool(room.display_show_members),
         "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
+        "beat_effect": room.display_beat_effect or "off",
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -314,6 +318,64 @@ def display_pair(body: DisplayPairRequest, request: Request,
     if not room or not room.display_code:
         raise HTTPException(404, "That code isn't valid (or has expired).")
     return JSONResponse(content={"display_code": room.display_code, "name": room.name})
+
+
+BEAT_CACHE_DIR = "/tmp/soundpool_beats"
+
+
+def _fetch_track(song_id, arl, dest):
+    """Download + decrypt a track to `dest` (Deezer encrypts every third block)."""
+    song = tmg.get_song_gw_data(song_id, arl)
+    song, url, _ext, key = tmg.getDownloadData(song, arl)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with requests.get(url, stream=True, timeout=60) as r, open(dest, "wb") as f:
+        i, buf = 0, b""
+        for chunk in r.iter_content(2048):
+            buf += chunk
+            while len(buf) >= 2048:
+                block, buf = buf[:2048], buf[2048:]
+                if i % 3 == 0:
+                    block = dz.blowfishDecrypt(block, key)
+                i += 1
+                f.write(block)
+        if buf:
+            f.write(buf)
+
+
+@router.get("/display/{code}/beats/{song_id}")
+def display_beats(code: str, song_id: str, db: SessionLocal = Depends(get_db)):  # type: ignore
+    """Tempo + beat grid for the display's rhythm effects.
+
+    Analysed here because the screen has no access to the audio — it plays on
+    the unit. Cached per song; `usable` is false when the track has no beat
+    clear enough to follow, so the display can stay still rather than flash at
+    the wrong moments.
+    """
+    room = db.query(Room).filter(Room.display_code == code).first()
+    if not room:
+        raise HTTPException(404, "Display not found")
+    cached = beat_track._cache.get(song_id)
+    if cached:
+        return JSONResponse(content=cached)
+    owner = db.query(User).filter(User.id == room.owner_id).first()
+    if not owner or not owner.deezer_arl:
+        return JSONResponse(content={"bpm": 0, "strength": 0, "usable": False, "beats": []})
+    path = os.path.join(BEAT_CACHE_DIR, f"{song_id}.mp3")
+    try:
+        if not os.path.exists(path):
+            _fetch_track(song_id, owner.deezer_arl, path)
+        res = beat_track.analyse(path, song_id)
+    except Exception as e:
+        print(f"[beat] could not analyse {song_id}: {e}")
+        res = {"bpm": 0, "strength": 0.0, "usable": False, "beats": []}
+    finally:
+        # The audio is only needed for the analysis; the result is what we keep.
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
+    return JSONResponse(content=res)
 
 
 @router.get("/display/{code}/lyrics/{song_id}")
@@ -530,6 +592,7 @@ def _display_dict(room):
         "show_members": bool(room.display_show_members),
         "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
+        "beat_effect": room.display_beat_effect or "off",
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -646,6 +709,8 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.show_members is not None:  room.display_show_members = body.show_members
     if body.lyrics_full is not None:   room.display_lyrics_full = body.lyrics_full
     if body.animate_bg is not None:    room.display_animate_bg = body.animate_bg
+    if body.beat_effect is not None and body.beat_effect in ("off", "pulse", "strobe"):
+        room.display_beat_effect = body.beat_effect
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]

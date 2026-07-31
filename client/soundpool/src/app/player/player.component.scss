@@ -1195,6 +1195,8 @@
     &:hover { color: var(--font-color); }
     &.on { background: rgba(255,43,109,0.16); color: var(--accent); border-color: var(--accent); }
 }
+.beat-modes { margin: 0 0 0.8rem; }
+.beat-row { padding-bottom: 0.35rem; }
 .mode-hint { font-size: 0.72rem; color: var(--font-muted); margin: 0.4rem 0 0.7rem; }
 .display-msg { width: 100%; margin-top: 0.6rem; box-sizing: border-box; }
 

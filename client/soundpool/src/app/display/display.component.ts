@@ -70,6 +70,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.tickTimer) clearInterval(this.tickTimer);
+    if (this.rafId) cancelAnimationFrame(this.rafId);
   }
 
   private poll() {
@@ -172,6 +173,62 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
   trackBurst = (_: number, b: { id: number }) => b.id;
 
+  // ── Beat effects ─────────────────────────────────────────────────────────
+  // The screen can't hear anything (audio plays on the unit, usually over
+  // Bluetooth), so the server analyses the track once and sends the beat grid.
+  // We animate against the playback position we already track.
+  private beats: number[] = [];
+  private beatUsable = false;
+  private beatIdx = 0;
+  private rafId: any = null;
+  private beatSongId: string | null = null;
+
+  private loadBeats() {
+    this.beats = [];
+    this.beatUsable = false;
+    this.beatIdx = 0;
+    const sid = this.nowId;
+    if (!sid || !this.info?.beat_effect || this.info.beat_effect === 'off') return;
+    this.beatSongId = sid;
+    this.api.displayBeats(this.code, sid).subscribe({
+      next: (r) => {
+        if (this.beatSongId !== sid) return;       // track moved on while analysing
+        this.beats = r?.beats || [];
+        // The server reports how periodic the track actually is; a rubato
+        // ballad has no beat worth flashing to, so we simply stay still.
+        this.beatUsable = !!r?.usable && this.beats.length > 4;
+      },
+      error: () => {}
+    });
+  }
+
+  /** Runs outside Angular: this fires ~60x a second and must not trigger change
+   *  detection. It writes a CSS variable the stylesheet animates from. */
+  private startBeatLoop() {
+    if (this.rafId) return;
+    const root = () => document.querySelector('.display-root') as HTMLElement | null;
+    const step = () => {
+      this.rafId = requestAnimationFrame(step);
+      const el = root();
+      if (!el) return;
+      if (!this.beatUsable || !this.playing || !this.beats.length) {
+        el.style.setProperty('--beat', '0');
+        return;
+      }
+      const pos = this.lastPos + (Date.now() - this.lastAt);
+      // Walk the pointer instead of searching; a seek can move us backwards.
+      while (this.beatIdx > 0 && this.beats[this.beatIdx] > pos) this.beatIdx--;
+      while (this.beatIdx + 1 < this.beats.length && this.beats[this.beatIdx + 1] <= pos) this.beatIdx++;
+      const since = pos - this.beats[this.beatIdx];
+      const next = this.beats[this.beatIdx + 1];
+      const period = next ? next - this.beats[this.beatIdx] : 500;
+      // Sharp attack then decay, so each beat reads as a hit rather than a wobble.
+      const v = since < 0 ? 0 : Math.max(0, 1 - since / (period * 0.55));
+      el.style.setProperty('--beat', (v * v).toFixed(3));
+    };
+    this.zone.runOutsideAngular(() => { this.rafId = requestAnimationFrame(step); });
+  }
+
   private recentActivity = new Map<string, number>();   // key -> last-seen ms
   private pushActivity(icon: string, text: string) {
     if (!text) return;
@@ -216,6 +273,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       this.posMs = this.lastPos;
       this.activeIdx = -1;
       this.loadLyrics();
+      this.loadBeats();
     }
   }
 
@@ -234,6 +292,9 @@ export class DisplayComponent implements OnInit, OnDestroy {
       this.loadLyrics();
     }
     this.startSse(i.room_id);
+    this.startBeatLoop();
+    // Effect switched on/off from settings while a track is already playing.
+    if (i.beat_effect && i.beat_effect !== 'off' && !this.beats.length && this.nowId) this.loadBeats();
     // Seed playback from the poll until the live SSE feed takes over.
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
     if (Array.isArray(i.queue)) { this.queue = i.queue; this.preloadArtwork(); }

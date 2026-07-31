@@ -9,6 +9,9 @@
 
   <ng-container *ngIf="info && !notFound">
 
+    <!-- Strobe overlay, driven by the --beat variable the rAF loop writes. -->
+    <div *ngIf="info.beat_effect === 'strobe'" class="disp-strobe"></div>
+
     <!-- Blurred cover backdrop -->
     <div class="disp-bg" [class.animated]="info.animate_bg" [style.background-image]="'url(' + cover + ')'"></div>
 

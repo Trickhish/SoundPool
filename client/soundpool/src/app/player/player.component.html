@@ -393,6 +393,16 @@
                   </div>
                   <span class="toggle" [class.on]="displayCfg.show_skipvotes"><i></i></span>
                 </div>
+                <div class="setting-row beat-row">
+                  <div class="setting-text">
+                    <span class="setting-name">Beat effect</span>
+                    <span class="setting-desc">Moves with the music. Skipped automatically on tracks with no clear beat.</span>
+                  </div>
+                </div>
+                <div class="mode-row beat-modes">
+                  <button *ngFor="let b of beatEffects" type="button" class="mode-btn"
+                          [class.on]="displayCfg.beat_effect === b.id" (click)="setBeatEffect(b.id)">{{ b.label }}</button>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('animate_bg')">
                   <div class="setting-text">
                     <span class="setting-name">Animate background</span>

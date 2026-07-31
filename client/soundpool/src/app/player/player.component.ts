@@ -352,6 +352,21 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!p || !this.displayCfg) return false;
     return Object.keys(p).every(k => !!this.displayCfg[k] === !!p[k]);
   }
+  beatEffects = [
+    { id: 'off',    label: 'Off' },
+    { id: 'pulse',  label: 'Subtle pulse' },
+    { id: 'strobe', label: 'Strobe' },
+  ];
+  setBeatEffect(effect: string) {
+    if (!this.pid || !this.displayCfg) return;
+    const prev = this.displayCfg.beat_effect;
+    this.displayCfg.beat_effect = effect;
+    this.api.setDisplayConfig(this.pid, { beat_effect: effect }).subscribe({
+      next: (r: any) => this.zone.run(() => { this.displayCfg = r; }),
+      error: () => { this.displayCfg.beat_effect = prev; this.toastr.error('Could not change the effect'); }
+    });
+  }
+
   setDisplayMode(mode: string) {
     if (!this.pid) return;
     this.api.setDisplayMode(this.pid, mode).subscribe({

@@ -128,6 +128,7 @@ export class ApiService {
   public displayInfo(code:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/display/${code}`); }
   public displayToken(code:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/display/${code}/token`, {}); }
   public displayLyrics(code:string, songId:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/display/${code}/lyrics/${songId}`); }
+  public displayBeats(code:string, songId:string) { return this.http.get<any>(`${ApiService.apiUrl}/room/display/${code}/beats/${songId}`); }
   public enableDisplay(id:string|number) { return this.rp(id, 'display'); }
   public makeDisplayPairCode(id:string|number) { return this.rp(id, 'display/paircode'); }
   public pairDisplay(code:string) { return this.http.post<any>(`${ApiService.apiUrl}/room/display/pair`, { code }); }
