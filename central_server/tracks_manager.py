@@ -223,6 +223,17 @@ def get_fallback_lyrics(title: str, artist: str, duration_sec=None) -> dict:
     if not lrc:
         return {"synced": [], "plain": ""}
     synced = _parse_lrc(lrc)
+    # These providers match on title/artist alone, so they happily return a
+    # different recording (a re-record, a live cut, an extended mix). Timings
+    # from the wrong version are worse than none — they'd scroll out of sync all
+    # song. If the last line lands past the end of THIS track, keep the words
+    # but drop the timings.
+    if synced and duration_sec:
+        last = synced[-1]["ms"] / 1000.0
+        if last > duration_sec + 10:
+            print(f"[lyrics] discarding synced fallback for '{title}': last line at "
+                  f"{last:.0f}s but the track is {duration_sec:.0f}s — different recording")
+            return {"synced": [], "plain": "\n".join(l["line"] for l in synced)}
     if synced:
         return {"synced": synced, "plain": "\n".join(l["line"] for l in synced)}
     return {"synced": [], "plain": lrc.strip()}   # provider only had plain lyrics

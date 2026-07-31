@@ -329,11 +329,14 @@ def display_lyrics(code: str, song_id: str, db: SessionLocal = Depends(get_db)):
             _lyrics_cache.pop(next(iter(_lyrics_cache)))
         return JSONResponse(content=result)
 
-    # A cached synced result is authoritative (can't improve on synced from any
-    # source). Cached plain-only IS re-checked, so if a provider later has synced
-    # we upgrade — otherwise we'd stay stuck on plain like the previous version.
+    # Only a Deezer result is authoritative: it's keyed to this exact track, so
+    # nothing can improve on it. A cached FALLBACK is provisional even when it's
+    # synced — the aggregators match on title/artist and can return another
+    # recording — so keep re-checking Deezer until it answers. (Caching any
+    # synced result meant one unlucky Deezer hiccup pinned wrong-version
+    # timings on a track for good.)
     cached = _lyrics_cache.get(song_id)
-    if cached and cached.get("synced"):
+    if cached and cached.get("source") == "deezer" and cached.get("synced"):
         return JSONResponse(content=cached)
 
     # 1) Deezer first (the source that knows the exact playing track/version).
