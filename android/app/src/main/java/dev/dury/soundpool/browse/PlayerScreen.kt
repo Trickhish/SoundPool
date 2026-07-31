@@ -54,7 +54,7 @@ import dev.dury.soundpool.ui.SpBackground
 import dev.dury.soundpool.ui.tvFocus
 import kotlinx.coroutines.delay
 
-private enum class Page(val label: String, val icon: ImageVector) {
+internal enum class Page(val label: String, val icon: ImageVector) {
     NowPlaying("Now playing", Icons.Filled.MusicNote),
     Search("Search", Icons.Filled.Search),
     Playlists("Playlists", Icons.Filled.LibraryMusic),
@@ -80,6 +80,30 @@ fun PlayerScreen(vm: BrowseViewModel, onSignOut: () -> Unit, onOpenDisplay: () -
         page = Page.NowPlaying
     }
 
+    val actions = remember(vm) { vm.asActions() }
+    PlayerShell(
+        ui = ui, actions = actions, page = page, onSelectPage = { page = it },
+        onPickRoom = vm::chooseRoom, onReloadRooms = vm::loadRooms,
+        onSignOut = onSignOut, onOpenDisplay = onOpenDisplay, onOpenUnit = onOpenUnit,
+    )
+}
+
+/**
+ * The player, with no view model: it takes state and callbacks so it can be
+ * rendered off-device for design snapshots (see the Paparazzi tests).
+ */
+@Composable
+internal fun PlayerShell(
+    ui: BrowseUi,
+    actions: PlayerActions,
+    page: Page,
+    onSelectPage: (Page) -> Unit,
+    onPickRoom: (Int) -> Unit,
+    onReloadRooms: () -> Unit,
+    onSignOut: () -> Unit,
+    onOpenDisplay: () -> Unit,
+    onOpenUnit: () -> Unit,
+) {
     SpBackground {
         // The artwork tints the whole screen, the way Deezer's player does.
         if (ui.player.cover.isNotEmpty()) {
@@ -98,32 +122,32 @@ fun PlayerScreen(vm: BrowseViewModel, onSignOut: () -> Unit, onOpenDisplay: () -
         }
 
         if (ui.roomId == 0) {
-            RoomPicker(ui, onPick = vm::chooseRoom, onReload = vm::loadRooms)
+            RoomPicker(ui, onPick = onPickRoom, onReload = onReloadRooms)
             return@SpBackground
         }
 
         val railFocus = remember { FocusRequester() }
 
         Row(Modifier.fillMaxSize()) {
-            NavRail(page, selectedFocus = railFocus, onSelect = { page = it })
+            NavRail(page, selectedFocus = railFocus, onSelect = onSelectPage)
 
             Column(
                 Modifier.weight(1f).padding(end = Sp.SafeH, top = Sp.SafeV, bottom = 18.dp)
             ) {
                 Box(Modifier.weight(1f)) {
                     when (page) {
-                        Page.NowPlaying -> NowPlayingPage(ui, vm, railFocus)
-                        Page.Search -> SearchPage(ui, vm)
-                        Page.Playlists -> PlaylistsPage(ui, vm)
+                        Page.NowPlaying -> NowPlayingPage(ui, actions, railFocus)
+                        Page.Search -> SearchPage(ui, actions)
+                        Page.Playlists -> PlaylistsPage(ui, actions)
                         Page.Queue -> QueuePage(ui)
-                        Page.Settings -> SettingsPage(ui, vm, onSignOut, onOpenDisplay, onOpenUnit)
+                        Page.Settings -> SettingsPage(ui, actions, onSignOut, onOpenDisplay, onOpenUnit)
                     }
                 }
                 // Always-present transport, like the bar at the bottom of a
                 // desktop music app.
                 if (page != Page.NowPlaying) {
                     Spacer(Modifier.height(12.dp))
-                    MiniBar(ui, vm)
+                    MiniBar(ui, actions)
                 }
             }
         }
@@ -206,9 +230,9 @@ private fun NavItem(page: Page, selected: Boolean, expanded: Boolean, onClick: (
 // ── now playing ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel, railFocus: FocusRequester) {
+private fun NowPlayingPage(ui: BrowseUi, actions: PlayerActions, railFocus: FocusRequester) {
     var pos by remember { mutableStateOf(0L) }
-    LaunchedEffect(Unit) { while (true) { pos = vm.positionMs(); delay(250) } }
+    LaunchedEffect(Unit) { while (true) { pos = actions.positionMs(); delay(250) } }
 
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { playFocus.requestFocus() } }
@@ -234,7 +258,7 @@ private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel, railFocus: FocusRe
                 // LEFT off the first control returns to the rail. The cover art
                 // sits between them so 2D focus search finds nothing, and a
                 // declarative `left =` didn't fire — hop imperatively instead.
-                CircleIcon(Icons.Filled.SkipPrevious, "Previous", vm::prev,
+                CircleIcon(Icons.Filled.SkipPrevious, "Previous", actions::prev,
                            modifier = Modifier.onKeyEvent { e ->
                                if (e.type == KeyEventType.KeyDown &&
                                    e.key == Key.DirectionLeft) {
@@ -244,10 +268,10 @@ private fun NowPlayingPage(ui: BrowseUi, vm: BrowseViewModel, railFocus: FocusRe
                 CircleIcon(
                     if (ui.player.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     if (ui.player.playing) "Pause" else "Play",
-                    vm::playPause, primary = true,
+                    actions::playPause, primary = true,
                     modifier = Modifier.focusRequester(playFocus),
                 )
-                CircleIcon(Icons.Filled.SkipNext, "Next", vm::next)
+                CircleIcon(Icons.Filled.SkipNext, "Next", actions::next)
             }
 
             ui.player.queue.firstOrNull()?.let {
@@ -317,9 +341,9 @@ private fun CircleIcon(icon: ImageVector, label: String, onClick: () -> Unit,
 // ── mini bar ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun MiniBar(ui: BrowseUi, vm: BrowseViewModel) {
+private fun MiniBar(ui: BrowseUi, actions: PlayerActions) {
     var pos by remember { mutableStateOf(0L) }
-    LaunchedEffect(Unit) { while (true) { pos = vm.positionMs(); delay(400) } }
+    LaunchedEffect(Unit) { while (true) { pos = actions.positionMs(); delay(400) } }
     val pct = if (ui.player.durationMs > 0)
         (pos.toFloat() / ui.player.durationMs).coerceIn(0f, 1f) else 0f
 
@@ -339,13 +363,13 @@ private fun MiniBar(ui: BrowseUi, vm: BrowseViewModel) {
             }
             Spacer(Modifier.width(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallIcon(Icons.Filled.SkipPrevious, "Previous", vm::prev)
+                SmallIcon(Icons.Filled.SkipPrevious, "Previous", actions::prev)
                 SmallIcon(
                     if (ui.player.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     if (ui.player.playing) "Pause" else "Play",
-                    vm::playPause, primary = true,
+                    actions::playPause, primary = true,
                 )
-                SmallIcon(Icons.Filled.SkipNext, "Next", vm::next)
+                SmallIcon(Icons.Filled.SkipNext, "Next", actions::next)
             }
         }
         Spacer(Modifier.height(10.dp))

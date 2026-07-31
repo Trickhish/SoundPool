@@ -41,7 +41,7 @@ import dev.dury.soundpool.ui.tvFocus
 // ── search ──────────────────────────────────────────────────────────────────
 
 @Composable
-fun SearchPage(ui: BrowseUi, vm: BrowseViewModel) {
+fun SearchPage(ui: BrowseUi, actions: PlayerActions) {
     var q by remember { mutableStateOf(ui.query) }
     val firstResult = remember { FocusRequester() }
     val field = remember { FocusRequester() }
@@ -57,13 +57,13 @@ fun SearchPage(ui: BrowseUi, vm: BrowseViewModel) {
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
             value = q,
-            onValueChange = { q = it; vm.setQuery(it) },
+            onValueChange = { q = it; actions.setQuery(it) },
             singleLine = true,
             placeholder = { Text("Search songs, artists…", color = Sp.Faint, fontSize = 17.sp) },
             // Search from the keyboard's own action key: a focused TextField
             // eats D-pad left/right, so the remote can't step off to a button.
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { vm.search(q) }),
+            keyboardActions = KeyboardActions(onSearch = { actions.search(q) }),
             shape = RoundedCornerShape(999.dp),
             textStyle = TextStyle(color = Sp.Text, fontSize = 17.sp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -99,7 +99,7 @@ fun SearchPage(ui: BrowseUi, vm: BrowseViewModel) {
                 items(ui.results.size) { i ->
                     TrackRow(
                         ui.results[i],
-                        onClick = { vm.addToQueue(ui.results[i]) },
+                        onClick = { actions.addToQueue(ui.results[i]) },
                         modifier = if (i == 0) Modifier.focusRequester(firstResult) else Modifier,
                     )
                 }
@@ -182,20 +182,20 @@ fun QueuePage(ui: BrowseUi) {
 // ── playlists ───────────────────────────────────────────────────────────────
 
 @Composable
-fun PlaylistsPage(ui: BrowseUi, vm: BrowseViewModel) {
-    LaunchedEffect(Unit) { vm.loadPlaylists() }
+fun PlaylistsPage(ui: BrowseUi, actions: PlayerActions) {
+    LaunchedEffect(Unit) { actions.loadPlaylists() }
     // Back out of a drilled-in playlist before leaving the page.
-    BackHandler(enabled = ui.openPlaylist != null) { vm.closePlaylist() }
+    BackHandler(enabled = ui.openPlaylist != null) { actions.closePlaylist() }
 
     if (ui.openPlaylist != null) {
-        PlaylistDetail(ui, vm)
+        PlaylistDetail(ui, actions)
     } else {
-        PlaylistGrid(ui, vm)
+        PlaylistGrid(ui, actions)
     }
 }
 
 @Composable
-private fun PlaylistGrid(ui: BrowseUi, vm: BrowseViewModel) {
+private fun PlaylistGrid(ui: BrowseUi, actions: PlayerActions) {
     val first = remember { FocusRequester() }
     LaunchedEffect(ui.playlists) {
         if (ui.playlists.isNotEmpty()) runCatching { first.requestFocus() }
@@ -221,7 +221,7 @@ private fun PlaylistGrid(ui: BrowseUi, vm: BrowseViewModel) {
                 items(ui.playlists.size) { i ->
                     PlaylistCard(
                         ui.playlists[i],
-                        onClick = { vm.openPlaylist(ui.playlists[i]) },
+                        onClick = { actions.openPlaylist(ui.playlists[i]) },
                         modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                     )
                 }
@@ -259,7 +259,7 @@ private fun PlaylistCard(p: Playlist, onClick: () -> Unit, modifier: Modifier = 
 }
 
 @Composable
-private fun PlaylistDetail(ui: BrowseUi, vm: BrowseViewModel) {
+private fun PlaylistDetail(ui: BrowseUi, actions: PlayerActions) {
     val p = ui.openPlaylist ?: return
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
@@ -282,12 +282,12 @@ private fun PlaylistDetail(ui: BrowseUi, vm: BrowseViewModel) {
                 // Play and Shuffle replace the queue with the playlist; Queue all
                 // appends. Play is primary and takes initial focus.
                 IconPill(Icons.Filled.PlayArrow, "Play",
-                         onClick = { vm.playPlaylist(p, shuffle = false) },
+                         onClick = { actions.playPlaylist(p, shuffle = false) },
                          primary = true, modifier = Modifier.focusRequester(first))
                 IconPill(Icons.Filled.Shuffle, "Shuffle",
-                         onClick = { vm.playPlaylist(p, shuffle = true) })
+                         onClick = { actions.playPlaylist(p, shuffle = true) })
                 IconPill(Icons.Filled.Add, "Queue all",
-                         onClick = { vm.queueWholePlaylist(p) })
+                         onClick = { actions.queueWholePlaylist(p) })
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -300,7 +300,7 @@ private fun PlaylistDetail(ui: BrowseUi, vm: BrowseViewModel) {
             ) {
                 items(ui.playlistTracks.size) { i ->
                     TrackRow(ui.playlistTracks[i],
-                             onClick = { vm.addToQueue(ui.playlistTracks[i]) })
+                             onClick = { actions.addToQueue(ui.playlistTracks[i]) })
                 }
             }
         }
@@ -310,7 +310,7 @@ private fun PlaylistDetail(ui: BrowseUi, vm: BrowseViewModel) {
 // ── settings ────────────────────────────────────────────────────────────────
 
 @Composable
-fun SettingsPage(ui: BrowseUi, vm: BrowseViewModel, onSignOut: () -> Unit,
+fun SettingsPage(ui: BrowseUi, actions: PlayerActions, onSignOut: () -> Unit,
                  onOpenDisplay: () -> Unit, onOpenUnit: () -> Unit) {
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
@@ -322,7 +322,7 @@ fun SettingsPage(ui: BrowseUi, vm: BrowseViewModel, onSignOut: () -> Unit,
 
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            PillButton("Change room", onClick = vm::leaveRoom,
+            PillButton("Change room", onClick = actions::leaveRoom,
                        modifier = Modifier.focusRequester(first))
             PillButton("Big screen mode", onClick = onOpenDisplay, primary = false)
         }

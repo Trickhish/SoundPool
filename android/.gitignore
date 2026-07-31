@@ -3,3 +3,6 @@ local.properties
 build/
 *.apk
 *.keystore
+
+# Paparazzi writes failure diffs here on verify; goldens live in src/test/snapshots
+app/build/reports/paparazzi/
