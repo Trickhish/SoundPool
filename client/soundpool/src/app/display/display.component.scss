@@ -147,6 +147,20 @@
   }
 }
 
+/* Honest label: plain lyrics are scrolled by progress, not real timings. */
+.disp-lyr-approx {
+  position: absolute;
+  bottom: 1.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.5vh;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* ── Lyric lead-in dots ──
    A line in the lyric flow rather than an overlay: during an intro or an
    instrumental break, three dots sit where the next lyric will appear and light
@@ -408,7 +422,10 @@
   &::-webkit-scrollbar { display: none; }
 }
 .disp-lyr-scroll.plain {
-  padding: 0;
+  /* Half-screen padding top and bottom so the auto-scrolled position sits in
+     the middle of the panel rather than at the very top. */
+  padding: 32% 4%;
+  scroll-behavior: auto;   /* driven every 250ms; smooth would fight it */
   pre {
     font-family: inherit;
     white-space: pre-wrap;

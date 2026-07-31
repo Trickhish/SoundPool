@@ -294,7 +294,22 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.activeIdx = idx;
         this.scrollActive();
       }
+    } else if (this.plain) {
+      this.scrollPlain();
     }
+  }
+
+  /** Unsynced lyrics: scroll in step with playback so roughly the right part is
+   *  on screen. Without timings the best we can do is map position to scroll
+   *  linearly — it drifts around intros and outros, which is why it's labelled
+   *  approximate rather than pretending to be synced. */
+  private scrollPlain() {
+    const el = document.querySelector('.disp-lyr-scroll.plain') as HTMLElement | null;
+    if (!el || !this.durMs) return;
+    const max = el.scrollHeight - el.clientHeight;
+    if (max <= 0) return;
+    const p = Math.max(0, Math.min(1, this.posMs / this.durMs));
+    el.scrollTop = max * p;
   }
 
   private scrollActive() {

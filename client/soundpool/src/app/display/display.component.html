@@ -108,10 +108,12 @@
           </ng-container>
         </div>
 
-        <!-- Plain fallback -->
+        <!-- Plain fallback: no timings, so it's scrolled by playback progress
+             and labelled as approximate. -->
         <div *ngIf="!lyrics.length && plain" class="disp-lyr-scroll plain">
           <pre>{{ plain }}</pre>
         </div>
+        <div *ngIf="!lyrics.length && plain" class="disp-lyr-approx">approximate timing</div>
       </section>
 
       <!-- ── Queue (full column, when lyrics are off) ── -->
