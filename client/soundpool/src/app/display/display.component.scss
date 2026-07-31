@@ -422,9 +422,11 @@
   &::-webkit-scrollbar { display: none; }
 }
 .disp-lyr-scroll.plain {
-  /* Half-screen padding top and bottom so the auto-scrolled position sits in
-     the middle of the panel rather than at the very top. */
-  padding: 32% 4%;
+  /* Half-panel padding top and bottom so the auto-scrolled position sits in the
+     middle rather than at the very top. In vh, not %, because percentage
+     padding resolves against WIDTH — which differs hugely between the
+     two-column and fullscreen-karaoke layouts. */
+  padding: 34vh 4%;
   scroll-behavior: auto;   /* driven every 250ms; smooth would fight it */
   pre {
     font-family: inherit;

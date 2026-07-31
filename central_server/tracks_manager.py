@@ -229,11 +229,22 @@ def get_fallback_lyrics(title: str, artist: str, duration_sec=None) -> dict:
     # song. If the last line lands past the end of THIS track, keep the words
     # but drop the timings.
     if synced and duration_sec:
+        first = synced[0]["ms"] / 1000.0
         last = synced[-1]["ms"] / 1000.0
+        words = "\n".join(l["line"] for l in synced)
         if last > duration_sec + 10:
             print(f"[lyrics] discarding synced fallback for '{title}': last line at "
                   f"{last:.0f}s but the track is {duration_sec:.0f}s — different recording")
-            return {"synced": [], "plain": "\n".join(l["line"] for l in synced)}
+            return {"synced": [], "plain": words}
+        # Timings can also fit inside the track yet still belong to another
+        # version — e.g. squeezed into the middle, leaving most of the song with
+        # no words at all. A real lyric set covers most of its own song.
+        coverage = (last - first) / duration_sec
+        if len(synced) >= 8 and coverage < 0.4:
+            print(f"[lyrics] discarding synced fallback for '{title}': {len(synced)} lines "
+                  f"only span {first:.0f}s-{last:.0f}s ({coverage*100:.0f}% of a "
+                  f"{duration_sec:.0f}s track) — different recording")
+            return {"synced": [], "plain": words}
     if synced:
         return {"synced": synced, "plain": "\n".join(l["line"] for l in synced)}
     return {"synced": [], "plain": lrc.strip()}   # provider only had plain lyrics
