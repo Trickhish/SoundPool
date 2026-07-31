@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -238,14 +239,23 @@ private fun NowPlayingPage(ui: BrowseUi, actions: PlayerActions, railFocus: Focu
     LaunchedEffect(Unit) { runCatching { playFocus.requestFocus() } }
 
     Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Cover(ui.player.cover, 300.dp, glyph = 60)
-        Spacer(Modifier.width(44.dp))
+        // A soft accent glow behind the artwork, like Deezer's player.
+        Box(Modifier.shadow(46.dp, RoundedCornerShape(24.dp), spotColor = Sp.Accent,
+                            ambientColor = Sp.Accent)) {
+            Cover(ui.player.cover, 320.dp, glyph = 60)
+        }
+        Spacer(Modifier.width(52.dp))
 
         Column(Modifier.weight(1f)) {
-            Text(ui.player.title.ifEmpty { "Nothing playing" }, fontSize = 40.sp,
+            // Eyebrow: where the music is coming from, above the track.
+            Text("PLAYING FROM · ${ui.player.roomName.ifEmpty { "SOUNDPOOL" }}".uppercase(),
+                 fontSize = 12.sp, color = Sp.Accent, fontWeight = FontWeight.Bold,
+                 letterSpacing = 2.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(12.dp))
+            Text(ui.player.title.ifEmpty { "Nothing playing" }, fontSize = 44.sp,
                  fontWeight = FontWeight.Bold, color = Sp.Text, maxLines = 2,
-                 overflow = TextOverflow.Ellipsis, lineHeight = 46.sp)
-            Spacer(Modifier.height(6.dp))
+                 overflow = TextOverflow.Ellipsis, lineHeight = 48.sp)
+            Spacer(Modifier.height(8.dp))
             Text(ui.player.artist, fontSize = 22.sp, color = Sp.Muted, maxLines = 1,
                  overflow = TextOverflow.Ellipsis)
 
