@@ -353,12 +353,15 @@ export class DisplayComponent implements OnInit, OnDestroy {
     if (remaining > window) return null;      // still early — nothing yet
     return 1 - remaining / window;
   }
-  /** Circumference of the ring, for the stroke-dash trick. */
-  readonly leadInCirc = 2 * Math.PI * 46;
-  get leadInOffset(): number {
-    const p = this.leadIn ?? 0;
-    return this.leadInCirc * (1 - p);
+  /** Three dots that light up in turn as the cue approaches. Rendered as a line
+   *  in the lyric flow (not an overlay), so it can never cover the words. */
+  get leadInDots(): boolean[] {
+    const p = this.leadIn;
+    if (p === null) return [];
+    return [0, 1, 2].map(i => p >= (i + 1) / 4);
   }
+  /** Last moment before the line starts — all lit, whole group pulses. */
+  get leadInImminent(): boolean { return (this.leadIn ?? 0) >= 0.8; }
   get lyricsFull(): boolean { return !!this.info?.lyrics_full && this.showLyrics; }
   /** Queue takes the big right-hand column when lyrics aren't shown. */
   get queueInColumn(): boolean { return this.showQueue && !this.showLyrics && !this.lyricsFull; }

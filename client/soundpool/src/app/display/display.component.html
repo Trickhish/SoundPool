@@ -84,23 +84,28 @@
         <div *ngIf="lyricsLoading" class="disp-lyr-note">Loading lyrics…</div>
         <div *ngIf="!lyricsLoading && !lyrics.length && !plain" class="disp-lyr-note">No lyrics for this track</div>
 
-        <!-- Lead-in ring: fills over the last few seconds of an intro or an
-             instrumental break so singers know exactly when to come in. -->
-        <div *ngIf="leadIn !== null" class="disp-leadin">
-          <svg viewBox="0 0 100 100">
-            <circle class="li-track" cx="50" cy="50" r="46"/>
-            <circle class="li-fill" cx="50" cy="50" r="46"
-                    [attr.stroke-dasharray]="leadInCirc"
-                    [attr.stroke-dashoffset]="leadInOffset"/>
-          </svg>
-        </div>
-
-        <!-- Synced -->
+        <!-- Synced. The lead-in dots are a line in this flow, sitting exactly
+             where the next lyric will appear — so they push the text rather
+             than covering it. -->
         <div *ngIf="lyrics.length" class="disp-lyr-scroll synced">
-          <p *ngFor="let l of lyrics; let i = index" [id]="'lyric-' + i" class="disp-lyr-line"
-             [class.active]="i === activeIdx" [class.past]="i < activeIdx">
-            {{ l.line || '♪' }}
-          </p>
+          <ng-template #leadInDotsTpl>
+            <div class="lyr-dots" [class.imminent]="leadInImminent">
+              <span *ngFor="let lit of leadInDots" class="lyr-dot" [class.lit]="lit"></span>
+            </div>
+          </ng-template>
+
+          <!-- Intro: nothing has played yet, so the cue goes above the first line -->
+          <ng-container *ngIf="leadIn !== null && activeIdx < 0"
+                        [ngTemplateOutlet]="leadInDotsTpl"></ng-container>
+
+          <ng-container *ngFor="let l of lyrics; let i = index">
+            <p [id]="'lyric-' + i" class="disp-lyr-line"
+               [class.active]="i === activeIdx" [class.past]="i < activeIdx">
+              {{ l.line || '♪' }}
+            </p>
+            <ng-container *ngIf="leadIn !== null && activeIdx === i"
+                          [ngTemplateOutlet]="leadInDotsTpl"></ng-container>
+          </ng-container>
         </div>
 
         <!-- Plain fallback -->

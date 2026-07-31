@@ -147,45 +147,46 @@
   }
 }
 
-/* ── Lyric lead-in ring ──
-   Sits over the middle of the lyrics panel, where the next line will land. */
-.disp-leadin {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 11vh;
-  height: 11vh;
-  pointer-events: none;
-  z-index: 2;
-  animation: li-in 0.25s ease-out both;
-  svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);   /* start filling from 12 o'clock */
-  }
-  .li-track {
-    fill: rgba(0,0,0,0.25);
-    stroke: rgba(255,255,255,0.22);
-    stroke-width: 5;
-  }
-  .li-fill {
-    fill: none;
-    stroke: var(--accent, #ff2b6d);
-    stroke-width: 6;
-    stroke-linecap: round;
-    /* The position only refreshes ~4x a second, so ease between updates or the
-       ring visibly steps. */
-    transition: stroke-dashoffset 0.25s linear;
-    filter: drop-shadow(0 0 1vh rgba(255,43,109,0.55));
+/* ── Lyric lead-in dots ──
+   A line in the lyric flow rather than an overlay: during an intro or an
+   instrumental break, three dots sit where the next lyric will appear and light
+   up in turn. Because they occupy space they push the text instead of covering
+   it — which is what the previous centred ring got wrong. */
+.lyr-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vh;
+  margin: 2vh 0;
+  animation: dots-in 0.25s ease-out both;
+}
+.lyr-dot {
+  width: 1.5vh;
+  height: 1.5vh;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.20);
+  transition: background 0.25s linear, transform 0.25s ease-out, box-shadow 0.25s;
+  &.lit {
+    background: var(--accent, #ff2b6d);
+    transform: scale(1.35);
+    box-shadow: 0 0 1.6vh rgba(255,43,109,0.65);
   }
 }
-@keyframes li-in {
-  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+/* Final moment before the vocal: the whole group pulses. */
+.lyr-dots.imminent { animation: dots-in 0.25s ease-out both, dots-pulse 0.4s ease-in-out infinite; }
+
+@keyframes dots-in {
+  from { opacity: 0; transform: translateY(0.8vh); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-/* The lyrics panel is the positioning context for the ring. */
-.disp-lyrics { position: relative; }
+@keyframes dots-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+/* Bigger in karaoke, to match the larger lyrics. */
+.disp-main.lyrics-full .lyr-dots { gap: 2.6vh; margin: 3.4vh 0; }
+.disp-main.lyrics-full .lyr-dot { width: 2.4vh; height: 2.4vh; }
 
 /* ── Karaoke track bar ──
    Karaoke turns the player panel off, so the track still needs naming. Sits at
