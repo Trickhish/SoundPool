@@ -176,7 +176,7 @@ fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        Text(if (movingId != null) "Moving — ↑↓ reorder · OK to drop"
+        Text(if (movingId != null) "Moving — ↑↓ reorder · → after current · OK to drop"
              else "Queue", fontSize = 30.sp, fontWeight = FontWeight.Bold,
              color = if (movingId != null) Sp.Accent else Sp.Text)
         Spacer(Modifier.height(16.dp))
@@ -213,6 +213,13 @@ fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
                                 actions.moveQueue(q.index, q.index + 2)
                         }
                     },
+                    onMoveAfterCurrent = {
+                        // Same to= for any source: after popping, +1 lands it
+                        // right after the current track either way.
+                        val ci = ui.player.currentIndex
+                        if (ci >= 0 && q.index != ci) actions.moveQueue(q.index, ci + 1)
+                        movingId = null
+                    },
                 )
             }
         }
@@ -222,7 +229,8 @@ fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
 @Composable
 private fun QueueRow(item: QueueItem, isCurrent: Boolean, isMoving: Boolean,
                      focusMod: Modifier, onActivate: () -> Unit,
-                     onEnterMove: () -> Unit, onMove: (Int) -> Unit) {
+                     onEnterMove: () -> Unit, onMove: (Int) -> Unit,
+                     onMoveAfterCurrent: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     val bg = when {
         isMoving -> Sp.Accent.copy(alpha = 0.22f)
@@ -243,8 +251,8 @@ private fun QueueRow(item: QueueItem, isCurrent: Boolean, isMoving: Boolean,
                     !isMoving && e.key == Key.DirectionRight -> { onEnterMove(); true }
                     isMoving && e.key == Key.DirectionUp -> { onMove(-1); true }
                     isMoving && e.key == Key.DirectionDown -> { onMove(+1); true }
-                    isMoving && (e.key == Key.DirectionLeft ||
-                                 e.key == Key.DirectionRight) -> true
+                    isMoving && e.key == Key.DirectionRight -> { onMoveAfterCurrent(); true }
+                    isMoving && e.key == Key.DirectionLeft -> true
                     else -> false
                 }
             }
