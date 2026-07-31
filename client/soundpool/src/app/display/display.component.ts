@@ -5,7 +5,7 @@ import { ApiService } from '../api.service';
 import { LivefbService } from '../livefb.service';
 import QRCode from 'qrcode';
 
-interface LyricLine { ms: number; line: string; }
+interface LyricLine { ms: number; line: string; dur?: number; }
 
 /**
  * Big-screen display mode — a public, read-only view of a room meant for a TV
@@ -324,13 +324,28 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private static LEADIN_MIN_GAP = 4500;   // only for real gaps, not line changes
   private static LEADIN_WINDOW  = 5000;   // how long the ring is on screen
 
+  /** When the current line stops being sung.
+   *  Deezer gives a real per-line duration; LRC sources (LRCLIB/Musixmatch)
+   *  don't, so estimate from the text — otherwise a slow song's long lines look
+   *  identical to an instrumental break. */
+  private lineEnd(i: number): number {
+    if (i < 0) return 0;                       // before the first line = intro
+    const l = this.lyrics[i];
+    if (!l) return 0;
+    if (l.dur && l.dur > 0) return l.ms + l.dur;
+    const words = (l.line || '').trim();
+    if (!words) return l.ms;
+    const est = Math.min(6000, Math.max(1200, words.length * 90));   // ~11 chars/s
+    return l.ms + est;
+  }
+
   /** 0..1 while a lead-in is running, or null when there's nothing to count in. */
   get leadIn(): number | null {
     if (!this.lyrics.length || !this.playing) return null;
     const next = this.lyrics[this.activeIdx + 1];
     if (!next) return null;
-    const prevMs = this.activeIdx >= 0 ? this.lyrics[this.activeIdx].ms : 0;
-    const gap = next.ms - prevMs;
+    // Measure silence, not the distance between line starts.
+    const gap = next.ms - this.lineEnd(this.activeIdx);
     if (gap < DisplayComponent.LEADIN_MIN_GAP) return null;
     const remaining = next.ms - this.posMs;
     if (remaining <= 0) return null;

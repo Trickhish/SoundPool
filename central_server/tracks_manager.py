@@ -168,9 +168,18 @@ def get_song_lyrics(song_id: str, arl: str) -> dict:
         if ms is None:
             continue
         try:
-            synced.append({"ms": int(ms), "line": line})
+            entry = {"ms": int(ms), "line": line}
         except (TypeError, ValueError):
             continue
+        # How long the line is actually sung. Needed to tell a genuine
+        # instrumental break from a slow song whose lines simply take a while —
+        # the gap between line STARTS can't distinguish the two.
+        try:
+            if row.get('duration') is not None:
+                entry["dur"] = int(row["duration"])
+        except (TypeError, ValueError):
+            pass
+        synced.append(entry)
     return {"synced": synced, "plain": res.get('LYRICS_TEXT') or ''}
 
 
