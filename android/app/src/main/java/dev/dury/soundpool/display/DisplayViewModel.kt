@@ -246,7 +246,14 @@ class DisplayViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
             } catch (e: Exception) {
-                if (loadedLyricsFor == songId) _state.update { it.copy(lyricsLoading = false) }
+                if (loadedLyricsFor == songId) {
+                    // Let the next state event try again. Leaving the marker set
+                    // meant one network blip cost the track its lyrics for the
+                    // whole play — "no lyrics" is a 200 with an empty list, so
+                    // reaching here really is a failure worth retrying.
+                    loadedLyricsFor = null
+                    _state.update { it.copy(lyricsLoading = false) }
+                }
             }
         }
     }
