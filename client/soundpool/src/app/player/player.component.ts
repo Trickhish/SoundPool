@@ -367,6 +367,17 @@ export class PlayerComponent implements OnInit, OnDestroy {
     });
   }
 
+  private beatOffsetDebounce: any = null;
+  onBeatOffset(v: any) {
+    if (!this.displayCfg) return;
+    const ms = parseInt(v, 10) || 0;
+    this.displayCfg.beat_offset = ms;      // move the label straight away
+    clearTimeout(this.beatOffsetDebounce);
+    this.beatOffsetDebounce = setTimeout(() => {
+      if (this.pid) this.api.setDisplayConfig(this.pid, { beat_offset: ms }).subscribe();
+    }, 250);
+  }
+
   setDisplayMode(mode: string) {
     if (!this.pid) return;
     this.api.setDisplayMode(this.pid, mode).subscribe({

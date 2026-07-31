@@ -91,6 +91,7 @@ class DisplayConfigRequest(BaseModel):
     lyrics_full: Optional[bool] = None
     animate_bg: Optional[bool] = None
     beat_effect: Optional[str] = None
+    beat_offset: Optional[int] = None
     show_qr: Optional[bool] = None
     show_message: Optional[bool] = None
     message: Optional[str] = None

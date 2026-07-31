@@ -1195,7 +1195,20 @@
     &:hover { color: var(--font-color); }
     &.on { background: rgba(255,43,109,0.16); color: var(--accent); border-color: var(--accent); }
 }
-.beat-modes { margin: 0 0 0.8rem; }
+.beat-modes { margin: 0 0 0.6rem; }
+.beat-sync {
+    padding: 0.6rem 0.7rem 0.7rem;
+    margin-bottom: 0.8rem;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    .beat-sync-head {
+        display: flex; justify-content: space-between; align-items: baseline;
+        font-size: 0.8rem; color: var(--font-muted); margin-bottom: 0.3rem;
+    }
+    .beat-sync-val { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .vol-slider { width: 100%; }
+    .beat-sync-hint { font-size: 0.72rem; color: var(--font-muted); margin-top: 0.35rem; line-height: 1.35; }
+}
 .beat-row { padding-bottom: 0.35rem; }
 .mode-hint { font-size: 0.72rem; color: var(--font-muted); margin: 0.4rem 0 0.7rem; }
 .display-msg { width: 100%; margin-top: 0.6rem; box-sizing: border-box; }

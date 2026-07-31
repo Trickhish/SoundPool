@@ -120,6 +120,7 @@ def room_dict(db, room, user):
             "lyrics_full": bool(room.display_lyrics_full),
             "animate_bg": bool(room.display_animate_bg),
             "beat_effect": room.display_beat_effect or "off",
+            "beat_offset": int(room.display_beat_offset or 0),
             "show_qr": bool(room.display_show_qr),
             "show_message": bool(room.display_show_message),
             "message": room.display_message or "",
@@ -248,6 +249,7 @@ def _display_payload(db, room):
         "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
         "beat_effect": room.display_beat_effect or "off",
+        "beat_offset": int(room.display_beat_offset or 0),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -593,6 +595,7 @@ def _display_dict(room):
         "lyrics_full": bool(room.display_lyrics_full),
         "animate_bg": bool(room.display_animate_bg),
         "beat_effect": room.display_beat_effect or "off",
+        "beat_offset": int(room.display_beat_offset or 0),
         "show_qr": bool(room.display_show_qr),
         "show_message": bool(room.display_show_message),
         "message": room.display_message or "",
@@ -711,6 +714,11 @@ def set_display_config(room_id: int, body: DisplayConfigRequest,
     if body.animate_bg is not None:    room.display_animate_bg = body.animate_bg
     if body.beat_effect is not None and body.beat_effect in ("off", "pulse", "strobe"):
         room.display_beat_effect = body.beat_effect
+    if body.beat_offset is not None:
+        # Cancels the unit's output latency (Bluetooth alone is 100-250ms, and
+        # the speaker's own buffering adds more). Nothing reports this — pactl
+        # says 0 usec even mid-playback — so it is calibrated by ear.
+        room.display_beat_offset = max(-500, min(1000, int(body.beat_offset)))
     if body.show_qr is not None:      room.display_show_qr = body.show_qr
     if body.show_message is not None: room.display_show_message = body.show_message
     if body.message is not None:      room.display_message = body.message[:512]

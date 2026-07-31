@@ -218,7 +218,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
         el.style.setProperty('--beat', '0');
         return;
       }
-      const pos = this.lastPos + (Date.now() - this.lastAt);
+      // Shift by the calibrated offset: the unit's audio reaches your ears
+      // later than the room clock says (Bluetooth is 100-250ms, plus whatever
+      // the speaker buffers), and nothing reports that number.
+      const pos = this.lastPos + (Date.now() - this.lastAt) - (this.info?.beat_offset || 0);
       // Walk the pointer instead of searching; a seek can move us backwards.
       while (this.beatIdx > 0 && this.beats[this.beatIdx] > pos) this.beatIdx--;
       while (this.beatIdx + 1 < this.beats.length && this.beats[this.beatIdx + 1] <= pos) this.beatIdx++;

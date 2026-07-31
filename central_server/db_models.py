@@ -46,6 +46,7 @@ class Room(Base):
     display_show_members = Column(Boolean, default=True)    # how many people are in the room
     display_animate_bg = Column(Boolean, default=False)     # moving coloured light from the cover art
     display_beat_effect = Column(String(8), default="off")  # off | pulse | strobe — moves with the beat
+    display_beat_offset = Column(Integer, default=0)        # ms to shift beats, to cancel output latency
     display_lyrics_full = Column(Boolean, default=False)     # lyrics take the whole screen (karaoke)
     display_show_qr = Column(Boolean, default=True)      # party join QR (only appears while a party is live)
     display_show_message = Column(Boolean, default=False)

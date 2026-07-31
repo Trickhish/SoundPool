@@ -403,6 +403,16 @@
                   <button *ngFor="let b of beatEffects" type="button" class="mode-btn"
                           [class.on]="displayCfg.beat_effect === b.id" (click)="setBeatEffect(b.id)">{{ b.label }}</button>
                 </div>
+                <div class="beat-sync" *ngIf="displayCfg.beat_effect !== 'off'">
+                  <div class="beat-sync-head">
+                    <span>Sync offset</span>
+                    <span class="beat-sync-val">{{ displayCfg.beat_offset || 0 }} ms</span>
+                  </div>
+                  <input type="range" min="-200" max="800" step="10"
+                         [value]="displayCfg.beat_offset || 0"
+                         (input)="onBeatOffset($any($event.target).value)" class="vol-slider" />
+                  <div class="beat-sync-hint">Increase until the screen matches what you hear. Bluetooth speakers usually need 150–350&nbsp;ms.</div>
+                </div>
                 <div class="setting-row" (click)="toggleDisplayFlag('animate_bg')">
                   <div class="setting-text">
                     <span class="setting-name">Animate background</span>
