@@ -154,31 +154,35 @@ private fun TrackRow(t: Track, onClick: () -> Unit, modifier: Modifier = Modifie
 @Composable
 fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
     val queue = ui.player.fullQueue
-    // Which item (by song id, stable across the reorder) is in move mode.
-    var movingId by remember { mutableStateOf<String?>(null) }
-    // Re-grab focus onto the moving row after a reorder shuffles the list.
-    val moveFocus = remember { FocusRequester() }
-    LaunchedEffect(queue, movingId) {
-        if (movingId != null) runCatching { moveFocus.requestFocus() }
+    // Stable per-occurrence keys: the Nth appearance of a song id keeps the same
+    // key wherever it moves. A key that changed with position made LazyColumn
+    // destroy and recreate the row on every reorder, dropping focus to the rail.
+    val keys = remember(queue) {
+        val seen = HashMap<String, Int>()
+        queue.map { val n = seen.getOrDefault(it.id, 0); seen[it.id] = n + 1; "${it.id}#$n" }
     }
+    // The row in move mode, tracked by that stable key.
+    var movingKey by remember { mutableStateOf<String?>(null) }
+    if (movingKey != null && movingKey !in keys) movingKey = null   // track left the queue
+
     // Leaving move mode should be handled before the page's own BACK.
-    BackHandler(enabled = movingId != null) { movingId = null }
+    BackHandler(enabled = movingKey != null) { movingKey = null }
 
     // Keep the current track pinned to the top — on open and each time it
     // advances — but never yank the list while the user is reordering.
     val listState = rememberLazyListState()
     LaunchedEffect(ui.player.currentIndex) {
         val ci = ui.player.currentIndex
-        if (ci >= 0 && movingId == null) {
+        if (ci >= 0 && movingKey == null) {
             val row = queue.indexOfFirst { it.index == ci }
             if (row >= 0) runCatching { listState.scrollToItem(row) }
         }
     }
 
     Column(Modifier.fillMaxSize()) {
-        Text(if (movingId != null) "Moving — ↑↓ reorder · → after current · OK to drop"
+        Text(if (movingKey != null) "Moving — ↑↓ reorder · → after current · OK to drop"
              else "Queue", fontSize = 30.sp, fontWeight = FontWeight.Bold,
-             color = if (movingId != null) Sp.Accent else Sp.Text)
+             color = if (movingKey != null) Sp.Accent else Sp.Text)
         Spacer(Modifier.height(16.dp))
         if (queue.isEmpty()) {
             Text("Nothing queued.", fontSize = 16.sp, color = Sp.Muted)
@@ -189,19 +193,19 @@ fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 12.dp),
         ) {
-            items(queue.size, key = { queue[it].id + "@" + queue[it].index }) { i ->
+            items(queue.size, key = { keys[it] }) { i ->
                 val q = queue[i]
+                val key = keys[i]
                 QueueRow(
                     item = q,
                     isCurrent = q.index == ui.player.currentIndex,
-                    isMoving = q.id == movingId,
-                    focusMod = if (q.id == movingId) Modifier.focusRequester(moveFocus)
-                               else Modifier,
+                    isMoving = key == movingKey,
+                    focusMod = Modifier,
                     onActivate = {
-                        if (movingId == q.id) movingId = null          // drop here
+                        if (movingKey == key) movingKey = null         // drop here
                         else actions.jumpTo(q.index)                   // play now
                     },
-                    onEnterMove = { movingId = q.id },
+                    onEnterMove = { movingKey = key },
                     onMove = { delta ->
                         // The server's move() compensates for removing the item
                         // first (frm<to -> to-=1), so a one-step move down is
@@ -216,8 +220,8 @@ fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
                     onMoveAfterCurrent = {
                         // Same to= for any source: after popping, +1 lands it
                         // right after the current track either way. Stay in move
-                        // mode — focus follows the row via moveFocus — so it can
-                        // be nudged again or dropped with OK.
+                        // mode — the stable key keeps focus on the row — so it
+                        // can be nudged again or dropped with OK.
                         val ci = ui.player.currentIndex
                         if (ci >= 0 && q.index != ci) actions.moveQueue(q.index, ci + 1)
                     },
