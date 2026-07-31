@@ -17,6 +17,10 @@ interface PlayerActions {
     fun setQuery(q: String)
     fun search(q: String)
     fun addToQueue(t: Track)
+    fun playNow(t: Track)
+    fun playNext(t: Track)
+    fun openTrackMenu(t: Track)
+    fun closeTrackMenu()
 
     fun loadPlaylists()
     fun openPlaylist(p: Playlist)
@@ -36,6 +40,10 @@ fun BrowseViewModel.asActions(): PlayerActions = object : PlayerActions {
     override fun setQuery(q: String) = this@asActions.setQuery(q)
     override fun search(q: String) { this@asActions.search(q) }
     override fun addToQueue(t: Track) = this@asActions.addToQueue(t)
+    override fun playNow(t: Track) = this@asActions.playNow(t)
+    override fun playNext(t: Track) = this@asActions.playNext(t)
+    override fun openTrackMenu(t: Track) = this@asActions.openTrackMenu(t)
+    override fun closeTrackMenu() = this@asActions.closeTrackMenu()
     override fun loadPlaylists() = this@asActions.loadPlaylists()
     override fun openPlaylist(p: Playlist) = this@asActions.openPlaylist(p)
     override fun closePlaylist() = this@asActions.closePlaylist()
@@ -53,6 +61,10 @@ object NoPlayerActions : PlayerActions {
     override fun setQuery(q: String) {}
     override fun search(q: String) {}
     override fun addToQueue(t: Track) {}
+    override fun playNow(t: Track) {}
+    override fun playNext(t: Track) {}
+    override fun openTrackMenu(t: Track) {}
+    override fun closeTrackMenu() {}
     override fun loadPlaylists() {}
     override fun openPlaylist(p: Playlist) {}
     override fun closePlaylist() {}

@@ -76,6 +76,12 @@ class RoomApi(private val host: String, private val token: String,
             .put("song_id", songId).put("title", title)
             .put("artist", artist).put("img_url", cover).put("at_next", atNext))
 
+    /** Insert after the current track and start it now — atomic on the server. */
+    fun playNow(roomId: Int, songId: String, title: String, artist: String, cover: String) =
+        post("/room/$roomId/queue/play_now", JSONObject()
+            .put("song_id", songId).put("title", title)
+            .put("artist", artist).put("img_url", cover))
+
     fun play(roomId: Int) = post("/room/$roomId/play")
     fun pause(roomId: Int) = post("/room/$roomId/pause")
     fun next(roomId: Int) = post("/room/$roomId/next")

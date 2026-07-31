@@ -281,9 +281,31 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 api().queueAdd(room, t.id, t.title, t.artist, t.cover, atNext)
-                flash("Added ${t.title}")
+                flash(if (atNext) "Playing next: ${t.title}" else "Added ${t.title}")
             } catch (e: Exception) {
                 flash("Could not add that song")
+            }
+        }
+    }
+
+    // ── per-track menu ──
+    fun openTrackMenu(t: Track) = _ui.update { it.copy(trackMenu = t) }
+    fun closeTrackMenu() = _ui.update { it.copy(trackMenu = null) }
+
+    fun playNext(t: Track) { closeTrackMenu(); addToQueue(t, atNext = true) }
+
+    /** Insert after the current track and start it — a single atomic call, so
+     *  it can't race the two-phase load and land on the old up-next track. */
+    fun playNow(t: Track) {
+        closeTrackMenu()
+        val room = _ui.value.roomId
+        if (room == 0) return
+        flash("Playing ${t.title}")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                api().playNow(room, t.id, t.title, t.artist, t.cover)
+            } catch (e: Exception) {
+                flash("Could not play that song")
             }
         }
     }

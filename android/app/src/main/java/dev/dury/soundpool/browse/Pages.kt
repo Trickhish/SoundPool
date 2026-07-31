@@ -14,6 +14,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.PlayArrow
@@ -100,7 +102,7 @@ fun SearchPage(ui: BrowseUi, actions: PlayerActions) {
                 items(ui.results.size) { i ->
                     TrackRow(
                         ui.results[i],
-                        onClick = { actions.addToQueue(ui.results[i]) },
+                        onClick = { actions.openTrackMenu(ui.results[i]) },
                         modifier = if (i == 0) Modifier.focusRequester(firstResult) else Modifier,
                     )
                 }
@@ -133,8 +135,8 @@ private fun TrackRow(t: Track, onClick: () -> Unit, modifier: Modifier = Modifie
                  overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(12.dp))
-        Text("+ QUEUE", fontSize = 12.sp, color = Sp.Accent,
-             fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Icon(Icons.Filled.MoreHoriz, contentDescription = "Options", tint = Sp.Muted,
+             modifier = Modifier.size(24.dp))
     }
 }
 
@@ -301,7 +303,7 @@ private fun PlaylistDetail(ui: BrowseUi, actions: PlayerActions) {
             ) {
                 items(ui.playlistTracks.size) { i ->
                     TrackRow(ui.playlistTracks[i],
-                             onClick = { actions.addToQueue(ui.playlistTracks[i]) })
+                             onClick = { actions.openTrackMenu(ui.playlistTracks[i]) })
                 }
             }
         }
@@ -422,5 +424,70 @@ fun PillButton(label: String, onClick: () -> Unit, primary: Boolean = true,
     ) {
         Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
              color = if (primary) Color.White else Sp.Text)
+    }
+}
+
+// ── per-track action menu ─────────────────────────────────────────────────
+
+/**
+ * The play-now / play-next / add-to-queue chooser shown when a track is
+ * activated. A centered card of full-width rows — a D-pad has no cursor, so
+ * each choice is its own big focus target.
+ */
+@Composable
+fun TrackActionSheet(track: Track, actions: PlayerActions) {
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    BackHandler { actions.closeTrackMenu() }
+
+    Box(
+        Modifier.fillMaxSize().background(Color(0xC0000000))
+            .spClickable { actions.closeTrackMenu() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier.width(440.dp).clip(RoundedCornerShape(20.dp))
+                .background(Sp.Surface1).padding(20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(model = track.cover, contentDescription = null,
+                           modifier = Modifier.size(52.dp).clip(RoundedCornerShape(8.dp)),
+                           contentScale = ContentScale.Crop)
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text(track.title, fontSize = 17.sp, color = Sp.Text, maxLines = 1,
+                         fontWeight = FontWeight.SemiBold, overflow = TextOverflow.Ellipsis)
+                    Text(track.artist, fontSize = 13.sp, color = Sp.Muted, maxLines = 1,
+                         overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            ActionRow(Icons.Filled.PlayArrow, "Play now", { actions.playNow(track) },
+                      Modifier.focusRequester(first))
+            Spacer(Modifier.height(8.dp))
+            ActionRow(Icons.Filled.PlaylistPlay, "Play next", { actions.playNext(track) })
+            Spacer(Modifier.height(8.dp))
+            ActionRow(Icons.Filled.Add, "Add to queue",
+                      { actions.addToQueue(track); actions.closeTrackMenu() })
+        }
+    }
+}
+
+@Composable
+private fun ActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String,
+                      onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier.fillMaxWidth()
+            .tvFocus(shape, scale = 1.03f)
+            .clip(shape)
+            .background(Sp.Surface2)
+            .spClickable(onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = Sp.Accent, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(14.dp))
+        Text(label, fontSize = 17.sp, color = Sp.Text, fontWeight = FontWeight.Medium)
     }
 }

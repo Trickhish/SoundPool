@@ -497,6 +497,28 @@ async def room_queue_add(room_id: int, body: QueueAddRequest,
     return JSONResponse(content={"status": "queued"})
 
 
+@router.post("/{room_id}/queue/play_now")
+async def room_queue_play_now(room_id: int, body: QueueAddRequest,
+                              db: SessionLocal = Depends(get_db),  # type: ignore
+                              user: User = Depends(verify_token)):
+    room, rp = _require(db, room_id, user, "can_skip")
+    owner = db.query(User).filter(User.id == room.owner_id).first()
+    if not owner or not owner.deezer_arl:
+        raise HTTPException(403, "Room owner has no Deezer account connected")
+    gw = await asyncio.to_thread(tmg.get_song_gw_data, body.song_id, owner.deezer_arl)
+    try:
+        duration = float(gw.get("DURATION", 0)) * 1000.0
+    except (TypeError, ValueError):
+        duration = 0.0
+    track = {"id": body.song_id, "title": body.title, "artist": body.artist,
+             "cover": body.img_url or "", "duration": duration}
+    await rp.play_now(track)
+    room_player.persist_queue(room_id)
+    await room_player.broadcast_activity(
+        room_id, f"{user.username} played “{body.title}”", icon="▶️")
+    return JSONResponse(content={"status": "playing"})
+
+
 @router.post("/{room_id}/queue/playlist/{playlist_id}")
 async def room_queue_playlist(room_id: int, playlist_id: int,
                               db: SessionLocal = Depends(get_db),  # type: ignore

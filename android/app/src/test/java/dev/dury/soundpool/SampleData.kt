@@ -58,6 +58,9 @@ fun uiPlaylistDetail() = BrowseUi(roomId = 1, player = samplePlayer,
 
 fun uiQueue() = BrowseUi(roomId = 1, player = samplePlayer)
 
+fun uiTrackMenu() = BrowseUi(roomId = 1, player = samplePlayer,
+    query = "daft punk", results = sampleResults, trackMenu = sampleResults[0])
+
 fun uiRoomPicker() = BrowseUi(roomId = 0, rooms = listOf(
     RoomSummary(1, "Living room", true),
     RoomSummary(2, "Kitchen", false),

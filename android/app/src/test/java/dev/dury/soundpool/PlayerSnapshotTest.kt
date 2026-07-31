@@ -33,4 +33,5 @@ class PlayerSnapshotTest {
     @Test fun queue() = shell(uiQueue(), Page.Queue)
     @Test fun settings() = shell(uiNowPlaying(), Page.Settings)
     @Test fun roomPicker() = shell(uiRoomPicker(), Page.NowPlaying)
+    @Test fun trackMenu() = shell(uiTrackMenu(), Page.Search)
 }

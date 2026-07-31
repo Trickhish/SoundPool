@@ -531,6 +531,17 @@ class RoomPlayer:
                 self._t0 = time.monotonic()
         await self.broadcast()
 
+    async def play_now(self, track):
+        """Insert a track right after the current one and start it immediately.
+        Atomic on purpose: doing this as add()+next() from the client races the
+        two-phase load, and the next() would land on the old up-next track."""
+        self._tag(track)
+        idx = self.current_index + 1 if self.current_index >= 0 else 0
+        self.queue.insert(idx, track)
+        self._start_track(idx)
+        self.playing = True
+        await self._dispatch_start()
+
     async def remove(self, idx):
         if not (0 <= idx < len(self.queue)):
             return

@@ -156,6 +156,9 @@ internal fun PlayerShell(
             }
         }
 
+        // Per-track action menu, over everything.
+        ui.trackMenu?.let { TrackActionSheet(it, actions) }
+
         ui.toast?.let {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 Box(

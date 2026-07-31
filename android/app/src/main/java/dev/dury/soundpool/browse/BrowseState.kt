@@ -43,6 +43,8 @@ data class BrowseUi(
 
     val player: PlayerState = PlayerState(),
     val avatarUrl: String = "",   // linked Deezer profile picture, for the rail
+    // A track whose action menu (play now / next / queue) is open. Null = closed.
+    val trackMenu: Track? = null,
     val toast: String? = null,
     val error: String? = null,
 )
