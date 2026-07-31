@@ -215,10 +215,11 @@ fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
                     },
                     onMoveAfterCurrent = {
                         // Same to= for any source: after popping, +1 lands it
-                        // right after the current track either way.
+                        // right after the current track either way. Stay in move
+                        // mode — focus follows the row via moveFocus — so it can
+                        // be nudged again or dropped with OK.
                         val ci = ui.player.currentIndex
                         if (ci >= 0 && q.index != ci) actions.moveQueue(q.index, ci + 1)
-                        movingId = null
                     },
                 )
             }
