@@ -386,18 +386,34 @@ def get_deezer_favorites(arl: str, limit: int = 300):
     return out[:limit]
 
 
-def getDownloadData(song, arl: str):
-    _init_session(arl)
+def _download_data(song, arl: str):
     song_quality = 3 if song.get("FILESIZE_MP3_320") and song.get("FILESIZE_MP3_320") != '0' else \
                    5 if song.get("FILESIZE_MP3_256") and song.get("FILESIZE_MP3_256") != '0' else \
                    1
-
     song, url, extension = dz.get_song_url(song, song_quality)
     if "mp3" not in extension:
         raise Exception(f"Extension isn't mp3 but {extension}")
-
     key = dz.calcbfkey(song["SNG_ID"])
     return song, url, extension, key
+
+
+def getDownloadData(song, arl: str):
+    _init_session(arl)
+    try:
+        return _download_data(song, arl)
+    except Exception as e:
+        # Some tracks' tokens have no streaming rights (Deezer error 2002).
+        # Deezer supplies an alternate recording via FALLBACK.SNG_ID for exactly
+        # this — resolve and stream that instead. The blowfish key follows the
+        # fallback's SNG_ID, which _download_data handles since it keys off the
+        # song it actually resolved.
+        fb = song.get("FALLBACK")
+        fb_id = fb.get("SNG_ID") if isinstance(fb, dict) else None
+        if not fb_id or str(fb_id) == str(song.get("SNG_ID")):
+            raise
+        print(f"[deezer] {song.get('SNG_ID')} unplayable, using fallback {fb_id}")
+        fb_song = get_song_gw_data(fb_id, arl)
+        return _download_data(fb_song, arl)
 
 
 
