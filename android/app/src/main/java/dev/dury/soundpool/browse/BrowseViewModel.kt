@@ -52,6 +52,16 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
     private var sse: SseClient? = null
     private var searchJob: Job? = null
 
+    /** Server-reported position and when it arrived, so the bar advances
+     *  smoothly between the roughly 1Hz updates instead of stepping. */
+    @Volatile private var lastPosMs = 0L
+    @Volatile private var lastPosAt = 0L
+
+    fun positionMs(): Long {
+        if (!_ui.value.player.playing) return lastPosMs
+        return lastPosMs + (System.currentTimeMillis() - lastPosAt)
+    }
+
     private fun api() = RoomApi(cfg.host, cfg.authToken, http)
 
     fun loadRooms() {
@@ -74,7 +84,8 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
     /** Pick the room this box plays into, and make it an output of that room. */
     fun chooseRoom(id: Int) {
         cfg.roomId = id
-        _ui.update { it.copy(roomId = id) }
+        val name = _ui.value.rooms.find { it.id == id }?.name ?: ""
+        _ui.update { it.copy(roomId = id, player = it.player.copy(roomName = name)) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Standalone means the TV is both the controller and the
@@ -110,6 +121,8 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
         when (p.optString("type")) {
             "state" -> {
                 val np = p.optJSONObject("now_playing")
+                lastPosMs = p.optLong("position")
+                lastPosAt = System.currentTimeMillis()
                 val q = p.optJSONArray("queue")
                 val ci = p.optInt("current_index", -1)
                 val upcoming = buildList {
@@ -132,6 +145,15 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
                     ))
                 }
             }
+            "progress" -> {
+                lastPosMs = p.optLong("progress")
+                lastPosAt = System.currentTimeMillis()
+                _ui.update {
+                    it.copy(player = it.player.copy(
+                        durationMs = p.optLong("duration", it.player.durationMs)))
+                }
+            }
+
             "status" -> _ui.update {
                 when (p.optString("status")) {
                     "playing" -> it.copy(player = it.player.copy(playing = true))
@@ -202,7 +224,21 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Called when the browse screen opens. */
     fun enterBrowse() {
-        if (cfg.roomId != 0) openFeed(cfg.roomId) else loadRooms()
+        if (cfg.roomId != 0) {
+            openFeed(cfg.roomId)
+            // Re-opening straight into a saved room means we never saw the
+            // list, so the header would have no name to show.
+            if (_ui.value.player.roomName.isEmpty()) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        val name = api().room(cfg.roomId).optString("name")
+                        _ui.update { it.copy(player = it.player.copy(roomName = name)) }
+                    }
+                }
+            }
+        } else {
+            loadRooms()
+        }
     }
 
     /** Ask for a code and poll until the user approves it elsewhere. */

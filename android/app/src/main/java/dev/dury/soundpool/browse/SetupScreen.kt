@@ -155,3 +155,8 @@ fun SetupScreen(
  */
 fun webOrigin(apiHost: String): String =
     "https://" + apiHost.trim().removePrefix("api.")
+
+data class SignInState(
+    val userCode: String? = null,
+    val error: String? = null,
+)

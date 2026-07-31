@@ -23,7 +23,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.dury.soundpool.browse.BrowseViewModel
-import dev.dury.soundpool.browse.BrowseScreen
+import dev.dury.soundpool.browse.PlayerScreen
 import dev.dury.soundpool.browse.SetupScreen
 import dev.dury.soundpool.display.DisplayScreen
 import dev.dury.soundpool.unit.UnitService
@@ -76,23 +76,26 @@ class MainActivity : ComponentActivity() {
 
                     // The unit role is a background service, so the TV can be a
                     // speaker and a screen at once; this only picks what's shown.
-                    var screen by remember { mutableStateOf(cfg.startMode) }
+                    // The player is home: signing in lands straight on it,
+                    // the way a music app should. The unit status screen is
+                    // diagnostics and lives behind Settings.
+                    var screen by remember { mutableStateOf("player") }
                     when (screen) {
-                        "browse" -> BrowseScreen(
-                            vm = bvm,
-                            onExit = { cfg.startMode = "status"; screen = "status" },
-                        )
                         "display" -> DisplayScreen(
                             vm = viewModel(),
-                            onExit = { cfg.startMode = "status"; screen = "status" },
+                            onExit = { screen = "player" },
                         )
-                        else -> UnitScreen(
+                        "unit" -> UnitScreen(
                             cfg = cfg,
                             onStart = { startUnit() },
                             onStop = { stopService(Intent(this, UnitService::class.java)) },
-                            onDisplay = { cfg.startMode = "display"; screen = "display" },
-                            onBrowse = { cfg.startMode = "browse"; screen = "browse" },
+                            onBack = { screen = "player" },
+                        )
+                        else -> PlayerScreen(
+                            vm = bvm,
                             onSignOut = { bvm.signOut() },
+                            onOpenDisplay = { screen = "display" },
+                            onOpenUnit = { screen = "unit" },
                         )
                     }
                 }
@@ -120,8 +123,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(UnstableApi::class)
 @Composable
 private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit,
-                       onDisplay: () -> Unit, onBrowse: () -> Unit,
-                       onSignOut: () -> Unit) {
+                       onBack: () -> Unit) {
     var host by remember { mutableStateOf(cfg.host) }
     var name by remember { mutableStateOf(cfg.name) }
 
@@ -178,15 +180,10 @@ private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit,
                 Text("Restart unit")
             }
             OutlinedButton(onClick = onStop) { Text("Stop") }
-            Button(onClick = onDisplay) { Text("Big screen display") }
-            Button(onClick = onBrowse) { Text("Browse & play") }
+            OutlinedButton(onClick = onBack) { Text("Back") }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("signed in as ${cfg.accountName}", color = Color(0xFF4ADE80), fontSize = 15.sp)
-            OutlinedButton(onClick = onSignOut) { Text("Sign out") }
-        }
+        Text("signed in as ${cfg.accountName}", color = Color(0xFF4ADE80), fontSize = 15.sp)
 
         Spacer(Modifier.height(24.dp))
         Text("Settings", fontSize = 18.sp, color = Color(0xFFB9A9D8))
