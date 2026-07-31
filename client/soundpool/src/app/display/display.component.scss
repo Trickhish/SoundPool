@@ -153,13 +153,14 @@
    work happens 60 times a second. */
 .display-root { --beat: 0; }
 
-/* Subtle: the cover swells and its glow lifts on each beat. */
-.disp-main .disp-cover-wrap {
+/* Subtle: the cover swells and its glow lifts on each beat. Scoped to the mode
+   so nothing reacts unless that effect is actually selected. */
+.display-root.beat-pulse .disp-cover-wrap {
   transform: scale(calc(1 + 0.045 * var(--beat)));
   box-shadow: 0 3vh 8vh rgba(0,0,0,0.6),
               0 0 calc(4vh * var(--beat)) rgba(255,43,109, calc(0.55 * var(--beat)));
 }
-.disp-lights .lg { opacity: calc(var(--lg-base, 0.5) * (1 + 0.5 * var(--beat))); }
+.display-root.beat-pulse .disp-lights .lg { opacity: calc(var(--lg-base, 0.5) * (1 + 0.5 * var(--beat))); }
 .disp-lights .lg1 { --lg-base: 0.55; }
 .disp-lights .lg2 { --lg-base: 0.50; }
 .disp-lights .lg3 { --lg-base: 0.42; }

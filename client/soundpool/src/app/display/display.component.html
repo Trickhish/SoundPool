@@ -1,4 +1,4 @@
-<div class="display-root">
+<div class="display-root" [class.beat-pulse]="info?.beat_effect === 'pulse'" [class.beat-strobe]="info?.beat_effect === 'strobe'">
 
   <!-- Not found / ended -->
   <div *ngIf="notFound" class="disp-notfound">

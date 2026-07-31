@@ -211,7 +211,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
       this.rafId = requestAnimationFrame(step);
       const el = root();
       if (!el) return;
-      if (!this.beatUsable || !this.playing || !this.beats.length) {
+      // Check the setting here, not just when beats are loaded: switching to
+      // Off mid-track left the already-loaded grid still pulsing.
+      const effect = this.info?.beat_effect || 'off';
+      if (effect === 'off' || !this.beatUsable || !this.playing || !this.beats.length) {
         el.style.setProperty('--beat', '0');
         return;
       }
@@ -294,7 +297,9 @@ export class DisplayComponent implements OnInit, OnDestroy {
     this.startSse(i.room_id);
     this.startBeatLoop();
     // Effect switched on/off from settings while a track is already playing.
-    if (i.beat_effect && i.beat_effect !== 'off' && !this.beats.length && this.nowId) this.loadBeats();
+    const fx = i.beat_effect || 'off';
+    if (fx === 'off') { this.beats = []; this.beatUsable = false; }
+    else if (!this.beats.length && this.nowId) this.loadBeats();
     // Seed playback from the poll until the live SSE feed takes over.
     if (!this.sseLive) this.setPlayback(i.now_playing, i.position, !!i.playing);
     if (Array.isArray(i.queue)) { this.queue = i.queue; this.preloadArtwork(); }
