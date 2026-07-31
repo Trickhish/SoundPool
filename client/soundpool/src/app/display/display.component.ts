@@ -360,22 +360,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
   // ── Lyric lead-in ────────────────────────────────────────────────────────
   // During an intro or an instrumental break, fill a ring so singers know when
   // to come back in (the same cue Deezer gives).
-  private static LEADIN_MIN_GAP = 4500;   // only for real gaps, not line changes
+  private static LEADIN_MIN_GAP = 4500;        // when real line durations are known
+  private static LEADIN_MIN_GAP_NO_DUR = 12000; // start-to-start, so it must clear a long sung line
   private static LEADIN_WINDOW  = 5000;   // how long the ring is on screen
 
-  /** When the current line stops being sung.
-   *  Deezer gives a real per-line duration; LRC sources (LRCLIB/Musixmatch)
-   *  don't, so estimate from the text — otherwise a slow song's long lines look
-   *  identical to an instrumental break. */
-  private lineEnd(i: number): number {
-    if (i < 0) return 0;                       // before the first line = intro
-    const l = this.lyrics[i];
-    if (!l) return 0;
-    if (l.dur && l.dur > 0) return l.ms + l.dur;
-    const words = (l.line || '').trim();
-    if (!words) return l.ms;
-    const est = Math.min(6000, Math.max(1200, words.length * 90));   // ~11 chars/s
-    return l.ms + est;
+  /** Do we know how long each line is actually sung? Deezer says so; the LRC
+   *  sources (LRCLIB/Musixmatch) only give start times. */
+  private get hasLineDurations(): boolean {
+    return this.lyrics.some(l => !!l.dur && l.dur > 0);
   }
 
   /** 0..1 while a lead-in is running, or null when there's nothing to count in. */
@@ -383,9 +375,26 @@ export class DisplayComponent implements OnInit, OnDestroy {
     if (!this.lyrics.length || !this.playing) return null;
     const next = this.lyrics[this.activeIdx + 1];
     if (!next) return null;
-    // Measure silence, not the distance between line starts.
-    const gap = next.ms - this.lineEnd(this.activeIdx);
-    if (gap < DisplayComponent.LEADIN_MIN_GAP) return null;
+
+    const cur = this.activeIdx >= 0 ? this.lyrics[this.activeIdx] : null;
+    let gap: number;
+    let minGap: number;
+    if (this.hasLineDurations) {
+      // Real silence: from where the line stops being sung.
+      const end = cur ? cur.ms + (cur.dur || 0) : 0;
+      gap = next.ms - end;
+      minGap = DisplayComponent.LEADIN_MIN_GAP;
+    } else {
+      // No durations, so we can't know when the line ended. Guessing it from the
+      // text was badly wrong on slow songs — on 'The Fields of Athenry' the
+      // median start-to-start gap is 7.2s of ordinary singing, so a 4.5s rule
+      // put dots under 25 of 33 lines, mid-sentence. Measure start-to-start and
+      // demand a gap no sung line could plausibly fill; that leaves only the
+      // genuine break (28.5s there).
+      gap = next.ms - (cur ? cur.ms : 0);
+      minGap = DisplayComponent.LEADIN_MIN_GAP_NO_DUR;
+    }
+    if (gap < minGap) return null;
     const remaining = next.ms - this.posMs;
     if (remaining <= 0) return null;
     const window = Math.min(gap, DisplayComponent.LEADIN_WINDOW);
