@@ -1,0 +1,12 @@
+<!-- TV launcher banner (320x180dp). Vector so there's no density set to ship. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#1B1229" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#7C3AED"
+        android:pathData="M96,90m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M86,74l30,16l-30,16z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M152,78h6v30h-6z M164,70h6v46h-6z M176,84h6v18h-6z M188,74h6v38h-6z M200,80h6v26h-6z" />
+</vector>
