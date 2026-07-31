@@ -201,6 +201,11 @@ async def do_render(song, url, key, pos_ms, playing, vol=None):
                     mp.audio.unpause()
                 else:
                     mp.audio.seek(pos_ms / 1000.0)
+                # Seeking does NOT resume a paused player, so scrubbing while
+                # paused left the unit silent (the room and the browser both
+                # went to playing) until you pressed pause/play. Always make
+                # sure we're running when the room says we should be.
+                mp.audio.unpause()
                 mp.audio.set_volume(mp.volume)
                 mp.render_paused = False
             else:
