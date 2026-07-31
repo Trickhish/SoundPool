@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.SoundPoolUnit" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF0E0E1D</item>
+    </style>
+</resources>

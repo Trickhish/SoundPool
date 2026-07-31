@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "SoundPool"
 include(":app")
+include(":unit")
