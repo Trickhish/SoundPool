@@ -440,25 +440,6 @@
 }
 
 /* ── Output picker (room mode) ── */
-.output-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    margin: 0;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: var(--font-muted);
-    border-radius: 999px;
-    padding: 0.45rem 1rem;
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-    &:hover { color: var(--font-color); background: rgba(255,255,255,0.09); }
-    .out-count { color: var(--accent); }
-}
-.out-modal { width: min(440px, 100%); height: auto; max-height: min(70dvh, 100%); }
 
 .out-row {
     display: flex;
@@ -1351,3 +1332,15 @@
     svg { color: var(--font-muted); flex-shrink: 0; }
     &:hover svg { color: var(--accent); }
 }
+
+/* Output selector, now inside Settings › Playback */
+.setting-head {
+  margin: 4px 2px 2px;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted, #b9a9d8);
+}
+.out-hint { margin: 0 2px 8px; }
+.out-sub.offline { color: #f87171; }

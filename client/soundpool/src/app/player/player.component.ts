@@ -84,7 +84,6 @@ export class PlayerComponent implements OnInit, OnDestroy {
   rights: any = null;             // room rights for the current user (room mode)
   myUnits: Unit[] = [];           // the user's units (output choices, room mode)
   roomOutputs: string[] = [];     // unit ids currently attached to the room
-  outputModalOpen = false;
   // Browser output: this client renders the room locally via <audio>.
   browserOutput = false;
   private audioEl: HTMLAudioElement | null = null;
@@ -220,7 +219,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
     this.loadFavoriteIds();
     if (this.isRoom) {
-      this.api.getUnits().subscribe({ next: (u) => { this.myUnits = u || []; } });
+      this.api.getUnits().subscribe({ next: (u) => { this.myUnits = u || []; this.rebuildOutputUnits(); } });
       this.audioEl = new Audio();
       this.audioEl.addEventListener('error', () => {
         if (this.browserOutput && !this.destroying && this.audioEl?.src)
@@ -469,7 +468,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
       voting_enabled: !!s.voting_enabled,
       queue: s.queue ?? [],
     };
-    if (s.outputs !== undefined) this.roomOutputs = s.outputs;
+    if (s.outputs !== undefined) { this.roomOutputs = s.outputs; this.rebuildOutputUnits(); }
     if (this._pendingQueueScroll && this.state.queue.length) {
       this._pendingQueueScroll = false;
       this.scrollQueueToCurrent(150);   // queue opened via the bar; scroll once loaded
@@ -698,9 +697,11 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   private buildSettingsTabs() {
     const tabs: { id: any, label: string }[] = [];
+    // Playback leads: it now holds the output selector, which is the thing
+    // people reach for most often.
+    if (this.isAdmin || this.can('can_manage_speakers')) tabs.push({ id: 'playback', label: 'Playback' });
     if (this.can('can_manage_party')) tabs.push({ id: 'party', label: 'Party' });
     if (this.isAdmin) {
-      tabs.push({ id: 'playback', label: 'Playback' });
       tabs.push({ id: 'display', label: 'Big screen' });
       tabs.push({ id: 'members', label: 'Members' });
     }
@@ -714,8 +715,32 @@ export class PlayerComponent implements OnInit, OnDestroy {
     if (!this.pid) return;
     this.api.roomMembers(+this.pid).subscribe({ next: (m) => this.members = m });
   }
+  /** Units offered as outputs. Offline ones are hidden — they can't play
+   *  anything — except when one is already selected, so it stays possible to
+   *  turn it off instead of it vanishing while still attached.
+   *
+   *  A field, NOT a getter: a getter hands back a new array on every
+   *  change-detection pass, and this component runs detectChanges() on each SSE
+   *  event plus a 250ms ticker, which made *ngFor rebuild the rows constantly
+   *  (the same flicker-and-swallow-clicks bug the settings tabs had). */
+  outputUnits: Unit[] = [];
+  trackUnit = (_: number, u: Unit) => u.id;
+
+  private rebuildOutputUnits() {
+    this.outputUnits = (this.myUnits || []).filter(u => u.online || this.isOutput(u.id));
+  }
+
+  /** Unit online state is a snapshot from when the room opened, so refresh it
+   *  at the moment someone actually opens the picker. */
+  private refreshUnits() {
+    this.api.getUnits().subscribe({
+      next: (u) => { this.myUnits = u || []; this.rebuildOutputUnits(); }
+    });
+  }
+
   openSettings() {
     this.settingsOpen = true;
+    this.refreshUnits();
     this.buildSettingsTabs();
     const tabs = this.settingsTabs;
     // Land on the first tab this user actually has.
@@ -756,8 +781,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   // ── Output (room mode) ──
-  openOutputs() { this.outputModalOpen = true; }
-  closeOutputs() { this.outputModalOpen = false; }
+  /** Active outputs, shown as a hint on the settings button. */
   get outputCount(): number { return this.roomOutputs.length + (this.browserOutput ? 1 : 0); }
 
   isOutput(unitId: string): boolean { return this.roomOutputs.includes(unitId); }
@@ -838,9 +862,16 @@ export class PlayerComponent implements OnInit, OnDestroy {
     } else {
       this.roomOutputs = [...this.roomOutputs, id];
       this.api.roomSelectOutput(this.pid, id).subscribe({
-        error: () => { this.roomOutputs = this.roomOutputs.filter(x => x !== id); this.toastr.error('Could not set output'); }
+        error: () => {
+          this.roomOutputs = this.roomOutputs.filter(x => x !== id);
+          this.rebuildOutputUnits();
+          this.toastr.error('Could not set output');
+        }
       });
     }
+    // An offline unit is only listed while it's selected, so deselecting one
+    // has to drop it from the list.
+    this.rebuildOutputUnits();
   }
 
   // ── Queue panel ──
