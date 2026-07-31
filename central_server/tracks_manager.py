@@ -412,8 +412,15 @@ def getDownloadData(song, arl: str):
         if not fb_id or str(fb_id) == str(song.get("SNG_ID")):
             raise
         print(f"[deezer] {song.get('SNG_ID')} unplayable, using fallback {fb_id}")
-        fb_song = get_song_gw_data(fb_id, arl)
-        return _download_data(fb_song, arl)
+        # FALLBACK is a full track record (TRACK_TOKEN, FILESIZE_*), so resolve
+        # it directly — no second gw round-trip. Only re-fetch if the token
+        # turns out to be expired/incomplete.
+        if fb.get("TRACK_TOKEN"):
+            try:
+                return _download_data(fb, arl)
+            except Exception:
+                pass
+        return _download_data(get_song_gw_data(fb_id, arl), arl)
 
 
 
