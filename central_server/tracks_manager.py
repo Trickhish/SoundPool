@@ -206,13 +206,61 @@ def _parse_lrc(lrc: str) -> list:
     return out
 
 
-def get_fallback_lyrics(title: str, artist: str, duration_sec=None) -> dict:
+LRCLIB_GET = "https://lrclib.net/api/get"
+
+
+def _lrclib_exact(title: str, artist: str, duration_sec: float, album: str = None) -> dict:
+    """Ask LRCLIB for THIS recording, not just this song title.
+
+    Its /api/get takes a duration and only answers when it has a track within a
+    couple of seconds of it. That matters more than it sounds: LRCLIB lists ten
+    different "Lowlife" by YUNGBLUD (211s, 212s, 233s, 234s, a live cut...), and
+    a title+artist search picks one arbitrarily. Matching on duration pins the
+    version actually playing.
+
+    Returns None when it has nothing at that length, so the caller can fall
+    back to the fuzzy providers.
+    """
+    params = {"artist_name": artist, "track_name": title,
+              "duration": int(round(duration_sec))}
+    if album:
+        params["album_name"] = album
+    try:
+        r = requests.get(LRCLIB_GET, params=params, timeout=10,
+                         headers={"User-Agent": "SoundPool (https://soundpool.dury.dev)"})
+        if r.status_code != 200:
+            return None
+        d = r.json() or {}
+    except Exception as e:
+        print(f"[lyrics] lrclib exact lookup failed for {artist} - {title}: {e}")
+        return None
+    if d.get("instrumental"):
+        return {"synced": [], "plain": ""}
+    lrc = d.get("syncedLyrics")
+    if lrc:
+        synced = _parse_lrc(lrc)
+        if synced:
+            return {"synced": synced, "plain": "\n".join(l["line"] for l in synced)}
+    plain = (d.get("plainLyrics") or "").strip()
+    return {"synced": [], "plain": plain} if plain else None
+
+
+def get_fallback_lyrics(title: str, artist: str, duration_sec=None, album=None) -> dict:
     """Fallback lyrics via syncedlyrics, which aggregates several free providers
     — LRCLIB (community), Musixmatch (what Spotify uses) and NetEase — and
     returns synced LRC when any of them has it. Returns
     {"synced": [...], "plain": str}."""
     if not title or not artist:
         return {"synced": [], "plain": ""}
+
+    # Duration-matched lookup first: it identifies the recording, where the
+    # aggregate search below only knows the title and artist and will happily
+    # hand back another version's timings.
+    if duration_sec:
+        exact = _lrclib_exact(title, artist, duration_sec, album)
+        if exact and exact["synced"]:
+            return exact
+
     try:
         import syncedlyrics
         lrc = syncedlyrics.search(f"{title} {artist}",
