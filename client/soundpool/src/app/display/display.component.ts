@@ -360,7 +360,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   // ── Lyric lead-in ────────────────────────────────────────────────────────
   // During an intro or an instrumental break, fill a ring so singers know when
   // to come back in (the same cue Deezer gives).
-  private static LEADIN_MIN_GAP = 4500;        // when real line durations are known
+  private static LEADIN_MIN_GAP = 3000;        // exact silence (real durations), so a short bar is safe
   private static LEADIN_MIN_GAP_NO_DUR = 12000; // start-to-start, so it must clear a long sung line
   private static LEADIN_MIN_GAP_MARKED = 2500;  // source says it is a break, so trust a short one
   private static LEADIN_WINDOW  = 5000;   // how long the ring is on screen
