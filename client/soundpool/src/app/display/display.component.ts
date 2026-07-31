@@ -362,6 +362,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   // to come back in (the same cue Deezer gives).
   private static LEADIN_MIN_GAP = 4500;        // when real line durations are known
   private static LEADIN_MIN_GAP_NO_DUR = 12000; // start-to-start, so it must clear a long sung line
+  private static LEADIN_MIN_GAP_MARKED = 2500;  // source says it is a break, so trust a short one
   private static LEADIN_WINDOW  = 5000;   // how long the ring is on screen
 
   /** Do we know how long each line is actually sung? Deezer says so; the LRC
@@ -379,7 +380,13 @@ export class DisplayComponent implements OnInit, OnDestroy {
     const cur = this.activeIdx >= 0 ? this.lyrics[this.activeIdx] : null;
     let gap: number;
     let minGap: number;
-    if (this.hasLineDurations) {
+    if (cur && !cur.line.trim()) {
+      // An empty line is the source explicitly marking an instrumental break —
+      // no guessing needed, we KNOW nothing is sung from here until the next
+      // line. Fields of Athenry marks its 1:03 break exactly this way.
+      gap = next.ms - cur.ms;
+      minGap = DisplayComponent.LEADIN_MIN_GAP_MARKED;
+    } else if (this.hasLineDurations) {
       // Real silence: from where the line stops being sung.
       const end = cur ? cur.ms + (cur.dur || 0) : 0;
       gap = next.ms - end;
