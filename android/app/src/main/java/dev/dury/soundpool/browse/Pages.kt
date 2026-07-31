@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -15,6 +16,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.foundation.focusable
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Shuffle
@@ -143,41 +152,130 @@ private fun TrackRow(t: Track, onClick: () -> Unit, modifier: Modifier = Modifie
 // ── queue ───────────────────────────────────────────────────────────────────
 
 @Composable
-fun QueuePage(ui: BrowseUi) {
+fun QueuePage(ui: BrowseUi, actions: PlayerActions) {
+    val queue = ui.player.fullQueue
+    // Which item (by song id, stable across the reorder) is in move mode.
+    var movingId by remember { mutableStateOf<String?>(null) }
+    // Re-grab focus onto the moving row after a reorder shuffles the list.
+    val moveFocus = remember { FocusRequester() }
+    LaunchedEffect(queue, movingId) {
+        if (movingId != null) runCatching { moveFocus.requestFocus() }
+    }
+    // Leaving move mode should be handled before the page's own BACK.
+    BackHandler(enabled = movingId != null) { movingId = null }
+
+    // Keep the current track pinned to the top — on open and each time it
+    // advances — but never yank the list while the user is reordering.
+    val listState = rememberLazyListState()
+    LaunchedEffect(ui.player.currentIndex) {
+        val ci = ui.player.currentIndex
+        if (ci >= 0 && movingId == null) {
+            val row = queue.indexOfFirst { it.index == ci }
+            if (row >= 0) runCatching { listState.scrollToItem(row) }
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
-        Text("Up next", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Sp.Text)
+        Text(if (movingId != null) "Moving — ↑↓ reorder · OK to drop"
+             else "Queue", fontSize = 30.sp, fontWeight = FontWeight.Bold,
+             color = if (movingId != null) Sp.Accent else Sp.Text)
         Spacer(Modifier.height(16.dp))
-        if (ui.player.queue.isEmpty()) {
+        if (queue.isEmpty()) {
             Text("Nothing queued.", fontSize = 16.sp, color = Sp.Muted)
             return@Column
         }
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 12.dp),
         ) {
-            items(ui.player.queue.size) { i ->
-                val q = ui.player.queue[i]
-                Row(
-                    Modifier.fillMaxWidth(0.9f).clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x14FFFFFF)).padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("${i + 1}", fontSize = 13.sp, color = Sp.Faint,
-                         modifier = Modifier.width(30.dp))
-                    if (q.cover.isNotEmpty()) {
-                        AsyncImage(model = q.cover, contentDescription = null,
-                                   modifier = Modifier.size(42.dp).clip(RoundedCornerShape(7.dp)),
-                                   contentScale = ContentScale.Crop)
-                        Spacer(Modifier.width(12.dp))
-                    }
-                    Column {
-                        Text(q.title, fontSize = 16.sp, color = Sp.Text, maxLines = 1,
-                             overflow = TextOverflow.Ellipsis)
-                        Text(q.artist, fontSize = 13.sp, color = Sp.Muted, maxLines = 1,
-                             overflow = TextOverflow.Ellipsis)
-                    }
+            items(queue.size, key = { queue[it].id + "@" + queue[it].index }) { i ->
+                val q = queue[i]
+                QueueRow(
+                    item = q,
+                    isCurrent = q.index == ui.player.currentIndex,
+                    isMoving = q.id == movingId,
+                    focusMod = if (q.id == movingId) Modifier.focusRequester(moveFocus)
+                               else Modifier,
+                    onActivate = {
+                        if (movingId == q.id) movingId = null          // drop here
+                        else actions.jumpTo(q.index)                   // play now
+                    },
+                    onEnterMove = { movingId = q.id },
+                    onMove = { delta ->
+                        // The server's move() compensates for removing the item
+                        // first (frm<to -> to-=1), so a one-step move down is
+                        // target index+2, not index+1.
+                        when {
+                            delta < 0 && q.index > 0 ->
+                                actions.moveQueue(q.index, q.index - 1)
+                            delta > 0 && q.index < queue.size - 1 ->
+                                actions.moveQueue(q.index, q.index + 2)
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QueueRow(item: QueueItem, isCurrent: Boolean, isMoving: Boolean,
+                     focusMod: Modifier, onActivate: () -> Unit,
+                     onEnterMove: () -> Unit, onMove: (Int) -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    val bg = when {
+        isMoving -> Sp.Accent.copy(alpha = 0.22f)
+        isCurrent -> Sp.Accent.copy(alpha = 0.14f)
+        else -> Color(0x14FFFFFF)
+    }
+    Row(
+        focusMod.fillMaxWidth(0.92f)
+            .tvFocus(shape, scale = 1.02f)
+            .clip(shape)
+            .background(bg)
+            .onKeyEvent { e ->
+                if (e.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when {
+                    // RIGHT picks the row up; UP/DOWN then reorder it. While
+                    // moving, LEFT/RIGHT are trapped so focus can't wander off
+                    // the row being dragged — OK or BACK drops it.
+                    !isMoving && e.key == Key.DirectionRight -> { onEnterMove(); true }
+                    isMoving && e.key == Key.DirectionUp -> { onMove(-1); true }
+                    isMoving && e.key == Key.DirectionDown -> { onMove(+1); true }
+                    isMoving && (e.key == Key.DirectionLeft ||
+                                 e.key == Key.DirectionRight) -> true
+                    else -> false
                 }
             }
+            // OK plays the track, or drops it while moving.
+            .spClickable(onActivate)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (isCurrent) {
+            Icon(Icons.Filled.VolumeUp, contentDescription = "Now playing", tint = Sp.Accent,
+                 modifier = Modifier.width(30.dp).size(18.dp))
+        } else {
+            Text("${item.index + 1}", fontSize = 13.sp, color = Sp.Faint,
+                 modifier = Modifier.width(30.dp))
+        }
+        if (item.cover.isNotEmpty()) {
+            AsyncImage(model = item.cover, contentDescription = null,
+                       modifier = Modifier.size(42.dp).clip(RoundedCornerShape(7.dp)),
+                       contentScale = ContentScale.Crop)
+            Spacer(Modifier.width(12.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(item.title, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                 color = if (isCurrent) Sp.Accent else Sp.Text,
+                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal)
+            Text(item.artist, fontSize = 13.sp, color = Sp.Muted, maxLines = 1,
+                 overflow = TextOverflow.Ellipsis)
+        }
+        if (isMoving) {
+            Icon(Icons.Filled.SwapVert, contentDescription = null, tint = Sp.Accent,
+                 modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -340,6 +438,10 @@ fun SettingsPage(ui: BrowseUi, actions: PlayerActions, onSignOut: () -> Unit,
 
 @Composable
 fun RoomPicker(ui: BrowseUi, onPick: (Int) -> Unit, onReload: () -> Unit) {
+    // BACK cancels a room change and returns to the room you were in. At first
+    // launch there's no previous room, so BACK falls through (exits the app,
+    // which is the normal Android root behaviour).
+    BackHandler(enabled = ui.previousRoomId != 0) { onPick(ui.previousRoomId) }
     val first = remember { FocusRequester() }
     LaunchedEffect(ui.rooms) {
         if (ui.rooms.isNotEmpty()) runCatching { first.requestFocus() }

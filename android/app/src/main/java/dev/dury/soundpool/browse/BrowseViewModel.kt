@@ -100,9 +100,11 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun leaveRoom() {
+        val prev = _ui.value.roomId
         sse?.stop(); sse = null
         cfg.roomId = 0
-        _ui.update { it.copy(roomId = 0, player = PlayerState(), results = emptyList(), query = "") }
+        _ui.update { it.copy(roomId = 0, previousRoomId = prev,
+                             player = PlayerState(), results = emptyList(), query = "") }
         loadRooms()
     }
 
@@ -125,14 +127,14 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
                 lastPosAt = System.currentTimeMillis()
                 val q = p.optJSONArray("queue")
                 val ci = p.optInt("current_index", -1)
-                val upcoming = buildList {
-                    if (q != null) {
-                        val all = (0 until q.length()).map { q.getJSONObject(it) }
-                        (if (ci >= 0) all.drop(ci + 1) else all).take(20).forEach {
-                            add(QueueEntry(it.optString("title"), it.optString("artist"),
-                                           it.optString("cover")))
-                        }
-                    }
+                val all = if (q != null) (0 until q.length()).map { q.getJSONObject(it) }
+                          else emptyList()
+                val full = all.mapIndexed { i, o ->
+                    QueueItem(o.optInt("key", i), o.optString("id"), o.optString("title"),
+                              o.optString("artist"), o.optString("cover"))
+                }
+                val upcoming = (if (ci >= 0) all.drop(ci + 1) else all).take(20).map {
+                    QueueEntry(it.optString("title"), it.optString("artist"), it.optString("cover"))
                 }
                 _ui.update {
                     it.copy(player = it.player.copy(
@@ -142,6 +144,8 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
                         durationMs = np?.optLong("duration") ?: 0,
                         playing = p.optBoolean("playing"),
                         queue = upcoming,
+                        fullQueue = full,
+                        currentIndex = ci,
                     ))
                 }
             }
@@ -309,6 +313,12 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    /** Jump to and play an existing queue position. */
+    fun jumpTo(index: Int) = control { it.jump(_ui.value.roomId, index) }
+
+    /** Reorder a queue item; server clamps out-of-range. */
+    fun moveQueue(from: Int, to: Int) = control { it.move(_ui.value.roomId, from, to) }
 
     fun playPause() = control { if (_ui.value.player.playing) it.pause(_ui.value.roomId)
                                 else it.play(_ui.value.roomId) }

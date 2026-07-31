@@ -143,7 +143,7 @@ internal fun PlayerShell(
                         Page.NowPlaying -> NowPlayingPage(ui, actions, railFocus)
                         Page.Search -> SearchPage(ui, actions)
                         Page.Playlists -> PlaylistsPage(ui, actions)
-                        Page.Queue -> QueuePage(ui)
+                        Page.Queue -> QueuePage(ui, actions)
                         Page.Settings -> SettingsPage(ui, actions, onSignOut, onOpenDisplay, onOpenUnit)
                     }
                 }

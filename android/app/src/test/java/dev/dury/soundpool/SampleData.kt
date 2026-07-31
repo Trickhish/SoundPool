@@ -4,6 +4,7 @@ import dev.dury.soundpool.browse.BrowseUi
 import dev.dury.soundpool.browse.PlayerState
 import dev.dury.soundpool.browse.Playlist
 import dev.dury.soundpool.browse.QueueEntry
+import dev.dury.soundpool.browse.QueueItem
 import dev.dury.soundpool.browse.RoomSummary
 import dev.dury.soundpool.browse.Track
 
@@ -56,7 +57,16 @@ fun uiPlaylistDetail() = BrowseUi(roomId = 1, player = samplePlayer,
     playlists = samplePlaylists, playlistsLoaded = true,
     openPlaylist = samplePlaylists[0], playlistTracks = sampleResults)
 
-fun uiQueue() = BrowseUi(roomId = 1, player = samplePlayer)
+val sampleFullQueue = listOf(
+    QueueItem(0, "a", "River", "BRKN LOVE", ""),
+    QueueItem(1, "b", "What You Know", "Two Door Cinema Club", ""),
+    QueueItem(2, "c", "Heathens", "Twenty One Pilots", ""),
+    QueueItem(3, "d", "The Man", "The Killers", ""),
+    QueueItem(4, "e", "Hotel California", "Eagles", ""),
+)
+
+fun uiQueue() = BrowseUi(roomId = 1,
+    player = samplePlayer.copy(fullQueue = sampleFullQueue, currentIndex = 1))
 
 fun uiTrackMenu() = BrowseUi(roomId = 1, player = samplePlayer,
     query = "daft punk", results = sampleResults, trackMenu = sampleResults[0])

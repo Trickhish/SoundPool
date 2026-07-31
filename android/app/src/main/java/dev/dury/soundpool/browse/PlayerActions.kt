@@ -28,6 +28,9 @@ interface PlayerActions {
     fun queueWholePlaylist(p: Playlist)
     fun playPlaylist(p: Playlist, shuffle: Boolean)
 
+    fun jumpTo(index: Int)
+    fun moveQueue(from: Int, to: Int)
+
     fun leaveRoom()
 }
 
@@ -49,6 +52,8 @@ fun BrowseViewModel.asActions(): PlayerActions = object : PlayerActions {
     override fun closePlaylist() = this@asActions.closePlaylist()
     override fun queueWholePlaylist(p: Playlist) = this@asActions.queueWholePlaylist(p)
     override fun playPlaylist(p: Playlist, shuffle: Boolean) = this@asActions.playPlaylist(p, shuffle)
+    override fun jumpTo(index: Int) = this@asActions.jumpTo(index)
+    override fun moveQueue(from: Int, to: Int) = this@asActions.moveQueue(from, to)
     override fun leaveRoom() = this@asActions.leaveRoom()
 }
 
@@ -70,5 +75,7 @@ object NoPlayerActions : PlayerActions {
     override fun closePlaylist() {}
     override fun queueWholePlaylist(p: Playlist) {}
     override fun playPlaylist(p: Playlist, shuffle: Boolean) {}
+    override fun jumpTo(index: Int) {}
+    override fun moveQueue(from: Int, to: Int) {}
     override fun leaveRoom() {}
 }

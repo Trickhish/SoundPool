@@ -65,6 +65,8 @@ class RoomApi(private val host: String, private val token: String,
     fun shuffleQueue(roomId: Int) = post("/room/$roomId/queue/shuffle")
     fun jump(roomId: Int, index: Int) =
         post("/room/$roomId/queue/jump", JSONObject().put("index", index))
+    fun move(roomId: Int, frm: Int, to: Int) =
+        post("/room/$roomId/queue/move", JSONObject().put("frm", frm).put("to", to))
 
     /** Attach this box's unit as an output of the room. */
     fun attachOutput(roomId: Int, unitId: String) =
