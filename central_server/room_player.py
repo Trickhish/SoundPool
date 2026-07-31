@@ -454,6 +454,16 @@ class RoomPlayer:
             return 0 if self.repeat == "all" else -1
         return nxt
 
+    def _prev_index(self):
+        # Mirror of _next_index. Shuffle is a one-shot reorder of the queue, not
+        # a playback mode, so going back just means the previous row in the
+        # displayed order.
+        if not self.queue:
+            return -1
+        if self.current_index <= 0:
+            return len(self.queue) - 1 if self.repeat == "all" else 0
+        return self.current_index - 1
+
     async def shuffle_queue(self):
         """Randomize the queue order once. Keeps already-played + the currently
         playing track fixed and shuffles the upcoming songs; if nothing is
@@ -489,11 +499,10 @@ class RoomPlayer:
         await self._dispatch_start()
 
     async def prev(self):
-        if self.shuffle:
-            return await self.advance()
-        if not self.queue:
+        idx = self._prev_index()
+        if idx < 0:
             return
-        self._start_track(0 if self.current_index <= 0 else self.current_index - 1)
+        self._start_track(idx)
         self.playing = True
         await self._dispatch_start()
 
