@@ -23,6 +23,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.dury.soundpool.browse.BrowseViewModel
+import dev.dury.soundpool.browse.BrowseScreen
 import dev.dury.soundpool.browse.SetupScreen
 import dev.dury.soundpool.display.DisplayScreen
 import dev.dury.soundpool.unit.UnitService
@@ -77,6 +78,10 @@ class MainActivity : ComponentActivity() {
                     // speaker and a screen at once; this only picks what's shown.
                     var screen by remember { mutableStateOf(cfg.startMode) }
                     when (screen) {
+                        "browse" -> BrowseScreen(
+                            vm = bvm,
+                            onExit = { cfg.startMode = "status"; screen = "status" },
+                        )
                         "display" -> DisplayScreen(
                             vm = viewModel(),
                             onExit = { cfg.startMode = "status"; screen = "status" },
@@ -86,6 +91,7 @@ class MainActivity : ComponentActivity() {
                             onStart = { startUnit() },
                             onStop = { stopService(Intent(this, UnitService::class.java)) },
                             onDisplay = { cfg.startMode = "display"; screen = "display" },
+                            onBrowse = { cfg.startMode = "browse"; screen = "browse" },
                             onSignOut = { bvm.signOut() },
                         )
                     }
@@ -114,7 +120,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(UnstableApi::class)
 @Composable
 private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit,
-                       onDisplay: () -> Unit, onSignOut: () -> Unit) {
+                       onDisplay: () -> Unit, onBrowse: () -> Unit,
+                       onSignOut: () -> Unit) {
     var host by remember { mutableStateOf(cfg.host) }
     var name by remember { mutableStateOf(cfg.name) }
 
@@ -172,6 +179,7 @@ private fun UnitScreen(cfg: Config, onStart: () -> Unit, onStop: () -> Unit,
             }
             OutlinedButton(onClick = onStop) { Text("Stop") }
             Button(onClick = onDisplay) { Text("Big screen display") }
+            Button(onClick = onBrowse) { Text("Browse & play") }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically,
