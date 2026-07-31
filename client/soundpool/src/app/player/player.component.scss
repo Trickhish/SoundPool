@@ -1057,7 +1057,14 @@
 
 /* ── Party mode modal ── */
 /* ── Room settings ── */
-.settings-modal { max-width: 460px; }
+/* Hug the content. The shared .library box is a fixed min(82dvh,100%) tall,
+   which left a big empty panel under short tabs — very visible once the output
+   selector moved in here from its own auto-height modal. */
+.settings-modal {
+    max-width: 460px;
+    height: auto;
+    max-height: min(82dvh, 100%);
+}
 .settings-tabs {
     display: flex;
     gap: 0.25rem;
@@ -1334,6 +1341,13 @@
 }
 
 /* Output selector, now inside Settings › Playback */
+.settings-modal {
+    /* The panel centres its text; a list of outputs reads better left-aligned. */
+    .out-row { text-align: left; }
+    /* The browser row has no .out-label wrapper, so its name needs the grow
+       itself or the tick sits against the text instead of the right edge. */
+    .out-row > .out-name { flex: 1; }
+}
 .setting-head {
   margin: 4px 2px 2px;
   font-size: .82rem;
@@ -1342,5 +1356,5 @@
   text-transform: uppercase;
   color: var(--muted, #b9a9d8);
 }
-.out-hint { margin: 0 2px 8px; }
+.out-hint { margin: 0 2px 8px; text-align: center; }
 .out-sub.offline { color: #f87171; }

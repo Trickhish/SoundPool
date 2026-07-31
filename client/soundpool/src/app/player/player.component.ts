@@ -685,7 +685,9 @@ export class PlayerComponent implements OnInit, OnDestroy {
 
   // ── Room settings (admin) ──
   settingsOpen = false;
-  settingsTab: 'party' | 'playback' | 'display' | 'members' = 'party';
+  // Defaults to the first tab; openSettings() falls back if this user
+  // doesn't have it (a party manager who isn't an admin, say).
+  settingsTab: 'party' | 'playback' | 'display' | 'members' = 'playback';
 
   /** Tabs the user can actually use (party managers aren't admins).
    *  Held in a field, NOT a getter: a getter returns a new array on every
